@@ -10,6 +10,7 @@ pub mod mef_pipeline;
 pub mod graph;
 pub mod symmetries;
 pub mod quantum;
+pub mod cube;
 
 pub use geometry::{
     Node, canonical_nodes, canonical_edges, complete_canonical_edges,
@@ -25,6 +26,7 @@ pub use symmetries::{
     generate_alternating_group,
 };
 pub use quantum::{QuantumState, QuantumOperator};
+pub use cube::{MetatronCube, NodeInfo, EdgeInfo, OperatorInfo};
 
 #[cfg(test)]
 mod tests {
