@@ -1,0 +1,66 @@
+{
+  "git_commit": "486b120d8602ca5d4bdb3084521e2258e43b8fac",
+  "commit_root": {
+    "ledger": "72cb8147a344f58540540a86e70509a794d1de8ae4f418fc916b26f14b827238"
+  },
+  "embedding_version": {
+    "sample_payload": {
+      "payload": "Baseline Infinity Vector",
+      "timestamp": "2025-01-01T12:00:00",
+      "attributes": {
+        "alpha": 0.42,
+        "beta": "phi"
+      }
+    },
+    "vector_hash": "110e8f769df87a74ea9ecaee7c01e1842d57190c5db6506bca15f3aee911bab2",
+    "vector": [
+      0.7693404075689614,
+      0.041304991114884615,
+      0.9376102974638343,
+      -0.37481864355504513,
+      0.13737903907895088
+    ]
+  },
+  "config": {
+    "env": {
+      "MEF_SEED": null,
+      "MEF_DETERMINISTIC": null,
+      "PYTHONPATH": null
+    },
+    "config_yaml_sha256": "27e0e784a6834e1386484f368dbdc126a5ffab69ea7f5fb95ef9f2798ec835f2",
+    "seed": "MEF_SEED_42"
+  },
+  "api_hash": {
+    "openapi_sha256": "3d778ff0486dc3a2ec59a765c5281b368818c7889ddeaafa1e60b8ab2fb6d7fd",
+    "endpoints": 36
+  },
+  "non_regression": {
+    "vector_search": {
+      "collection": "baseline",
+      "query_vector_hash": "110e8f769df87a74ea9ecaee7c01e1842d57190c5db6506bca15f3aee911bab2",
+      "results": [
+        {
+          "id": "baseline-anchor",
+          "score": 1.0,
+          "epoch": 1
+        },
+        {
+          "id": "baseline-neighbor",
+          "score": 1.0,
+          "epoch": 1
+        },
+        {
+          "id": "baseline-inverse",
+          "score": -1.0,
+          "epoch": 1
+        }
+      ],
+      "result_hash": "608ad67406d1f8f2a546e11cb4744a2680d6165b25e1e4d5f382265c899c75c6"
+    },
+    "proof_of_resonance": {
+      "snapshot_id": "3ce5a0c83988a500",
+      "proof_hash": "5777dbe1e0b91bf070ae153672ed8696f99658147003bf40739197603743859f",
+      "por_status": "invalid"
+    }
+  }
+}

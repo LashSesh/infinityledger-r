@@ -1,0 +1,110 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "MerkabaGateEvent",
+  "type": "object",
+  "properties": {
+    "gate_id": {
+      "type": "string",
+      "format": "uuid",
+      "description": "Unique identifier for this gate event"
+    },
+    "snapshot_id": {
+      "type": "string",
+      "format": "uuid",
+      "description": "Reference to the source snapshot"
+    },
+    "tic_candidate_id": {
+      "type": "string",
+      "format": "uuid",
+      "description": "Reference to the TIC candidate being evaluated"
+    },
+    "checks": {
+      "type": "object",
+      "properties": {
+        "por": {
+          "type": "string",
+          "enum": ["valid", "invalid"],
+          "description": "Proof of Resonance validation status"
+        },
+        "delta_pi": {
+          "type": "number",
+          "minimum": 0,
+          "description": "Path invariance deviation measure"
+        },
+        "phi": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 1,
+          "description": "Coherence measure using Metatron resonance"
+        },
+        "delta_v": {
+          "type": "number",
+          "description": "Lyapunov exponent change (negative indicates stability)"
+        },
+        "mci": {
+          "type": ["number", "null"],
+          "minimum": 0,
+          "maximum": 1,
+          "description": "Mirror Consistency Index from dual-consensus paths"
+        }
+      },
+      "required": ["por", "delta_pi", "phi", "delta_v"],
+      "additionalProperties": false
+    },
+    "decision": {
+      "type": "object",
+      "properties": {
+        "commit": {
+          "type": "boolean",
+          "description": "Whether to commit to ledger"
+        },
+        "reason": {
+          "type": "string",
+          "description": "Human-readable explanation of decision"
+        }
+      },
+      "required": ["commit", "reason"],
+      "additionalProperties": false
+    },
+    "timestamp": {
+      "type": "string",
+      "format": "date-time",
+      "description": "ISO 8601 timestamp of gate evaluation"
+    },
+    "metatron_routing": {
+      "type": "object",
+      "properties": {
+        "operator_sequence": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "enum": ["DK", "SW", "PI", "WT"]
+          },
+          "description": "Operator sequence applied"
+        },
+        "symmetry_group": {
+          "type": "string",
+          "enum": ["C6", "D6", "S7"],
+          "description": "Symmetry group used for path invariance check"
+        },
+        "topology_invariants": {
+          "type": "object",
+          "properties": {
+            "betti": {
+              "type": "array",
+              "items": {"type": "integer"},
+              "description": "Betti numbers"
+            },
+            "lambda_gap": {
+              "type": "number",
+              "description": "Spectral gap"
+            }
+          }
+        }
+      },
+      "description": "Metatron Cube routing information"
+    }
+  },
+  "required": ["gate_id", "snapshot_id", "tic_candidate_id", "checks", "decision", "timestamp"],
+  "additionalProperties": false
+}
