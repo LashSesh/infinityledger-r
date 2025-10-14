@@ -564,4 +564,58 @@ mod tests {
             assert!((fp1[i] - fp2[i]).abs() < 1e-10);
         }
     }
+
+    #[test]
+    fn test_fixpoint_with_varied_inputs() {
+        let config = SolveCoagulaConfig::default();
+        let sc = SolveCoagula::new(config).unwrap();
+
+        // Test with different input vectors
+        let test_vectors = vec![
+            vec![1.0, 0.5, -0.3, 0.8, -0.2],
+            vec![0.1, 0.2, 0.3, 0.4, 0.5],
+            vec![-1.0, -0.5, 0.0, 0.5, 1.0],
+            vec![2.0, -1.0, 0.5, -0.3, 1.5],
+        ];
+
+        for vec_data in test_vectors {
+            let v0 = Array1::from_vec(vec_data);
+            let result = sc.iterate_to_fixpoint(&v0, true);
+
+            assert!(result.is_ok());
+            let (_fixpoint, info) = result.unwrap();
+            assert!(info.iterations > 0);
+            assert!(info.iterations <= 1000);
+        }
+    }
+
+    #[test]
+    fn test_operator_info() {
+        let config = SolveCoagulaConfig::default();
+        let sc = SolveCoagula::new(config).unwrap();
+
+        let info = sc.get_operator_info();
+        
+        assert!(info["affine"]["lambda"].as_f64().unwrap() > 0.0);
+        assert!(info["affine"]["lambda"].as_f64().unwrap() < 1.0);
+        assert!(info["operators"]["dk"]["alpha1"].is_f64());
+        assert!(info["operators"]["sw"]["tau0"].is_f64());
+        assert!(info["operators"]["pi"]["canon"].is_string());
+    }
+
+    #[test]
+    fn test_convergence_with_custom_config() {
+        let mut config = SolveCoagulaConfig::default();
+        config.max_iter = 500;
+        config.eps = 1e-5;
+        
+        let sc = SolveCoagula::new(config).unwrap();
+
+        let v0 = Array1::from_vec(vec![1.0, 0.5, -0.3, 0.8, -0.2]);
+        let result = sc.iterate_to_fixpoint(&v0, true);
+
+        assert!(result.is_ok());
+        let (_fixpoint, info) = result.unwrap();
+        assert!(info.iterations <= 500);
+    }
 }
