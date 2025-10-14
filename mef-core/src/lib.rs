@@ -15,6 +15,9 @@ pub mod mandorla;
 pub mod gabriel_cell;
 pub mod qlogic;
 pub mod resonance_tensor;
+pub mod spiral_memory;
+pub mod qdash_agent;
+pub mod gates;
 
 pub use geometry::{
     Node, canonical_nodes, canonical_edges, complete_canonical_edges,
@@ -35,6 +38,9 @@ pub use mandorla::MandorlaField;
 pub use gabriel_cell::{GabrielCell, couple_cells, neighbor_feedback};
 pub use qlogic::{QLOGICOscillatorCore, SpectralGrammar, EntropyAnalyzer, QLogicEngine, QLogicStepResult};
 pub use resonance_tensor::ResonanceTensorField;
+pub use spiral_memory::SpiralMemory;
+pub use qdash_agent::{QDASHAgent, QDASHResult};
+pub use gates::{MerkabaGate, TICCandidate, GateChecks, GateDecision, GateEvent, validate_gate_event};
 
 #[cfg(test)]
 mod tests {

@@ -427,6 +427,9 @@ let seed_mod = u32::from_be_bytes(seed_hash[..4].try_into().unwrap()) as f64 / (
 - `gabriel_cell.py` → `gabriel_cell.rs` ✅ MIGRATED
 - `qlogic.py` → `qlogic.rs` ✅ MIGRATED
 - `resonance_tensor.py` → `resonance_tensor.rs` ✅ MIGRATED
+- `spiralmemory.py` → `spiral_memory.rs` ✅ MIGRATED
+- `qdash_agent.py` → `qdash_agent.rs` ✅ MIGRATED
+- `gates/merkaba_gate.py` → `gates/merkaba_gate.rs` ✅ MIGRATED
 
 **Key Challenges**:
 - Metatron Cube geometric definitions (13 nodes, 23/78 edges)
@@ -442,6 +445,9 @@ let seed_mod = u32::from_be_bytes(seed_hash[..4].try_into().unwrap()) as f64 / (
 - Feedback resonator networks with Hebbian learning
 - Spectral processing with FFT analysis
 - 3D tensor field dynamics with singularity detection
+- 5D spiral embedding with gradient-based optimization
+- QDASH decision cycle integrating multiple components
+- Merkaba gate with TIC validation and multiple stability checks
 
 **Solutions**:
 - Node struct with 3D coordinates and distance calculations
@@ -456,10 +462,13 @@ let seed_mod = u32::from_be_bytes(seed_hash[..4].try_into().unwrap()) as f64 / (
 - GabrielCell with activation, feedback, and neighbor coupling
 - QLogicEngine with oscillator core, FFT spectral grammar, and diagnostics
 - ResonanceTensorField with 3D amplitude/frequency/phase arrays and coherence metrics
+- SpiralMemory with Fourier-like embeddings and convergence detection
+- QDASHAgent orchestrating QLogic, Mandorla, SpiralMemory, and Gabriel cells
+- MerkabaGate implementing PoR, ΔPI, Φ, ΔV, and MCI validation checks
 - Serde-based JSON serialization for all configurations
 - Verification examples demonstrating all utilities
 
-**Status**: ✅ Complete (158 tests passing)
+**Status**: ✅ Complete (206 tests passing)
 
 **Modules**:
 1. **geometry.rs** (15 tests)
@@ -552,6 +561,31 @@ let seed_mod = u32::from_be_bytes(seed_hash[..4].try_into().unwrap()) as f64 / (
     - Gradient norm computation
     - Singularity detection for field stabilization
 
+12. **spiral_memory.rs** (18 tests)
+    - SpiralMemory 5D point cloud encoding
+    - Fourier-like string embedding with normalization
+    - Psi resonance metric (stability, convergence, reactivity)
+    - Gradient-based optimization with proof of resonance
+    - Memory and history tracking
+    - Convergence detection
+
+13. **qdash_agent.rs** (14 tests)
+    - QDASHAgent decision cycle orchestration
+    - TRM transformation of inputs to oscillator signals
+    - Integration of QLogic, Mandorla, SpiralMemory, Gabriel cells
+    - Iterative resonance computation with adaptive thresholds
+    - Decision triggering based on coherence
+    - State management and reset
+
+14. **gates/merkaba_gate.rs** (16 tests)
+    - MerkabaGate TIC validation system
+    - Coherence measure (Φ) computation with spectral analysis
+    - Path invariance (ΔPI) using symmetry operators
+    - Lyapunov stability (ΔV) with historical tracking
+    - Mirror Consistency Index (MCI) for dual-consensus
+    - Gate decision logic with multiple threshold checks
+    - Audit logging for gate events
+
 ## Testing Strategy
 
 ### Unit Tests
@@ -595,7 +629,7 @@ Comparing Python and Rust outputs:
 
 ### Phase 4: Supporting Modules (100% Complete)
 - [x] mef-audit crate ✅ (7 tests)
-- [x] mef-core crate ✅ (158 tests)
+- [x] mef-core crate ✅ (206 tests)
   - [x] geometry.rs - Metatron Cube nodes and edges (15 tests)
   - [x] field_vector.rs - n-dimensional vector utilities (12 tests)
   - [x] mef_pipeline.rs - Main MEF-Core interface (6 tests)
@@ -607,6 +641,9 @@ Comparing Python and Rust outputs:
   - [x] gabriel_cell.rs - Feedback resonator (21 tests)
   - [x] qlogic.rs - Spectral processing engine (26 tests)
   - [x] resonance_tensor.rs - 3D tensor dynamics (27 tests)
+  - [x] spiral_memory.rs - 5D spiral embedding (18 tests)
+  - [x] qdash_agent.rs - QDASH decision cycle (14 tests)
+  - [x] gates/merkaba_gate.rs - TIC validation gate (16 tests)
   - [x] examples/verify.rs - Verification example
   - [x] examples/cube_demo.rs - Cube API demonstration
   - [x] examples/advanced_modules_demo.rs - Advanced modules demonstration
@@ -624,8 +661,8 @@ Comparing Python and Rust outputs:
 - [x] Update MIGRATION.md
 - [ ] Final validation
 
-**Current Progress**: 17 of 76+ modules migrated (22.4%)
-**Total Tests**: 220 comprehensive unit tests, all passing
+**Current Progress**: 20 of 76+ modules migrated (26.3%)
+**Total Tests**: 268 comprehensive unit tests, all passing
 
 ## Known Limitations
 
@@ -678,4 +715,4 @@ Migrate {module_name}.py to Rust
 
 **Last Updated**: 2025-10-14  
 **Status**: Phase 4 (Supporting Modules) - Complete  
-**Modules Migrated**: 17 of 76+ (22.4%)
+**Modules Migrated**: 20 of 76+ (26.3%)
