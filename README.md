@@ -5,6 +5,17 @@
 
 Enterprise-grade infrastructure and CI/CD pipeline for Infinity Ledger, featuring MEF-Core (Mandorla Eigenstate Fractals) with robust deployment, monitoring, and security capabilities.
 
+## 🦀 Rust Migration In Progress
+
+The MEF-Core system is being migrated from Python to Rust for improved performance, safety, and concurrency. See [RUST_BUILD_GUIDE.md](./RUST_BUILD_GUIDE.md) for details.
+
+**Migration Status**: 2 of 76 core modules completed (2.6%)
+- ✅ `mef-spiral` - Spiral snapshot system
+- ✅ `mef-ledger` - Hash-chained ledger
+- 🚧 Remaining modules in progress
+
+[Migration Documentation](./MIGRATION.md) | [Rust Build Guide](./RUST_BUILD_GUIDE.md)
+
 ## 🚀 Quick Start
 
 ### Local Development
@@ -371,12 +382,26 @@ The pipeline generates and uploads:
 
 ## 🤝 Contributing
 
+### Python Development
+
 1. Fork the repository
 2. Create a feature branch
 3. Make your changes
 4. Run tests: `pytest tests/bench/ -v`
 5. Validate configuration: `docker compose -f docker-compose.ci.yml --profile compare config`
 6. Submit a pull request
+
+### Rust Development
+
+1. Fork the repository
+2. Create a feature branch
+3. Make your changes to Rust modules
+4. Run tests: `cargo test`
+5. Format code: `cargo fmt`
+6. Check with clippy: `cargo clippy`
+7. Submit a pull request
+
+See [RUST_BUILD_GUIDE.md](./RUST_BUILD_GUIDE.md) for detailed Rust development instructions.
 
 ## 📝 License
 
