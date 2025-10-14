@@ -7,6 +7,9 @@
 pub mod geometry;
 pub mod field_vector;
 pub mod mef_pipeline;
+pub mod graph;
+pub mod symmetries;
+pub mod quantum;
 
 pub use geometry::{
     Node, canonical_nodes, canonical_edges, complete_canonical_edges,
@@ -14,6 +17,14 @@ pub use geometry::{
 };
 pub use field_vector::FieldVector;
 pub use mef_pipeline::{MEFCore, MEFCoreConfig, ProcessingResult};
+pub use graph::MetatronCubeGraph;
+pub use symmetries::{
+    generate_s7_permutations, permutation_matrix, permutation_to_matrix,
+    apply_permutation_to_adjacency, hexagon_rotation, hexagon_reflection,
+    generate_c6_subgroup, generate_d6_subgroup, generate_symmetric_group,
+    generate_alternating_group,
+};
+pub use quantum::{QuantumState, QuantumOperator};
 
 #[cfg(test)]
 mod tests {
