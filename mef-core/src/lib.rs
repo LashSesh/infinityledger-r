@@ -7,6 +7,7 @@
 pub mod geometry;
 pub mod field_vector;
 pub mod mef_pipeline;
+pub mod graph;
 
 pub use geometry::{
     Node, canonical_nodes, canonical_edges, complete_canonical_edges,
@@ -14,6 +15,7 @@ pub use geometry::{
 };
 pub use field_vector::FieldVector;
 pub use mef_pipeline::{MEFCore, MEFCoreConfig, ProcessingResult};
+pub use graph::MetatronCubeGraph;
 
 #[cfg(test)]
 mod tests {
