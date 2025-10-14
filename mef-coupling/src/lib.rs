@@ -1,14 +1,8 @@
-pub fn add(left: u64, right: u64) -> u64 {
-    left + right
-}
+/*!
+ * MEF-Coupling - Spiral-Ledger coupling module
+ * Deterministic coupling between ledger events and spiral coordinates
+ */
 
-#[cfg(test)]
-mod tests {
-    use super::*;
+pub mod spiral_coupling;
 
-    #[test]
-    fn it_works() {
-        let result = add(2, 2);
-        assert_eq!(result, 4);
-    }
-}
+pub use spiral_coupling::{ResonanceMetric, SpiralCouplingEngine, SpiralParameters};
