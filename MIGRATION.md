@@ -423,6 +423,10 @@ let seed_mod = u32::from_be_bytes(seed_hash[..4].try_into().unwrap()) as f64 / (
 - `symmetries.py` → `symmetries.rs` ✅ MIGRATED
 - `quantum.py` → `quantum.rs` ✅ MIGRATED
 - `cube.py` → `cube.rs` ✅ MIGRATED
+- `mandorla.py` → `mandorla.rs` ✅ MIGRATED
+- `gabriel_cell.py` → `gabriel_cell.rs` ✅ MIGRATED
+- `qlogic.py` → `qlogic.rs` ✅ MIGRATED
+- `resonance_tensor.py` → `resonance_tensor.rs` ✅ MIGRATED
 
 **Key Challenges**:
 - Metatron Cube geometric definitions (13 nodes, 23/78 edges)
@@ -434,6 +438,10 @@ let seed_mod = u32::from_be_bytes(seed_hash[..4].try_into().unwrap()) as f64 / (
 - Quantum states with complex numbers
 - High-level API wrapper with solid membership
 - Cross-module integration
+- Global resonance field with dynamic thresholding
+- Feedback resonator networks with Hebbian learning
+- Spectral processing with FFT analysis
+- 3D tensor field dynamics with singularity detection
 
 **Solutions**:
 - Node struct with 3D coordinates and distance calculations
@@ -444,10 +452,14 @@ let seed_mod = u32::from_be_bytes(seed_hash[..4].try_into().unwrap()) as f64 / (
 - Permutation matrices, hexagon rotations/reflections, C6/D6 subgroups
 - QuantumState and QuantumOperator with complex amplitudes
 - MetatronCube struct with node/edge accessors, solid membership, and operator management
+- MandorlaField with pairwise resonance, entropy, and variance calculations
+- GabrielCell with activation, feedback, and neighbor coupling
+- QLogicEngine with oscillator core, FFT spectral grammar, and diagnostics
+- ResonanceTensorField with 3D amplitude/frequency/phase arrays and coherence metrics
 - Serde-based JSON serialization for all configurations
-- Verification example demonstrating all utilities
+- Verification examples demonstrating all utilities
 
-**Status**: ✅ Complete (86 tests passing)
+**Status**: ✅ Complete (158 tests passing)
 
 **Modules**:
 1. **geometry.rs** (15 tests)
@@ -508,6 +520,38 @@ let seed_mod = u32::from_be_bytes(seed_hash[..4].try_into().unwrap()) as f64 / (
    - JSON serialization
    - Configuration validation
 
+8. **mandorla.rs** (18 tests)
+   - MandorlaField global decision and resonance field
+   - Input vector management
+   - Pairwise cosine similarity resonance calculation
+   - Shannon entropy and variance metrics
+   - Dynamic threshold decision trigger (θ(t) = α·Entropy + β·Variance)
+   - Resonance history tracking
+
+9. **gabriel_cell.rs** (21 tests)
+   - GabrielCell modular feedback resonator
+   - Activation with learning rate (psi, rho, omega parameters)
+   - Feedback mechanism with error correction
+   - Cell coupling and neighbor feedback
+   - Hebbian learning dynamics
+   - Parameter clipping for stability
+
+10. **qlogic.rs** (26 tests)
+    - QLOGICOscillatorCore pattern generation
+    - SpectralGrammar FFT analysis
+    - EntropyAnalyzer coherence measurement
+    - QLogicEngine main interface
+    - Spectral centroid and sparsity diagnostics
+    - Time evolution of oscillatory patterns
+
+11. **resonance_tensor.rs** (27 tests)
+    - ResonanceTensorField 3D oscillatory dynamics
+    - Amplitude, frequency, and phase parameter arrays
+    - Time evolution with optional input modulation
+    - Global coherence metric (pairwise similarity)
+    - Gradient norm computation
+    - Singularity detection for field stabilization
+
 ## Testing Strategy
 
 ### Unit Tests
@@ -551,7 +595,7 @@ Comparing Python and Rust outputs:
 
 ### Phase 4: Supporting Modules (100% Complete)
 - [x] mef-audit crate ✅ (7 tests)
-- [x] mef-core crate ✅ (86 tests)
+- [x] mef-core crate ✅ (158 tests)
   - [x] geometry.rs - Metatron Cube nodes and edges (15 tests)
   - [x] field_vector.rs - n-dimensional vector utilities (12 tests)
   - [x] mef_pipeline.rs - Main MEF-Core interface (6 tests)
@@ -559,7 +603,13 @@ Comparing Python and Rust outputs:
   - [x] symmetries.rs - Group-theoretic utilities (15 tests)
   - [x] quantum.rs - Quantum states and operators (12 tests)
   - [x] cube.rs - High-level Metatron Cube API (13 tests)
+  - [x] mandorla.rs - Global resonance field (18 tests)
+  - [x] gabriel_cell.rs - Feedback resonator (21 tests)
+  - [x] qlogic.rs - Spectral processing engine (26 tests)
+  - [x] resonance_tensor.rs - 3D tensor dynamics (27 tests)
   - [x] examples/verify.rs - Verification example
+  - [x] examples/cube_demo.rs - Cube API demonstration
+  - [x] examples/advanced_modules_demo.rs - Advanced modules demonstration
 
 ### Phase 5: API & Services (In Progress)
 - [ ] mef-api crate (basic structure in place)
@@ -574,8 +624,8 @@ Comparing Python and Rust outputs:
 - [x] Update MIGRATION.md
 - [ ] Final validation
 
-**Current Progress**: 13 of 76+ modules migrated (17.1%)
-**Total Tests**: 149 comprehensive unit tests, all passing
+**Current Progress**: 17 of 76+ modules migrated (22.4%)
+**Total Tests**: 220 comprehensive unit tests, all passing
 
 ## Known Limitations
 
@@ -628,4 +678,4 @@ Migrate {module_name}.py to Rust
 
 **Last Updated**: 2025-10-14  
 **Status**: Phase 4 (Supporting Modules) - Complete  
-**Modules Migrated**: 13 of 76+ (17.1%)
+**Modules Migrated**: 17 of 76+ (22.4%)
