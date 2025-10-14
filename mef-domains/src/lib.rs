@@ -12,10 +12,12 @@ pub mod resonit;
 pub mod resonat;
 pub mod infogenome;
 pub mod meshholo;
+pub mod adapter;
 
 // Re-export main types
 pub use resonit::{Resonit, Sigma};
 pub use resonat::{Resonat, ResonatMetrics};
 pub use infogenome::{Infogene, Infogenome};
 pub use meshholo::{MeshHolo, VertexData, EdgeData, TopologicalInvariants};
+pub use adapter::{DomainAdapter, TextDomainAdapter, SignalDomainAdapter};
 
