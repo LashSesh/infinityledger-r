@@ -13,6 +13,7 @@ pub mod resonat;
 pub mod infogenome;
 pub mod meshholo;
 pub mod adapter;
+pub mod domain_layer;
 
 // Re-export main types
 pub use resonit::{Resonit, Sigma};
@@ -20,4 +21,8 @@ pub use resonat::{Resonat, ResonatMetrics};
 pub use infogenome::{Infogene, Infogenome};
 pub use meshholo::{MeshHolo, VertexData, EdgeData, TopologicalInvariants};
 pub use adapter::{DomainAdapter, TextDomainAdapter, SignalDomainAdapter};
+pub use domain_layer::{
+    DomainLayer, DomainMetrics, DomainProcessingResult, 
+    GateValidation, CrossDomainResult
+};
 

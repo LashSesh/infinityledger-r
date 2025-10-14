@@ -263,7 +263,7 @@ impl DomainAdapter for SignalDomainAdapter {
         let mut i = 0;
         while i + window_size <= signal.len() {
             let window = &signal[i..i + window_size];
-            let features = self.extract_features(&Value::Array(
+            let _features = self.extract_features(&Value::Array(
                 window.iter().map(|&x| Value::from(x)).collect()
             ))?;
             
