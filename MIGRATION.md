@@ -413,7 +413,35 @@ let seed_mod = u32::from_be_bytes(seed_hash[..4].try_into().unwrap()) as f64 / (
 - Same command structure
 - Match output format
 
-### Topology Module (mef-topology)
+### Domains Module (mef-domains)
+
+**Files**:
+- `domain_layer.py` → Partial migration (core structures complete) ✅ PARTIALLY MIGRATED
+  - `resonit.rs` - Elementary information atoms
+  - `resonat.rs` - Topologically stable clusters
+  - `infogenome.rs` - Operator signatures
+  - `meshholo.rs` - Holographic triangulation
+- Domain adapters (TextDomainAdapter, SignalDomainAdapter) - TO DO
+- DomainLayer orchestrator - TO DO
+- `xswap.py` → TO DO
+
+**Key Challenges**:
+- Complex topological analysis (Betti numbers, persistence)
+- Graph-based resonance clustering
+- Metatron Cube geometric embedding
+- Spectral gap calculation (Laplacian eigenvalues)
+- Evolutionary genetic algorithm for Infogenomes
+
+**Solutions**:
+- Used `petgraph` for graph topology and connected components
+- Implemented Betti number calculation via graph structure analysis
+- `nalgebra` for symmetric eigenvalue decomposition
+- `ndarray` for multi-dimensional embeddings
+- Faithful translation of persistence scoring algorithm
+- Genetic mutation with configurable rates and noise
+
+**Status**: ✅ Core structures complete (26 tests passing)  
+**Remaining**: Domain adapters, DomainLayer orchestrator, Xswap (~900 Python lines)
 
 **Files**:
 - `metatron_router.py` → `metatron_router.rs` ✅ MIGRATED
@@ -697,6 +725,11 @@ Comparing Python and Rust outputs:
   - [x] metatron_router.rs - Central routing system for operator transformations
 - [x] mef-storage crate ✅ (5 tests)
   - [x] s3_adapter.rs - S3-compatible cloud storage adapter
+- [x] mef-domains crate ✅ (26 tests)
+  - [x] resonit.rs - Elementary information atoms with tripolar signatures
+  - [x] resonat.rs - Topologically stable Resonit clusters
+  - [x] infogenome.rs - Operator signatures and evolutionary behavior
+  - [x] meshholo.rs - Holographic triangulation with Metatron embedding
 - [ ] mef-api crate (basic structure in place)
 - [ ] mef-cli crate (basic structure in place)
 
@@ -709,8 +742,8 @@ Comparing Python and Rust outputs:
 - [x] Update MIGRATION.md
 - [ ] Final validation
 
-**Current Progress**: 22 of 76+ modules migrated (28.9%)
-**Total Tests**: 293 comprehensive unit tests, all passing
+**Current Progress**: 23 of 76+ modules migrated (30.3%)
+**Total Tests**: 319 comprehensive unit tests, all passing
 
 ## Known Limitations
 
