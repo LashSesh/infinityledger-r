@@ -1,0 +1,75 @@
+[workspace]
+resolver = "2"
+members = [
+    "mef-core",
+    "mef-spiral",
+    "mef-ledger",
+    "mef-hdag",
+    "mef-ingestion",
+    "mef-solvecoagula",
+    "mef-tic",
+    "mef-coupling",
+    "mef-audit",
+    "mef-api",
+    "mef-cli",
+]
+
+[workspace.package]
+version = "1.0.0"
+edition = "2021"
+authors = ["MEF-Core Project"]
+license = "MIT"
+repository = "https://github.com/LashSesh/infinityledger"
+
+[workspace.dependencies]
+# Serialization
+serde = { version = "1.0", features = ["derive"] }
+serde_json = "1.0"
+
+# Numerics
+ndarray = "0.15"
+
+# Cryptography
+sha2 = "0.10"
+uuid = { version = "1.0", features = ["v4", "serde"] }
+
+# Date/Time
+chrono = { version = "0.4", features = ["serde"] }
+
+# Error handling
+anyhow = "1.0"
+thiserror = "1.0"
+
+# Async runtime
+tokio = { version = "1.0", features = ["full"] }
+
+# Networking
+reqwest = { version = "0.11", features = ["json"] }
+
+# CLI
+clap = { version = "4.0", features = ["derive"] }
+
+# Web framework
+axum = "0.7"
+tower = "0.4"
+tower-http = { version = "0.5", features = ["cors"] }
+
+# gRPC
+tonic = "0.11"
+prost = "0.12"
+
+# Logging
+tracing = "0.1"
+tracing-subscriber = { version = "0.3", features = ["env-filter"] }
+
+# Testing
+proptest = "1.0"
+
+[profile.release]
+opt-level = 3
+lto = true
+codegen-units = 1
+
+[profile.dev]
+opt-level = 0
+debug = true
