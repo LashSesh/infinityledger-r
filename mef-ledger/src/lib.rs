@@ -1,14 +1,12 @@
-pub fn add(left: u64, right: u64) -> u64 {
-    left + right
-}
+//! MEF-Core Ledger Module
+//!
+//! Hash-chained immutable ledger for TICs with deterministic hashing.
+//!
+//! Migrated from: MEF-Core_v1.0/src/ledger/
 
-#[cfg(test)]
-mod tests {
-    use super::*;
+pub mod mef_block;
 
-    #[test]
-    fn it_works() {
-        let result = add(2, 2);
-        assert_eq!(result, 4);
-    }
-}
+pub use mef_block::{
+    ChainStatistics, CompactTic, LedgerIndex, LedgerMetadata, 
+    MEFLedger, MefBlock, TimeRange, BlockSummary,
+};
