@@ -1,0 +1,211 @@
+[build-system]
+requires = ["setuptools>=61.0", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "mef-core"
+version = "1.0.0"
+description = "Mandorla Eigenstate Fractals - Deterministic Information Transformation Pipeline"
+readme = "README.md"
+requires-python = ">=3.10"
+license = {text = "MIT"}
+authors = [
+    {name = "MEF-Core Project", email = "mef-core@example.com"}
+]
+maintainers = [
+    {name = "MEF-Core Team", email = "mef-core@example.com"}
+]
+keywords = [
+    "information-processing",
+    "deterministic-systems", 
+    "post-symbolic-ai",
+    "geometric-embedding",
+    "contractive-operators",
+    "blockchain",
+    "audit-trail"
+]
+classifiers = [
+    "Development Status :: 4 - Beta",
+    "Intended Audience :: Developers",
+    "Intended Audience :: Science/Research",
+    "Topic :: Scientific/Engineering :: Information Analysis",
+    "Topic :: Scientific/Engineering :: Mathematics",
+    "Topic :: Software Development :: Libraries :: Python Modules",
+    "License :: OSI Approved :: MIT License",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "Operating System :: OS Independent",
+]
+
+dependencies = [
+    "fastapi==0.103.0",
+    "uvicorn==0.23.2",
+    "grpcio==1.59.0",
+    "grpcio-tools==1.59.0",
+    "pydantic==2.5.3",
+    "numpy>=1.26,<2.1",
+    "scipy==1.11.2",
+    "click==8.1.7",
+    "boto3==1.28.0",
+    "pyyaml==6.0.1",
+    "jsonschema==4.19.0",
+    "aiofiles==23.2.1",
+    "websockets==11.0.3",
+    "httpx==0.27.0",
+    "python-multipart==0.0.6",
+    "weaviate-client==4.6.4",
+    "pymilvus==2.4.4",
+    "qdrant-client==1.9.0",
+    "faiss-cpu==1.7.4",
+]
+
+[project.optional-dependencies]
+dev = [
+    "pytest>=7.4.2",
+    "pytest-cov>=4.1.0",
+    "pytest-asyncio>=0.21.0",
+    "pytest-benchmark>=4.0.0",
+    "pytest-xdist>=3.3.1",
+    "black>=23.7.0",
+    "flake8>=6.1.0",
+    "mypy>=1.5.0",
+    "bandit>=1.7.5",
+    "isort>=5.12.0",
+    "pre-commit>=3.3.3",
+]
+cloud = [
+    "boto3>=1.28.0",
+    "google-cloud-storage>=2.10.0",
+    "azure-storage-blob>=12.17.0",
+]
+docs = [
+    "sphinx>=7.1.0",
+    "sphinx-rtd-theme>=1.3.0",
+    "myst-parser>=2.0.0",
+    "sphinx-autodoc-typehints>=1.24.0",
+]
+all = [
+    "mef-core[dev,cloud,docs]",
+]
+
+[project.urls]
+Homepage = "https://github.com/mef-core/mef-core"
+Documentation = "https://mef-core.readthedocs.io"
+Repository = "https://github.com/mef-core/mef-core.git"
+"Bug Tracker" = "https://github.com/mef-core/mef-core/issues"
+Changelog = "https://github.com/mef-core/mef-core/blob/main/CHANGELOG.md"
+
+[project.scripts]
+mef = "cli.mef:cli"
+mef-server = "api.server:main"
+mef-audit = "audit.logger:main"
+
+[tool.setuptools]
+package-dir = {"" = "src"}
+include-package-data = true
+
+[tool.setuptools.packages.find]
+where = ["src"]
+include = ["*"]
+exclude = ["tests*"]
+
+[tool.setuptools.package-data]
+"*" = ["*.json", "*.yaml", "*.yml"]
+
+[tool.black]
+line-length = 120
+target-version = ['py310', 'py311', 'py312']
+include = '\.pyi?$'
+extend-exclude = '''
+/(
+    \.eggs
+  | \.git
+  | \.hg
+  | \.mypy_cache
+  | \.tox
+  | \.venv
+  | _build
+  | buck-out
+  | build
+  | dist
+)/
+'''
+
+[tool.isort]
+profile = "black"
+line_length = 120
+multi_line_output = 3
+include_trailing_comma = true
+force_grid_wrap = 0
+use_parentheses = true
+ensure_newline_before_comments = true
+
+[tool.mypy]
+python_version = "3.11"
+warn_return_any = true
+warn_unused_configs = true
+disallow_untyped_defs = false
+disallow_any_generics = false
+ignore_missing_imports = true
+no_implicit_optional = true
+warn_redundant_casts = true
+warn_unused_ignores = true
+warn_no_return = true
+check_untyped_defs = true
+
+[tool.pytest.ini_options]
+minversion = "7.0"
+addopts = [
+    "-ra",
+    "-v",
+    "--strict-markers",
+    "--strict-config",
+    "--junitxml=report.xml",
+]
+testpaths = ["tests"]
+pythonpath = ["src"]
+markers = [
+    "slow: marks tests as slow (deselect with '-m \"not slow\"')",
+    "integration: marks tests as integration tests",
+    "unit: marks tests as unit tests",
+    "benchmark: marks tests as benchmark tests",
+    "asyncio: marks tests that require an asyncio event loop",
+    "property: marks property/quality gates that depend on a live service",
+]
+
+[tool.coverage.run]
+source = ["src"]
+omit = [
+    "*/tests/*",
+    "*/test_*.py",
+    "*/__init__.py",
+]
+
+[tool.coverage.report]
+exclude_lines = [
+    "pragma: no cover",
+    "def __repr__",
+    "def __str__",
+    "raise AssertionError",
+    "raise NotImplementedError",
+    "if __name__ == .__main__.:",
+    "if TYPE_CHECKING:",
+    "class .*\\bProtocol\\):",
+    "@(abc\\.)?abstractmethod",
+]
+
+[tool.bandit]
+exclude_dirs = ["tests", "scripts"]
+severity = "low"
+confidence = "low"
+max_line_length = 120
+recursive = true
+number = 3
+
+[tool.pylint.messages_control]
+disable = "C0330, C0326"
+
+[tool.pylint.format]
+max-line-length = 120

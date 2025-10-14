@@ -1,0 +1,2 @@
+# QA pipeline specific dependencies
+numpy>=1.26,<3

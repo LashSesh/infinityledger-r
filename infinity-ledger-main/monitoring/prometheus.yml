@@ -1,0 +1,77 @@
+# Prometheus Configuration for Infinity Ledger
+# This configuration defines scrape targets for all services in the infrastructure
+
+global:
+  scrape_interval: 15s
+  evaluation_interval: 15s
+  external_labels:
+    cluster: 'infinity-ledger'
+    environment: '${ENVIRONMENT:-production}'
+
+# Alerting configuration (optional)
+# alerting:
+#   alertmanagers:
+#     - static_configs:
+#         - targets:
+#           - alertmanager:9093
+
+# Scrape configurations
+scrape_configs:
+  # Prometheus self-monitoring
+  - job_name: 'prometheus'
+    static_configs:
+      - targets: ['localhost:9090']
+        labels:
+          service: 'prometheus'
+
+  # MEF API Service
+  - job_name: 'mef-api'
+    metrics_path: '/metrics'
+    static_configs:
+      - targets: ['api:${METRICS_PORT:-9090}']
+        labels:
+          service: 'mef-api'
+          component: 'api'
+
+  # Qdrant Service
+  - job_name: 'qdrant'
+    metrics_path: '/metrics'
+    static_configs:
+      - targets: ['qdrant:6333']
+        labels:
+          service: 'qdrant'
+          component: 'vector-db'
+
+  # Milvus Service
+  - job_name: 'milvus'
+    metrics_path: '/metrics'
+    static_configs:
+      - targets: ['milvus:9091']
+        labels:
+          service: 'milvus'
+          component: 'vector-db'
+
+  # FAISS API Service
+  - job_name: 'faiss-api'
+    metrics_path: '/metrics'
+    static_configs:
+      - targets: ['faiss-api:8090']
+        labels:
+          service: 'faiss-api'
+          component: 'vector-db'
+
+  # Docker container metrics (if using cAdvisor)
+  # - job_name: 'cadvisor'
+  #   static_configs:
+  #     - targets: ['cadvisor:8080']
+  #       labels:
+  #         service: 'cadvisor'
+  #         component: 'monitoring'
+
+  # Node exporter for host metrics (optional)
+  # - job_name: 'node'
+  #   static_configs:
+  #     - targets: ['node-exporter:9100']
+  #       labels:
+  #         service: 'node-exporter'
+  #         component: 'monitoring'

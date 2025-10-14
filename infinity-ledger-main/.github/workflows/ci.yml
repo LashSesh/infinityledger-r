@@ -1,0 +1,548 @@
+name: CI
+
+on:
+  push:
+    branches:
+      - main
+      - master
+  pull_request:
+  workflow_dispatch:
+    inputs:
+      bench_compare:
+        description: "Set to true to run the cross-DB compare benchmark"
+        required: false
+        default: "false"
+      targets:
+        description: "Comma separated list of compare drivers (e.g. mef,qdrant)"
+        required: false
+        default: "mef"
+
+jobs:
+  build-test:
+    runs-on: ubuntu-24.04
+    # ========================================================================
+    # ENVIRONMENT CONFIGURATION
+    # ========================================================================
+    # These variables configure the CI environment for deterministic,
+    # reproducible benchmark execution across all services.
+    # 
+    # Authentication & Security:
+    #   - AUTH_TOKEN_REQUIRED: Disable auth for CI testing
+    #   - MEF_API_TOKEN, QUALITY_TOKEN: Empty tokens for CI
+    #
+    # Service Endpoints:
+    #   - QUALITY_BASE_URL: Internal API endpoint
+    #   - QDRANT_URL, MILVUS_HOST: Vector DB connection strings
+    #
+    # Benchmark Configuration:
+    #   - BENCH_POINTS: Dataset size (100k vectors)
+    #   - BENCH_Q: Number of queries (200)
+    #   - BENCH_K: Top-k results to retrieve (10)
+    #   - COMPARE_LIMIT: Limit for cross-DB compare (500)
+    #
+    # Target Configuration:
+    #   - BENCH_TARGETS/TARGETS: Comma-separated list of comparison targets
+    #   - REQUIRED_TARGETS: Targets that must succeed for CI to pass
+    #
+    # Golden Test Configuration:
+    #   - GOLDEN_COUNT: Number of golden test runs (30)
+    #   - GOLDEN_MIN_OK: Minimum successful runs required (10)
+    #   - GOLDEN_HOLD_POLICY: "skip" to bypass POR holds in CI
+    # ========================================================================
+    env:
+      AUTH_TOKEN_REQUIRED: "false"
+      MEF_API_TOKEN: ""
+      QUALITY_TOKEN: ""
+      QUALITY_BASE_URL: "http://api:8080"
+      PYTHONPATH: ${{ github.workspace }}/MEF-Core_v1.0:${{ github.workspace }}/MEF-Core_v1.0/src:${{ github.workspace }}/MEF-Core_v1.0/tools
+      BENCH_POINTS: "100000"
+      BENCH_K: "10"
+      BENCH_Q: "200"
+      UPSERT_BATCH: "2000"
+      BENCH_TIMEOUT_SECONDS: "1200"
+      HNSW_EF_SEARCH: "64"
+      RECALL_EFSEARCH: "128"
+      STRICT_READPATH: "true"
+      BENCH_COMPARE: "1"
+      BENCH_TARGETS: "mef,faiss,qdrant,milvus"
+      TARGETS: "mef,faiss,qdrant,milvus"
+      REQUIRED_TARGETS: "mef,faiss,qdrant"
+      COMPARE_LIMIT: "500"
+      QDRANT_URL: "http://qdrant:6333"
+      MILVUS_HOST: "milvus"
+      MILVUS_PORT: "19530"
+      WEAVIATE_URL: "http://weaviate:8080"
+      ELASTIC_URL: "http://elasticsearch:9200"
+      GOLDEN_COUNT: "30"
+      GOLDEN_MIN_OK: "10"
+      GOLDEN_ATTEMPTS_FACTOR: "8"
+      GOLDEN_HOLD_POLICY: "skip"
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - name: Install Python dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r MEF-Core_v1.0/requirements.txt
+      - name: Run pre-flight environment validation
+        run: |
+          cd MEF-Core_v1.0
+          python tests/bench/preflight_check.py || {
+            echo "ERROR: Pre-flight validation failed. Please review environment configuration." >&2
+            exit 1
+          }
+      - name: Validate compose config
+        run: docker compose -f docker-compose.ci.yml config 1>/dev/null
+      - name: Start services and verify health
+        id: services
+        run: |
+          set -euo pipefail
+          
+          # Enhanced retry function with exponential backoff and better logging
+          retry_with_backoff() {
+            local max_attempts=5
+            local timeout=2
+            local attempt=1
+            local cmd="$@"
+            
+            while [ $attempt -le $max_attempts ]
+            do
+              echo "Attempt $attempt/$max_attempts: $cmd"
+              if $cmd; then
+                echo "✓ Command succeeded on attempt $attempt"
+                return 0
+              fi
+              
+              if [ $attempt -eq $max_attempts ]; then
+                echo "✗ Command failed after $max_attempts attempts: $cmd"
+                return 1
+              fi
+              
+              echo "⚠ Attempt $attempt failed. Waiting ${timeout}s before retry..."
+              sleep $timeout
+              attempt=$((attempt + 1))
+              timeout=$((timeout * 2))
+            done
+          }
+          
+          echo "===================================="
+          echo "Starting Docker Services"
+          echo "===================================="
+          echo ""
+          
+          echo "Starting all required services..."
+          retry_with_backoff docker compose -f docker-compose.ci.yml --profile compare up -d api qdrant milvus
+          
+          echo ""
+          echo "===================================="
+          echo "Waiting for Service Health Checks"
+          echo "===================================="
+          echo ""
+          
+          echo "Waiting for API service to be healthy..."
+          timeout 120 bash -c 'until docker compose -f docker-compose.ci.yml ps api | grep -q "healthy"; do echo "  [$(date +%H:%M:%S)] Waiting for api..."; sleep 2; done' || {
+            echo ""
+            echo "✗ ERROR: API service failed to become healthy within 120s" >&2
+            echo ""
+            echo "API service logs (last 50 lines):" >&2
+            docker compose -f docker-compose.ci.yml logs --tail=50 api
+            echo ""
+            echo "Container status:" >&2
+            docker compose -f docker-compose.ci.yml ps api
+            exit 1
+          }
+          echo "✓ API service is healthy"
+          echo ""
+          
+          echo "Waiting for Qdrant service to be healthy..."
+          timeout 120 bash -c 'until docker compose -f docker-compose.ci.yml ps qdrant | grep -q "healthy"; do echo "  [$(date +%H:%M:%S)] Waiting for qdrant..."; sleep 2; done' || {
+            echo ""
+            echo "✗ ERROR: Qdrant service failed to become healthy within 120s" >&2
+            echo ""
+            echo "Qdrant service logs (last 50 lines):" >&2
+            docker compose -f docker-compose.ci.yml logs --tail=50 qdrant
+            echo ""
+            echo "Container status:" >&2
+            docker compose -f docker-compose.ci.yml ps qdrant
+            exit 1
+          }
+          echo "✓ Qdrant service is healthy"
+          echo ""
+          
+          echo "Waiting for Milvus service to be healthy (this may take up to 3 minutes)..."
+          timeout 180 bash -c 'until docker compose -f docker-compose.ci.yml ps milvus | grep -q "healthy"; do echo "  [$(date +%H:%M:%S)] Waiting for milvus..."; sleep 3; done' || {
+            echo ""
+            echo "✗ ERROR: Milvus service failed to become healthy within 180s" >&2
+            echo ""
+            echo "Milvus service logs (last 50 lines):" >&2
+            docker compose -f docker-compose.ci.yml logs --tail=50 milvus
+            echo ""
+            echo "Container status:" >&2
+            docker compose -f docker-compose.ci.yml ps milvus
+            exit 1
+          }
+          echo "✓ Milvus service is healthy"
+          echo ""
+          
+          echo "===================================="
+          echo "All Services Healthy - Verifying Endpoints"
+          echo "===================================="
+          echo ""
+          
+          # Give port bindings a moment to fully propagate to host
+          sleep 3
+          
+          # Retry endpoint checks with improved backoff
+          echo "Verifying API endpoint..."
+          retry_with_backoff curl -fsS http://localhost:8080/healthz || {
+            echo ""
+            echo "✗ ERROR: API healthcheck endpoint not responding after retries" >&2
+            docker compose -f docker-compose.ci.yml logs --tail=20 api
+            exit 1
+          }
+          echo "✓ API endpoint verified"
+          echo ""
+          
+          echo "Verifying Qdrant endpoint..."
+          retry_with_backoff curl -fsS http://localhost:6333/readyz || {
+            echo ""
+            echo "✗ ERROR: Qdrant readyz endpoint not responding after retries" >&2
+            docker compose -f docker-compose.ci.yml logs --tail=20 qdrant
+            exit 1
+          }
+          echo "✓ Qdrant endpoint verified"
+          echo ""
+          
+          echo "Verifying Milvus endpoint..."
+          retry_with_backoff curl -fsS http://localhost:9091/healthz || {
+            echo ""
+            echo "✗ ERROR: Milvus healthz endpoint not responding after retries" >&2
+            docker compose -f docker-compose.ci.yml logs --tail=20 milvus
+            exit 1
+          }
+          echo "✓ Milvus endpoint verified"
+          echo ""
+          
+          echo "===================================="
+          echo "✓ All Services Ready for Benchmarking"
+          echo "===================================="
+      - name: Run bench/recall/golden suite
+        id: compose
+        continue-on-error: true
+        run: |
+          set +e
+          
+          # Function to run QA container with retry
+          run_qa_with_retry() {
+            local attempt=1
+            local max_attempts=2
+            local status=0
+            
+            while [ $attempt -le $max_attempts ]; do
+              echo "=== QA Container Execution (Attempt $attempt/$max_attempts) ==="
+              
+              # Services are already running, just start the qa container
+              docker compose -f docker-compose.ci.yml --profile compare up --abort-on-container-exit --exit-code-from qa qa
+              status=$?
+              
+              if [ $status -eq 0 ]; then
+                echo "QA container completed successfully"
+                return 0
+              fi
+              
+              echo "QA container failed with exit code $status"
+              
+              if [ $attempt -lt $max_attempts ]; then
+                echo "Retrying QA container execution..."
+                # Brief pause before retry
+                sleep 5
+              fi
+              
+              attempt=$((attempt + 1))
+            done
+            
+            echo "QA container failed after $max_attempts attempts"
+            return $status
+          }
+          
+          # Execute with retry logic
+          run_qa_with_retry
+          status=$?
+          echo "exit_code=$status" >> "$GITHUB_OUTPUT"
+          
+          set -e
+      - name: Capture docker logs
+        if: always()
+        run: |
+          mkdir -p MEF-Core_v1.0/assets/bench
+          docker compose -f docker-compose.ci.yml logs api > MEF-Core_v1.0/assets/bench/server.log || true
+          docker compose -f docker-compose.ci.yml logs qa > MEF-Core_v1.0/assets/bench/bench.log || true
+      - name: Validate QA outputs
+        if: always()
+        run: |
+          cd MEF-Core_v1.0
+          
+          # Check required output files exist
+          echo "Checking for required output files..."
+          for file in assets/bench/bench_report.json assets/bench/recall_report.json assets/bench/server.log assets/bench/compare.json assets/bench/compare.md; do
+            if [ ! -f "$file" ]; then
+              echo "ERROR: Required file $file is missing" >&2
+              echo "Available files in assets/bench:" >&2
+              ls -la assets/bench/ >&2 || true
+              exit 1
+            fi
+            
+            if [ ! -s "$file" ]; then
+              echo "ERROR: Required file $file exists but is empty" >&2
+              exit 1
+            fi
+            
+            echo "✓ $file exists and is non-empty"
+          done
+          
+          # Validate bench_report.json
+          echo "Validating bench_report.json..."
+          jq -e '(.status=="ok")' assets/bench/bench_report.json >/dev/null || {
+            echo "ERROR: bench_report.json status is not 'ok'" >&2
+            jq '.status' assets/bench/bench_report.json >&2
+            exit 1
+          }
+          
+          jq -e '(.indexed_points // 0) > 0' assets/bench/bench_report.json >/dev/null || {
+            echo "ERROR: bench_report.json has no indexed_points" >&2
+            exit 1
+          }
+          
+          jq -e '(((.latency_ms // {}) | (.p95 // 0)) > 0)' assets/bench/bench_report.json >/dev/null || {
+            echo "ERROR: bench_report.json has no valid p95 latency" >&2
+            exit 1
+          }
+          
+          # Validate server.log
+          echo "Validating server.log..."
+          grep -q "POST /search" assets/bench/server.log || {
+            echo "ERROR: server.log does not contain expected 'POST /search' entries" >&2
+            echo "First 20 lines of server.log:" >&2
+            head -20 assets/bench/server.log >&2
+            exit 1
+          }
+          
+          # Validate recall_report.json
+          echo "Validating recall_report.json..."
+          jq -e '(.generated_at != null)' assets/bench/recall_report.json >/dev/null || {
+            echo "ERROR: recall_report.json missing generated_at" >&2
+            exit 1
+          }
+          
+          jq -e '((.modes|length) >= 2) and ([.modes[].recall] | all(. > 0))' assets/bench/recall_report.json >/dev/null || {
+            echo "ERROR: recall_report.json has invalid modes or recall values" >&2
+            jq '.modes' assets/bench/recall_report.json >&2
+            exit 1
+          }
+          
+          # Validate golden tests
+          echo "Validating golden test results..."
+          MIN_OK=${GOLDEN_MIN_OK:-30}
+          GOLDEN_STATUS=$(jq -r '.status // ""' assets/golden/golden_expected.json)
+          if [ "${GOLDEN_STATUS:-}" != "skipped" ]; then
+            jq -e "(.runs|length>=${MIN_OK:-30})" assets/golden/golden_expected.json >/dev/null || {
+              echo "ERROR: golden_expected.json has insufficient runs" >&2
+              jq '.runs | length' assets/golden/golden_expected.json >&2
+              exit 1
+            }
+          fi
+          
+          jq -e 'all(.runs[]; (.proof_ok==true) and (.generated_at != null) and ((.hits|length) > 0))' assets/golden/golden_expected.json >/dev/null || {
+            echo "ERROR: golden_expected.json has invalid runs" >&2
+            exit 1
+          }
+          
+          # Create bench-debug.txt if missing
+          if [ ! -f assets/bench/bench-debug.txt ]; then
+            grep "search plan" assets/bench/progress.log | head -n 3 > assets/bench/bench-debug.txt || true
+          fi
+          
+          # Validate compare outputs
+          echo "Validating compare outputs..."
+          jq -e '([.targets[] | select(.status=="ok")] | length) >= 2' assets/bench/compare.json >/dev/null || {
+            echo "ERROR: compare.json has fewer than 2 successful targets" >&2
+            jq '.targets[] | {name: .name, status: .status}' assets/bench/compare.json >&2
+            exit 1
+          }
+          
+          echo "✓ All validations passed!"
+      - name: Verify services still healthy (post-benchmark)
+        if: always()
+        run: |
+          set -euo pipefail
+          
+          echo "===================================="
+          echo "Post-Benchmark Service Verification"
+          echo "===================================="
+          echo ""
+          echo "Verifying all services are still online and accessible after benchmarking..."
+          echo ""
+          
+          # Check container status
+          echo "Container Status:"
+          docker compose -f docker-compose.ci.yml ps || true
+          echo ""
+          
+          # Check if services are still running
+          services_running=0
+          
+          # Check API
+          if docker compose -f docker-compose.ci.yml ps api 2>/dev/null | grep -q "Up"; then
+            echo "✓ API container is running"
+            if curl -fsS http://localhost:8080/healthz >/dev/null 2>&1; then
+              echo "✓ API health endpoint responding"
+              services_running=$((services_running + 1))
+            else
+              echo "✗ API health endpoint not responding"
+              docker compose -f docker-compose.ci.yml logs --tail=20 api || true
+            fi
+          else
+            echo "✗ API container not running"
+          fi
+          echo ""
+          
+          # Check Qdrant
+          if docker compose -f docker-compose.ci.yml ps qdrant 2>/dev/null | grep -q "Up"; then
+            echo "✓ Qdrant container is running"
+            if curl -fsS http://localhost:6333/readyz >/dev/null 2>&1; then
+              echo "✓ Qdrant readyz endpoint responding"
+              services_running=$((services_running + 1))
+            else
+              echo "✗ Qdrant readyz endpoint not responding"
+              docker compose -f docker-compose.ci.yml logs --tail=20 qdrant || true
+            fi
+          else
+            echo "✗ Qdrant container not running"
+          fi
+          echo ""
+          
+          # Check Milvus
+          if docker compose -f docker-compose.ci.yml ps milvus 2>/dev/null | grep -q "Up"; then
+            echo "✓ Milvus container is running"
+            if curl -fsS http://localhost:9091/healthz >/dev/null 2>&1; then
+              echo "✓ Milvus healthz endpoint responding"
+              services_running=$((services_running + 1))
+            else
+              echo "✗ Milvus healthz endpoint not responding"
+              docker compose -f docker-compose.ci.yml logs --tail=20 milvus || true
+            fi
+          else
+            echo "✗ Milvus container not running"
+          fi
+          echo ""
+          
+          # Summary
+          echo "===================================="
+          echo "Service Verification Summary"
+          echo "===================================="
+          echo "Services online and accessible: $services_running/3"
+          echo ""
+          
+          if [ $services_running -eq 3 ]; then
+            echo "✓ SUCCESS: All services remain healthy after benchmarking"
+          else
+            echo "⚠ WARNING: Not all services are accessible (this may be expected if benchmarks failed)"
+            echo "This is informational and does not fail the CI run."
+          fi
+      - name: Compose teardown
+        if: always()
+        run: docker compose -f docker-compose.ci.yml down -v || true
+      - name: Enforce compose success
+        if: always()
+        run: |
+          if [ "${{ steps.compose.outputs.exit_code || 0 }}" != "0" ]; then
+            echo "docker compose exited with code ${{ steps.compose.outputs.exit_code || 0 }}" >&2
+            exit 1
+          fi
+      - name: Compare pure drivers
+        env:
+          BENCH_COMPARE: "1"
+          TARGETS: "mef-core,faiss-inproc"
+          COMPARE_LIMIT: "128"
+          COMPARE_K: "10"
+          UPSERT_BATCH: "512"
+          ANN_METRIC: "cosine"
+        run: |
+          cd MEF-Core_v1.0
+          echo "Running pure driver comparison (mef-core, faiss-inproc)..."
+          python -m pytest -q tests/bench/test_compare.py || {
+            echo "ERROR: Pure driver comparison failed" >&2
+            exit 1
+          }
+          cp assets/bench/compare.json assets/bench/compare_pure.json
+          cp assets/bench/compare.md assets/bench/compare_pure.md
+          echo "✓ Pure driver comparison completed successfully"
+      - name: Compare HTTP drivers
+        env:
+          BENCH_COMPARE: "1"
+          TARGETS: "mef-http,faiss-http"
+          COMPARE_LIMIT: "128"
+          COMPARE_K: "10"
+          UPSERT_BATCH: "512"
+          ANN_METRIC: "cosine"
+          MEF_BASE_URL: "http://localhost:8080"
+          FAISS_URL: "http://localhost:8090"
+          HTTPX_TIMEOUT: "30.0"
+        run: |
+          # API is already running from previous steps, just ensure it's still healthy
+          curl -fsS http://localhost:8080/healthz >/dev/null || {
+            echo "API service not responding, restarting..." >&2
+            docker compose -f docker-compose.ci.yml --profile compare up -d api
+            timeout 120 bash -c 'until curl -fsS http://localhost:8080/healthz >/dev/null; do echo "Waiting for API..." >&2; sleep 2; done'
+          }
+          
+          # Start faiss-api service
+          echo "Starting faiss-api service..."
+          docker compose -f docker-compose.ci.yml --profile compare-faiss up -d faiss-api
+          timeout 120 bash -c 'until curl -fsS -X POST http://localhost:8090/clear >/dev/null; do echo "Waiting for faiss-api..." >&2; sleep 2; done' || {
+            echo "ERROR: faiss-api service failed to start" >&2
+            docker compose -f docker-compose.ci.yml logs faiss-api
+            exit 1
+          }
+          
+          echo "Both HTTP services are ready"
+          cd MEF-Core_v1.0
+          python -m pytest -q tests/bench/test_compare.py
+          cp assets/bench/compare.json assets/bench/compare_http.json
+          cp assets/bench/compare.md assets/bench/compare_http.md
+      - name: Stop compare services
+        if: always()
+        run: |
+          docker compose -f docker-compose.ci.yml stop api faiss-api || true
+          docker compose -f docker-compose.ci.yml rm -fsv api faiss-api || true
+      - name: Upload bench artifacts
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: bench-artifacts
+          path: |
+            MEF-Core_v1.0/assets/bench/bench_report.json
+            MEF-Core_v1.0/assets/bench/recall_report.json
+            MEF-Core_v1.0/assets/bench/bench_report.json
+            MEF-Core_v1.0/assets/bench/recall_report.json
+            MEF-Core_v1.0/assets/bench/progress.log
+            MEF-Core_v1.0/assets/bench/bench-debug.txt
+            MEF-Core_v1.0/assets/bench/bench.log
+            MEF-Core_v1.0/assets/bench/server.log
+            MEF-Core_v1.0/assets/golden/*.json
+            MEF-Core_v1.0/assets/golden/*.sha256
+            MEF-Core_v1.0/assets/golden/*.txt
+      - name: Upload compare artifacts
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: compare-artifacts
+          path: |
+            MEF-Core_v1.0/assets/bench/compare.json
+            MEF-Core_v1.0/assets/bench/compare.md
+            MEF-Core_v1.0/assets/bench/compare_pure.json
+            MEF-Core_v1.0/assets/bench/compare_pure.md
+            MEF-Core_v1.0/assets/bench/compare_http.json
+            MEF-Core_v1.0/assets/bench/compare_http.md

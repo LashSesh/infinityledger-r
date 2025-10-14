@@ -1,0 +1,33 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "SpiralSnapshot",
+  "type": "object",
+  "properties": {
+    "id": {"type": "string"},
+    "timestamp": {"type": "string", "format": "date-time"},
+    "seed": {"type": "string"},
+    "phase": {"type": "number"},
+    "coordinates": {"type": "array", "items": {"type": "number"}, "minItems": 5, "maxItems": 5},
+    "sigma": {
+      "type": "object",
+      "properties": {
+        "psi": {"type": "number"},
+        "rho": {"type": "number"},
+        "omega": {"type": "number"}
+      },
+      "required": ["psi", "rho", "omega"]
+    },
+    "metrics": {
+      "type": "object",
+      "properties": {
+        "resonance": {"type": "number"},
+        "stability": {"type": "number"},
+        "por": {"type": "string", "enum": ["valid", "invalid"]}
+      },
+      "required": ["resonance", "stability", "por"]
+    },
+    "payload": {"type": "object"},
+    "hdag_node": {"type": "string"}
+  },
+  "required": ["id", "timestamp", "seed", "phase", "coordinates", "sigma", "metrics"]
+}
