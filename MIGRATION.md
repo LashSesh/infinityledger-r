@@ -244,31 +244,61 @@ let seed_mod = u32::from_be_bytes(seed_hash[..4].try_into().unwrap()) as f64 / (
 ### HDAG Module (mef-hdag)
 
 **Files**:
-- `graph.py` → `graph.rs`
+- `graph.py` → `graph.rs` ✅ MIGRATED
 
 **Key Challenges**:
 - Graph data structure implementation
-- Topological ordering
+- Topological ordering (Kahn's algorithm)
 - Path invariance validation
+- Cycle detection
 
 **Solutions**:
-- Use petgraph for graph algorithms
-- Implement custom topological sort if needed
-- Maintain same node/edge representation
+- Custom HDAG implementation without external graph libraries
+- Implement Kahn's algorithm for topological sorting
+- DFS-based cycle detection
+- HashMap-based adjacency list representation
+- Maintain same node/edge representation as Python
+
+**Status**: ✅ Complete (6 tests passing)
 
 ### Ingestion Module (mef-ingestion)
 
 **Files**:
-- `triton_core.py` → `triton_core.rs`
-- `triton.py` → `triton.rs`
+- `triton_core.py` → `triton_core.rs` ✅ MIGRATED
+- `triton.py` → `triton.rs` (wrapper, can be skipped)
 
 **Key Challenges**:
+- SPEC-002 compliant payload normalization
 - Multiple data type normalization
-- Binary data handling
+- Date string detection and conversion
+- Deterministic vector generation
 
 **Solutions**:
-- Use enum for different data types
-- Rust's strong type system helps prevent errors
+- Recursive normalization with serde_json::Value
+- Regex-based date pattern matching
+- SHA256-based deterministic hashing
+- Key sorting for determinism
+
+**Status**: ✅ Complete (7 tests passing)
+
+### Audit Module (mef-audit)
+
+**Files**:
+- `logger.py` → `logger.rs` ✅ MIGRATED
+
+**Key Challenges**:
+- Event logging with buffering
+- JSONL file format
+- Event filtering and retrieval
+- Report generation
+
+**Solutions**:
+- Custom logger implementation (not using Python's logging module)
+- Buffered writes for performance
+- Line-by-line JSONL reading for filtering
+- HashMap-based aggregation for reports
+
+**Status**: ✅ Complete (7 tests passing)
 
 ### Solve-Coagula Module (mef-solvecoagula)
 
@@ -442,4 +472,5 @@ Migrate {module_name}.py to Rust
 ---
 
 **Last Updated**: 2025-10-14  
-**Status**: Phase 1 (Project Setup) - In Progress
+**Status**: Phase 2 (Core Data Structures) - In Progress  
+**Modules Migrated**: 5 of 76+ (6.6%)
