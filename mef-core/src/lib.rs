@@ -9,6 +9,7 @@ pub mod field_vector;
 pub mod mef_pipeline;
 pub mod graph;
 pub mod symmetries;
+pub mod quantum;
 
 pub use geometry::{
     Node, canonical_nodes, canonical_edges, complete_canonical_edges,
@@ -23,6 +24,7 @@ pub use symmetries::{
     generate_c6_subgroup, generate_d6_subgroup, generate_symmetric_group,
     generate_alternating_group,
 };
+pub use quantum::{QuantumState, QuantumOperator};
 
 #[cfg(test)]
 mod tests {
