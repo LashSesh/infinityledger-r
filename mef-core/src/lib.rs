@@ -6,9 +6,14 @@
 
 pub mod geometry;
 pub mod field_vector;
+pub mod mef_pipeline;
 
-pub use geometry::{Node, canonical_nodes, canonical_edges, get_metatron_nodes, get_metatron_edges};
+pub use geometry::{
+    Node, canonical_nodes, canonical_edges, complete_canonical_edges,
+    get_metatron_nodes, get_metatron_edges, find_node,
+};
 pub use field_vector::FieldVector;
+pub use mef_pipeline::{MEFCore, MEFCoreConfig, ProcessingResult};
 
 #[cfg(test)]
 mod tests {
