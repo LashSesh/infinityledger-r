@@ -1,0 +1,19 @@
+services:
+  app:
+    build:
+      context: ./MEF-Core_v1.0
+    ports:
+      - "8080:8080"
+    environment:
+      - AUTH_TOKEN_REQUIRED=${AUTH_TOKEN_REQUIRED:-false}
+      - PROOFS_ENABLED=${PROOFS_ENABLED:-true}
+      - QUALITY_TOKEN=${QUALITY_TOKEN:-}
+      - QUALITY_COLLECTION=${QUALITY_COLLECTION:-spiral}
+      - QUALITY_EPOCH=${QUALITY_EPOCH:-e1}
+      - QUALITY_BASE_URL=${QUALITY_BASE_URL:-http://localhost:8080}
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8080/readyz"]
+      interval: 5s
+      timeout: 10s
+      retries: 5
+      start_period: 30s
