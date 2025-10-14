@@ -11,6 +11,10 @@ pub mod graph;
 pub mod symmetries;
 pub mod quantum;
 pub mod cube;
+pub mod mandorla;
+pub mod gabriel_cell;
+pub mod qlogic;
+pub mod resonance_tensor;
 
 pub use geometry::{
     Node, canonical_nodes, canonical_edges, complete_canonical_edges,
@@ -27,6 +31,10 @@ pub use symmetries::{
 };
 pub use quantum::{QuantumState, QuantumOperator};
 pub use cube::{MetatronCube, NodeInfo, EdgeInfo, OperatorInfo};
+pub use mandorla::MandorlaField;
+pub use gabriel_cell::{GabrielCell, couple_cells, neighbor_feedback};
+pub use qlogic::{QLOGICOscillatorCore, SpectralGrammar, EntropyAnalyzer, QLogicEngine, QLogicStepResult};
+pub use resonance_tensor::ResonanceTensorField;
 
 #[cfg(test)]
 mod tests {
