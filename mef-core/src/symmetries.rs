@@ -27,7 +27,7 @@ fn hex_angles() -> HashMap<usize, f64> {
     angles
 }
 
-/// Generate all 5040 permutations for the 7 nodes: [1,2,3,4,5,6,7]
+/// Generate all 5040 permutations for the 7 nodes: \[1,2,3,4,5,6,7\]
 /// (Index 1 = Center, 2-7 = Hexagon)
 pub fn generate_s7_permutations() -> Vec<Vec<usize>> {
     let nodes: Vec<usize> = (1..=7).collect();
