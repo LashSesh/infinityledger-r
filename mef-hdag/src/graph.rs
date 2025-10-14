@@ -740,6 +740,7 @@ mod tests {
     #[test]
     fn test_statistics() {
         let temp_dir = env::temp_dir().join("test_hdag_stats");
+        fs::remove_dir_all(&temp_dir).ok(); // Clean up old test data
         let mut hdag = HDAG::new(&temp_dir).unwrap();
 
         let node1 = hdag
