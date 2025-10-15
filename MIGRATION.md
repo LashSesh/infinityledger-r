@@ -457,9 +457,9 @@ let seed_mod = u32::from_be_bytes(seed_hash[..4].try_into().unwrap()) as f64 / (
 - On-demand creation of non-Send types (SpiralSnapshot)
 - Modular route structure with 13 route modules
 
-**Status**: ✅ **COMPREHENSIVE API COMPLETE** (100% - 52 total endpoints)
+**Status**: ✅ **COMPREHENSIVE API COMPLETE** (100% - 69 total endpoints)
 
-**Route Modules Implemented** (13 total):
+**Route Modules Implemented** (15 total):
 
 **Core API Modules** (38 endpoints):
 1. **health.rs** (3 endpoints): `GET /ping`, `GET /healthz`, `GET /readyz`
@@ -490,11 +490,34 @@ let seed_mod = u32::from_be_bytes(seed_hash[..4].try_into().unwrap()) as f64 / (
     - `GET /domain/status` - Get domain layer status and metrics
     - `GET /domain/topology/torus` - Get torus topology information
 
-13. **mod.rs**: Route module organization
+**Metatron Router Module** (13 endpoints):
+13. **metatron.rs** (13 endpoints): ✅ COMPLETE
+    - `POST /pipeline/process` - Process data through MEF-Core pipeline with Metatron routing
+    - `GET /pipeline/metrics` - Pipeline performance metrics including Metatron topology
+    - `POST /metatron/route/select` - Select optimal transformation route through topology
+    - `POST /metatron/transform` - Apply transformation through Metatron topology
+    - `GET /metatron/topology/nodes` - Query Metatron topology node information
+    - `GET /metatron/topology/edges` - Query Metatron topology edge information
+    - `GET /metatron/symmetry/:group` - Query symmetry group (C6/D6/S7) information
+    - `GET /metatron/operators` - List available MEF-Core operators
+    - `POST /metatron/resonance/calculate` - Calculate resonance scores
+    - `GET /metatron/cache/status` - Get route cache status
+    - `DELETE /metatron/cache/clear` - Clear route cache
+    - `GET /metatron/export/:route_id` - Export route definition
+    - `GET /status/integration` - Integration status
+
+**Merkaba Gate Module** (4 endpoints):
+14. **merkaba.rs** (4 endpoints): ✅ COMPLETE
+    - `POST /gate/merkaba` - Evaluate TIC candidate through Merkaba Gate
+    - `GET /gate/merkaba/status` - Get Merkaba Gate configuration and status
+    - `GET /gate/merkaba/audit` - Retrieve gate audit log entries
+    - `POST /gate/merkaba/calibrate` - Calibrate gate threshold parameters
+
+15. **mod.rs**: Route module organization
 
 **Technical Achievements**:
 - Server builds successfully ✅
-- 22 unit tests passing (17 core + 5 domain) ✅
+- 32 unit tests passing (22 core + 5 domain + 6 metatron + 4 merkaba) ✅
 - All core MEF crate integrations working ✅
 - Send+Sync constraints handled via Arc/Mutex ✅
 - Configuration management with env overrides ✅
@@ -502,6 +525,9 @@ let seed_mod = u32::from_be_bytes(seed_hash[..4].try_into().unwrap()) as f64 / (
 - Thread-safe state management ✅
 - Prometheus metrics integration ✅
 - Domain layer integration (Resonit, Resonat, MeshHolo, Infogenome) ✅
+- Metatron Router integration (13-node topology, S7 permutations) ✅
+- Merkaba Gate integration (PoR, ΔPI, Φ, ΔV, MCI checks) ✅
+
 
 
 2. `process` - Process snapshots through Solve-Coagula
