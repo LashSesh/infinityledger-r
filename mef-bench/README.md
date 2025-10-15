@@ -1,0 +1,209 @@
+# mef-bench
+
+Benchmark driver infrastructure for MEF-Core vector store performance validation and cross-database comparison.
+
+## Overview
+
+The `mef-bench` crate provides a flexible driver abstraction for benchmarking vector database implementations. It includes drivers for the MEF-Core API and a baseline exact search implementation for recall validation.
+
+## Features
+
+- **VectorStoreDriver Trait**: Common interface for all benchmark targets
+- **MEF Driver**: HTTP client for MEF-Core API endpoints
+- **FAISS Baseline**: Brute-force exact nearest-neighbor search for ground truth
+- **Driver Registry**: Dynamic driver instantiation by name
+- **Comprehensive Error Handling**: Structured error types with actionable messages
+
+## Usage
+
+### Basic Example
+
+```rust
+use mef_bench::{VectorStoreDriver, MEFDriver};
+
+fn main() -> Result<(), Box<dyn std::error::Error>> {
+    // Create and connect driver
+    let mut driver = MEFDriver::new(Some("cosine"));
+    driver.connect()?;
+
+    // Prepare data
+    let items = vec![
+        ("doc1".to_string(), vec![1.0, 2.0, 3.0], None),
+        ("doc2".to_string(), vec![4.0, 5.0, 6.0], None),
+    ];
+
+    // Upsert vectors
+    driver.upsert(items, "my_collection", 1000)?;
+
+    // Search
+    let query = vec![1.0, 2.0, 3.0];
+    let results = driver.search(&query, 10, "my_collection")?;
+    
+    for (id, score) in results {
+        println!("{}: {}", id, score);
+    }
+
+    Ok(())
+}
+```
+
+### Using the Driver Registry
+
+```rust
+use mef_bench::get_driver_registry;
+
+fn main() -> Result<(), Box<dyn std::error::Error>> {
+    let registry = get_driver_registry();
+    
+    // Create drivers dynamically
+    let mut mef_driver = registry.get("mef").unwrap()(Some("cosine"));
+    let mut baseline = registry.get("faiss").unwrap()(Some("cosine"));
+    
+    // Use drivers...
+    
+    Ok(())
+}
+```
+
+### Recall Validation
+
+```rust
+use mef_bench::{FaissBaselineDriver, MEFDriver, VectorStoreDriver};
+
+fn validate_recall() -> Result<(), Box<dyn std::error::Error>> {
+    // Build ground truth with exact search
+    let mut baseline = FaissBaselineDriver::new(Some("cosine"));
+    let items = vec![
+        ("doc1".to_string(), vec![1.0, 0.0, 0.0], None),
+        ("doc2".to_string(), vec![0.0, 1.0, 0.0], None),
+        ("doc3".to_string(), vec![1.0, 1.0, 0.0], None),
+    ];
+    baseline.upsert(items.clone(), "test", 1000)?;
+    
+    // Get exact results
+    let query = vec![1.0, 0.5, 0.0];
+    let exact = baseline.search(&query, 10, "test")?;
+    
+    // Compare with approximate search
+    let mut mef = MEFDriver::new(Some("cosine"));
+    mef.connect()?;
+    mef.upsert(items, "test", 1000)?;
+    let approx = mef.search(&query, 10, "test")?;
+    
+    // Calculate recall@k
+    let k = 10;
+    let matches = approx.iter()
+        .take(k)
+        .filter(|(id, _)| exact.iter().take(k).any(|(eid, _)| eid == id))
+        .count();
+    let recall = matches as f64 / k.min(exact.len()) as f64;
+    
+    println!("Recall@{}: {:.2}%", k, recall * 100.0);
+    
+    Ok(())
+}
+```
+
+## Drivers
+
+### MEFDriver
+
+HTTP client for the MEF-Core REST API.
+
+**Configuration**:
+- `MEF_BASE_URL` or `QUALITY_BASE_URL` environment variable (default: `http://localhost:8080`)
+- Metric: `cosine` (default), `l2`, or `ip`
+
+**Features**:
+- Health check validation
+- Batched vector upsert
+- Configurable timeouts
+- JSON request/response handling
+
+### FaissBaselineDriver
+
+Brute-force exact nearest-neighbor search using ndarray.
+
+**Configuration**:
+- Metric: `cosine` (default), `l2`, or `ip`
+
+**Features**:
+- Exact search for ground truth
+- Vector normalization for cosine similarity
+- In-memory index
+- No external dependencies required
+
+## VectorStoreDriver Trait
+
+All drivers implement the `VectorStoreDriver` trait:
+
+```rust
+pub trait VectorStoreDriver: Send + Sync {
+    fn name(&self) -> &str;
+    fn metric(&self) -> &str;
+    fn connect(&mut self) -> Result<(), anyhow::Error>;
+    fn clear(&mut self, namespace: &str) -> Result<(), anyhow::Error>;
+    fn upsert(&mut self, items: Vec<UpsertItem>, namespace: &str, batch_size: usize) 
+        -> Result<(), anyhow::Error>;
+    fn search(&self, query: &Vector, k: usize, namespace: &str) 
+        -> Result<Vec<(String, f64)>, anyhow::Error>;
+}
+```
+
+## Error Handling
+
+The crate uses structured error types:
+
+```rust
+use mef_bench::DriverUnavailable;
+
+match driver.connect() {
+    Err(e) => {
+        if let Some(unavailable) = e.downcast_ref::<DriverUnavailable>() {
+            eprintln!("Driver unavailable: {}", unavailable.reason);
+            // Skip this driver in benchmark
+        }
+    }
+    Ok(_) => {
+        // Proceed with benchmark
+    }
+}
+```
+
+## Type Definitions
+
+- `Vector`: `Vec<f64>` - A vector of floating-point numbers
+- `UpsertItem`: `(String, Vector, Option<HashMap<String, serde_json::Value>>)` - ID, vector, and optional metadata
+
+## Dependencies
+
+- `serde` - Serialization framework
+- `serde_json` - JSON support
+- `anyhow` - Error handling
+- `thiserror` - Custom error types
+- `reqwest` - HTTP client (with `blocking` feature)
+- `ndarray` - NumPy-compatible arrays
+- `tokio` - Async runtime
+
+## Testing
+
+Run the test suite:
+
+```bash
+cargo test -p mef-bench
+```
+
+All 21 tests should pass, covering:
+- Driver creation and configuration
+- Connection management
+- Upsert and search operations
+- Error handling
+- Driver registry
+
+## License
+
+MIT
+
+## Contributing
+
+This crate is part of the MEF-Core Python to Rust migration project. See `MIGRATION.md` for details.
