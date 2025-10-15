@@ -16,3 +16,7 @@ ndarray = { workspace = true }
 tokio = { workspace = true }
 rand = { workspace = true }
 rand_distr = { workspace = true }
+chrono = { workspace = true }
+
+[dev-dependencies]
+tempfile = "3.8"
