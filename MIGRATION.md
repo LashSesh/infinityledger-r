@@ -457,7 +457,7 @@ let seed_mod = u32::from_be_bytes(seed_hash[..4].try_into().unwrap()) as f64 / (
 - On-demand creation of non-Send types (SpiralSnapshot)
 - Modular route structure with 13 route modules
 
-**Status**: ✅ **COMPREHENSIVE API COMPLETE** (100% - 69 total endpoints)
+**Status**: ✅ **COMPREHENSIVE API COMPLETE** (97% - 68 total endpoints, 66 integrated)
 
 **Route Modules Implemented** (15 total):
 
@@ -474,50 +474,56 @@ let seed_mod = u32::from_be_bytes(seed_hash[..4].try_into().unwrap()) as f64 / (
 10. **commit.rs** (2 endpoints): Commit operations (get, rotate)
 11. **zk.rs** (1 endpoint): Zero-knowledge inference
 
-**Domain-Specific Module** (14 endpoints):
-12. **domain.rs** (14 endpoints): ✅ COMPLETE
-    - `POST /domain/process` - Domain data processing through MEF pipeline
-    - `POST /domain/resonit/create` - Create Resonit (elementary information atom)
-    - `GET /domain/resonit/:id` - Get Resonit by ID
-    - `POST /domain/resonat/cluster` - Cluster Resonits into Resonat
-    - `GET /domain/resonat/:id` - Get Resonat by ID
-    - `POST /domain/mesh/triangulate` - MeshHolo triangulation from Resonat
-    - `GET /domain/mesh/:id` - Get MeshHolo by ID (with format support)
-    - `POST /domain/transfer/homeomorphic` - Cross-domain homeomorphic transfer
-    - `GET /domain/transfer/compatibility` - Check domain compatibility
-    - `POST /domain/infogenome/evolve` - Evolve Infogenome via genetic algorithm
-    - `GET /domain/infogenome/best` - Get best Infogenome from population
-    - `GET /domain/status` - Get domain layer status and metrics
-    - `GET /domain/topology/torus` - Get torus topology information
+**Domain-Specific Module** (13 endpoints):
+12. **domain.rs** (13 endpoints): ✅ COMPLETE + INTEGRATED
+    - `POST /domain/process` - Domain data processing through MEF pipeline ✅ Integrated with DomainLayer
+    - `POST /domain/resonit/create` - Create Resonit (elementary information atom) ✅ Real tripolar signature
+    - `GET /domain/resonit/:id` - Get Resonit by ID ✅ Loads from storage
+    - `POST /domain/resonat/cluster` - Cluster Resonits into Resonat ✅ Real clustering
+    - `GET /domain/resonat/:id` - Get Resonat by ID ✅ Loads from storage
+    - `POST /domain/mesh/triangulate` - MeshHolo triangulation from Resonat ✅ Real triangulation
+    - `GET /domain/mesh/:id` - Get MeshHolo by ID (with format support) ✅ Loads from storage
+    - `POST /domain/transfer/homeomorphic` - Cross-domain homeomorphic transfer ✅ Real transfer
+    - `GET /domain/transfer/compatibility` - Check domain compatibility ✅ Checks adapters
+    - `POST /domain/infogenome/evolve` - Evolve Infogenome via genetic algorithm ✅ Real evolution
+    - `GET /domain/infogenome/best` - Get best Infogenome from population ✅ Loads from population
+    - `GET /domain/status` - Get domain layer status and metrics ✅ Real metrics
+    - `GET /domain/topology/torus` - Get torus topology information ✅ Canonical topology
 
 **Metatron Router Module** (13 endpoints):
-13. **metatron.rs** (13 endpoints): ✅ COMPLETE
-    - `POST /pipeline/process` - Process data through MEF-Core pipeline with Metatron routing
-    - `GET /pipeline/metrics` - Pipeline performance metrics including Metatron topology
-    - `POST /metatron/route/select` - Select optimal transformation route through topology
-    - `POST /metatron/transform` - Apply transformation through Metatron topology
-    - `GET /metatron/topology/nodes` - Query Metatron topology node information
-    - `GET /metatron/topology/edges` - Query Metatron topology edge information
-    - `GET /metatron/symmetry/:group` - Query symmetry group (C6/D6/S7) information
-    - `GET /metatron/operators` - List available MEF-Core operators
-    - `POST /metatron/resonance/calculate` - Calculate resonance scores
-    - `GET /metatron/cache/status` - Get route cache status
-    - `DELETE /metatron/cache/clear` - Clear route cache
-    - `GET /metatron/export/:route_id` - Export route definition
-    - `GET /status/integration` - Integration status
+13. **metatron.rs** (13 endpoints): ✅ INTEGRATED (11/13) ⏸️ DEFERRED (2/13)
+    - `POST /pipeline/process` - Process data through MEF-Core pipeline ⏸️ Deferred (requires full pipeline)
+    - `GET /pipeline/metrics` - Pipeline performance metrics ⏸️ Deferred (requires pipeline state)
+    - `POST /metatron/route/select` - Select optimal route ✅ Real S7 permutation search
+    - `POST /metatron/transform` - Apply transformation ✅ Real operator sequences
+    - `GET /metatron/topology/nodes` - Query topology nodes ✅ Canonical 13-node cube
+    - `GET /metatron/topology/edges` - Query topology edges ✅ From adjacency matrix
+    - `GET /metatron/symmetry/:group` - Query symmetry groups ✅ Real C6/D6/S7 permutations
+    - `GET /metatron/operators` - List operators ✅ DK/SW/PI/WT descriptions
+    - `POST /metatron/resonance/calculate` - Calculate resonance ✅ Real coherence/entropy
+    - `GET /metatron/cache/status` - Get cache status ✅ Live cache stats
+    - `DELETE /metatron/cache/clear` - Clear cache ✅ Clears route cache
+    - `GET /metatron/export/:route_id` - Export route ✅ Loads from cache
+    - `GET /status/integration` - Integration status ✅ Status info
 
 **Merkaba Gate Module** (4 endpoints):
-14. **merkaba.rs** (4 endpoints): ✅ COMPLETE
-    - `POST /gate/merkaba` - Evaluate TIC candidate through Merkaba Gate
-    - `GET /gate/merkaba/status` - Get Merkaba Gate configuration and status
-    - `GET /gate/merkaba/audit` - Retrieve gate audit log entries
-    - `POST /gate/merkaba/calibrate` - Calibrate gate threshold parameters
+14. **merkaba.rs** (4 endpoints): ✅ INTEGRATED (4/4)
+    - `POST /gate/merkaba` - Evaluate TIC candidate ✅ Real gate evaluation (PoR/ΔPI/Φ/ΔV/MCI)
+    - `GET /gate/merkaba/status` - Get gate status ✅ Live configuration
+    - `GET /gate/merkaba/audit` - Get audit log ✅ Reads JSONL audit file
+    - `POST /gate/merkaba/calibrate` - Calibrate thresholds ✅ Updates live parameters
 
 15. **mod.rs**: Route module organization
 
 **Technical Achievements**:
 - Server builds successfully ✅
-- 32 unit tests passing (22 core + 5 domain + 6 metatron + 4 merkaba) ✅
+- 32 unit tests passing (100%) ✅
+- Clean build (only expected dead code warnings) ✅
+- **Integration Status**: 66/68 endpoints fully integrated (97%)
+  - Domain Layer: 13/13 integrated (100%) ✅
+  - Metatron Router: 11/13 integrated (85%) ✅ + 2 deferred ⏸️
+  - Merkaba Gate: 4/4 integrated (100%) ✅
+  - Core API: 38/38 working (100%) ✅
 - All core MEF crate integrations working ✅
 - Send+Sync constraints handled via Arc/Mutex ✅
 - Configuration management with env overrides ✅
