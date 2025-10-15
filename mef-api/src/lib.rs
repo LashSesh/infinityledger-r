@@ -1,14 +1,14 @@
-pub fn add(left: u64, right: u64) -> u64 {
-    left + right
-}
+/// MEF-Core API Server
+/// Migrated from: MEF-Core_v1.0/src/api/server.py
+///
+/// FastAPI → Axum migration with identical API contract
 
-#[cfg(test)]
-mod tests {
-    use super::*;
+pub mod config;
+pub mod error;
+pub mod models;
+pub mod routes;
+pub mod state;
 
-    #[test]
-    fn it_works() {
-        let result = add(2, 2);
-        assert_eq!(result, 4);
-    }
-}
+pub use config::ApiConfig;
+pub use error::{ApiError, Result};
+pub use state::AppState;
