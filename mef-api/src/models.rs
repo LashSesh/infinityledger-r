@@ -175,6 +175,8 @@ pub struct VectorPayload {
     pub vector: Vec<f64>,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub metadata: Option<serde_json::Map<String, serde_json::Value>>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub epoch: Option<i64>,
 }
 
 // ============================================================================

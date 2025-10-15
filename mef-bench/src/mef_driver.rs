@@ -40,8 +40,6 @@ impl MEFDriver {
         let url = format!("{}/collections/{}/upsert", self.base_url, namespace);
         let payload = json!({
             "vectors": batch,
-            "epoch": 1,
-            "metric": self.metric,
         });
 
         let response = client
@@ -102,8 +100,6 @@ impl VectorStoreDriver for MEFDriver {
         let url = format!("{}/collections/{}/upsert", self.base_url, namespace);
         let payload = json!({
             "vectors": [],
-            "epoch": 1,
-            "metric": self.metric,
         });
 
         let response = client
@@ -150,6 +146,7 @@ impl VectorStoreDriver for MEFDriver {
                 "vector".to_string(),
                 json!(vector.iter().map(|&v| v as f64).collect::<Vec<_>>()),
             );
+            payload.insert("epoch".to_string(), json!(1)); // Default epoch for benchmarking
 
             if let Some(meta) = metadata {
                 payload.insert("metadata".to_string(), json!(meta));

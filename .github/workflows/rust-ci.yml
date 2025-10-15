@@ -211,15 +211,45 @@ jobs:
           path: target
           key: ${{ runner.os }}-cargo-build-release-${{ hashFiles('**/Cargo.lock') }}
       
-      - name: Build cross-db-bench binary
-        run: cargo build --package mef-bench --bin cross-db-bench --release
-      
-      - name: Start benchmark services
+      - name: Build MEF API and cross-db-bench binary
         run: |
-          # For now, we use FAISS which doesn't require external services
-          # Docker services (Elasticsearch, Qdrant, Milvus, Weaviate) are available
-          # in docker-compose.bench.yml for future cross-db comparisons
-          echo "Using FAISS baseline (no external services required)"
+          cargo build --package mef-api --bin mef-api --release
+          cargo build --package mef-bench --bin cross-db-bench --release
+      
+      - name: Start MEF API server
+        run: |
+          ./target/release/mef-api &
+          API_PID=$!
+          echo "API_PID=$API_PID" >> $GITHUB_ENV
+          
+          # Wait for API to be ready
+          for i in {1..30}; do
+            if curl -f http://localhost:8000/healthz 2>/dev/null; then
+              echo "MEF API is ready"
+              break
+            fi
+            echo "Waiting for MEF API to start... ($i/30)"
+            sleep 2
+          done
+      
+      - name: Start benchmark services (Qdrant, Milvus)
+        run: |
+          # Start Qdrant service from docker-compose
+          docker compose -f docker-compose.bench.yml up -d qdrant
+          
+          # Wait for Qdrant to be ready
+          echo "Waiting for Qdrant to be ready..."
+          for i in {1..30}; do
+            if curl -f http://localhost:6333/healthz 2>/dev/null; then
+              echo "Qdrant is ready"
+              break
+            fi
+            echo "Waiting for Qdrant... ($i/30)"
+            sleep 2
+          done
+          
+          # Note: Milvus excluded due to API compatibility issues with v1/vector endpoints
+          # Requires further investigation and potential driver updates
       
       - name: Run cross-database benchmarks
         env:
@@ -230,15 +260,14 @@ jobs:
           BENCH_METRIC: cosine
           BENCH_BATCH_SIZE: 500
           BENCH_OUTPUT: benchmark-results/cross_db_results.json
+          MEF_BASE_URL: http://localhost:8000
           QDRANT_URL: http://localhost:6333
-          WEAVIATE_URL: http://localhost:8080
         run: |
           mkdir -p benchmark-results
           
-          # Run benchmarks with FAISS baseline
-          # Additional drivers (qdrant, weaviate, elastic, milvus) require further driver refinement
-          # and are available for future enhancement
-          ./target/release/cross-db-bench faiss | tee benchmark-results/cross_db_output.txt
+          # Run benchmarks with FAISS (baseline), MEF (Infinity Ledger), and Qdrant
+          # Note: Milvus excluded due to API compatibility issues requiring investigation
+          ./target/release/cross-db-bench faiss mef qdrant | tee benchmark-results/cross_db_output.txt
       
       - name: Display benchmark results
         if: always()
@@ -258,7 +287,12 @@ jobs:
       - name: Stop benchmark services
         if: always()
         run: |
-          # No services to stop for FAISS baseline
+          # Stop MEF API
+          kill $API_PID || true
+          
+          # Stop Docker services
+          docker compose -f docker-compose.bench.yml down -v
+          
           echo "Benchmark complete"
 
   # Security audit

@@ -213,10 +213,36 @@ impl VectorStoreDriver for QdrantDriver {
                 self.ensure_collection(namespace, vector.len())?;
             }
 
+            // Convert string identifier to numeric ID for Qdrant
+            // Extract numeric part from "vec_<id>" format or hash the string
+            let numeric_id: u64 = if identifier.starts_with("vec_") {
+                identifier[4..].parse().unwrap_or_else(|_| {
+                    // If parsing fails, use hash
+                    use std::collections::hash_map::DefaultHasher;
+                    use std::hash::{Hash, Hasher};
+                    let mut hasher = DefaultHasher::new();
+                    identifier.hash(&mut hasher);
+                    hasher.finish()
+                })
+            } else {
+                // Try to parse as number or use hash
+                identifier.parse().unwrap_or_else(|_| {
+                    use std::collections::hash_map::DefaultHasher;
+                    use std::hash::{Hash, Hasher};
+                    let mut hasher = DefaultHasher::new();
+                    identifier.hash(&mut hasher);
+                    hasher.finish()
+                })
+            };
+
+            let mut payload_map = metadata.unwrap_or_default();
+            // Store original string ID in payload for reference
+            payload_map.insert("original_id".to_string(), json!(identifier));
+
             let point = json!({
-                "id": identifier,
+                "id": numeric_id,
                 "vector": vector,
-                "payload": metadata.unwrap_or_default()
+                "payload": payload_map
             });
 
             batch.push(point);
