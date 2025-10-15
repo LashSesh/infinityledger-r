@@ -40,6 +40,7 @@ async fn main() -> anyhow::Result<()> {
         .merge(routes::system::router())
         .merge(routes::commit::router())
         .merge(routes::zk::router())
+        .merge(routes::domain::router())
         .with_state(state)
         .layer(TraceLayer::new_for_http());
 

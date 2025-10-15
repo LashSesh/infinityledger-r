@@ -10,3 +10,4 @@ pub mod index;
 pub mod system;
 pub mod commit;
 pub mod zk;
+pub mod domain;
