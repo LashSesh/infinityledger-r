@@ -733,6 +733,9 @@ Comparing Python and Rust outputs:
   - [x] adapter.rs - Domain-specific data transformation (9 tests)
   - [x] domain_layer.rs - Main orchestration pipeline (7 tests)
   - [x] xswap.rs - Cross-domain manifold alignment (9 tests)
+- [x] mef-vector-db crate ✅ (14 tests)
+  - [x] manifest_store.rs - S3-backed manifest and persistence (6 tests)
+  - [x] proof_registry.rs - Merkle-tree membership proofs (8 tests)
 - [ ] mef-api crate (basic structure in place)
 - [ ] mef-cli crate (basic structure in place)
 
@@ -745,8 +748,8 @@ Comparing Python and Rust outputs:
 - [x] Update MIGRATION.md
 - [ ] Final validation
 
-**Current Progress**: 25 of 76+ modules migrated (32.9%)
-**Total Tests**: 344 comprehensive unit tests, all passing
+**Current Progress**: 27 of 76+ modules migrated (35.5%)
+**Total Tests**: 358 comprehensive unit tests, all passing
 
 ## Known Limitations
 
