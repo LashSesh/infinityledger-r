@@ -11,8 +11,8 @@
 mod manifest_store;
 mod proof_registry;
 
-pub use manifest_store::{ManifestStore, Manifest, PersistenceConfig};
-pub use proof_registry::{ProofRegistry, MembershipProof, ProofError};
+pub use manifest_store::{ManifestStore, Manifest, PersistenceConfig, CollectionState as ManifestCollectionState};
+pub use proof_registry::{ProofRegistry, MembershipProof, ProofError, CollectionState};
 
 // Type aliases for NumPy compatibility
 /// Float32 type (equivalent to np.float32)
