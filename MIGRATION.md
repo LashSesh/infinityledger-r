@@ -761,11 +761,13 @@ Comparing Python and Rust outputs:
 
 ### Phase 3: Processing Pipeline (100% Complete)
 - [x] mef-ingestion crate ✅ (7 tests)
-- [x] mef-solvecoagula crate ✅ (35 tests + 4 operator modules)
+  - [x] triton_core.rs - SPEC-002-compliant normalization (wrapper complete)
+- [x] mef-solvecoagula crate ✅ (47 tests + 5 operator modules) **UPDATED**
   - [x] operators.rs - Core fixpoint operators
   - [x] doublekick.rs - DoubleKick (DK) operator (7 tests)
   - [x] sweep.rs - Sweep (SW) operator (9 tests)
   - [x] pfadinvarianz.rs - Pfadinvarianz (PI) operator (6 tests)
+  - [x] weight_transfer.rs - Weight-Transfer (WT) operator (11 tests) ✅ NEW
 - [x] mef-tic crate ✅ (11 tests)
 - [x] mef-coupling crate ✅ (9 tests)
 - [x] mef-spiral additional modules ✅ (24 tests total)
@@ -841,8 +843,21 @@ Comparing Python and Rust outputs:
 - [x] Update MIGRATION.md
 - [ ] Final validation
 
-**Current Progress**: 43 of 76+ modules migrated (56.6%)
-**Total Tests**: 536 comprehensive unit tests, all passing (except 1 FP precision issue)
+**Current Progress**: 44 of 76+ modules migrated (57.9%)
+**Total Tests**: 545 comprehensive unit tests, all passing ✅
+
+## Recent Updates (2025-10-15)
+
+### Migration Continuation Session
+- Fixed floating-point tolerance issue in pfadinvarianz::test_verify_idempotence
+- Migrated weight_transfer.py (208 lines) → weight_transfer.rs (424 lines with tests)
+  - Implemented WeightTransfer operator with scale-based redistribution (micro/meso/macro)
+  - Added 11 comprehensive unit tests covering all functionality
+  - Maintains contractivity through convex combination of projections
+  - Full deterministic behavior with spectral norm constraints
+- Verified triton_core.rs already implements complete Triton normalization (Python triton.py is just a compatibility wrapper)
+- All 545 tests passing (up from 536)
+- Progress: 56.6% → 57.9%
 
 ## Known Limitations
 
