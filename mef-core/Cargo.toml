@@ -16,3 +16,9 @@ rand = "0.8"
 rustfft = "6.1"
 uuid = { version = "1.0", features = ["v4"] }
 chrono = "0.4"
+
+[dev-dependencies]
+tempfile = "3.8"
+mef-spiral = { path = "../mef-spiral" }
+mef-ledger = { path = "../mef-ledger" }
+
