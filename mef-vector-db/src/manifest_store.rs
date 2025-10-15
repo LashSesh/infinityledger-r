@@ -163,8 +163,7 @@ impl ManifestStore {
         s3_client: Option<S3Client>,
     ) -> Result<Self> {
         let base_path = base_path.as_ref().to_path_buf();
-        std::fs::create_dir_all(&base_path)
-            .context("Failed to create base directory")?;
+        std::fs::create_dir_all(&base_path).context("Failed to create base directory")?;
         
         let manifest_path = base_path.join("manifest.json");
         let mut manifest = Self::load_manifest(&manifest_path, manifest_data)?;
@@ -201,15 +200,12 @@ impl ManifestStore {
         artifacts: Option<&HashMap<String, PathBuf>>,
     ) -> Result<PathBuf> {
         let version_dir = self.version_path(collection, epoch);
-        std::fs::create_dir_all(&version_dir)
-            .context("Failed to create version directory")?;
+        std::fs::create_dir_all(&version_dir).context("Failed to create version directory")?;
         
         // Save state
         let state_path = version_dir.join("index.json");
-        let state_json = serde_json::to_string_pretty(&state.to_dict())
-            .context("Failed to serialize state")?;
-        std::fs::write(&state_path, state_json)
-            .context("Failed to write state file")?;
+        let state_json = serde_json::to_string_pretty(&state.to_dict()).context("Failed to serialize state")?;
+        std::fs::write(&state_path, state_json).context("Failed to write state file")?;
         
         // Update manifest
         let relative_path = version_dir
@@ -234,8 +230,7 @@ impl ManifestStore {
             for (name, file_path) in artifacts {
                 let dest_path = version_dir.join(name);
                 if file_path.is_file() {
-                    std::fs::copy(file_path, &dest_path)
-                        .context(format!("Failed to copy artifact: {}", name))?;
+                    std::fs::copy(file_path, &dest_path).context(format!("Failed to copy artifact: {}", name))?;
                     uploaded_files.push(dest_path);
                 }
             }
@@ -293,10 +288,8 @@ impl ManifestStore {
         }
         
         if manifest_path.exists() {
-            let contents = std::fs::read_to_string(manifest_path)
-                .context("Failed to read manifest file")?;
-            let json: Value = serde_json::from_str(&contents)
-                .context("Failed to parse manifest JSON")?;
+            let contents = std::fs::read_to_string(manifest_path).context("Failed to read manifest file")?;
+            let json: Value = serde_json::from_str(&contents).context("Failed to parse manifest JSON")?;
             return Ok(Manifest::from_dict(Some(&json)));
         }
         
@@ -305,10 +298,8 @@ impl ManifestStore {
 
     /// Save manifest to file
     fn save_manifest(&self) -> Result<()> {
-        let json = serde_json::to_string_pretty(&self.manifest.to_dict())
-            .context("Failed to serialize manifest")?;
-        std::fs::write(&self.manifest_path, json)
-            .context("Failed to write manifest file")?;
+        let json = serde_json::to_string_pretty(&self.manifest.to_dict()).context("Failed to serialize manifest")?;
+        std::fs::write(&self.manifest_path, json).context("Failed to write manifest file")?;
         Ok(())
     }
 

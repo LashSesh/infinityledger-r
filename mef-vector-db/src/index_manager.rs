@@ -123,7 +123,9 @@ pub struct IndexManager {
     pub collections: HashMap<String, CollectionState>,
     pub collection_providers: HashMap<String, String>,
     provider_instances: HashMap<String, Box<dyn IndexProvider>>,
+    #[allow(dead_code)]
     ephemeral_provider_cache: HashMap<String, Box<dyn IndexProvider>>,
+    #[allow(dead_code)]
     ephemeral_cache_limit: usize,
     last_search_plan: HashMap<String, Value>,
     index_status: HashMap<String, HashMap<String, Value>>,
@@ -154,8 +156,7 @@ impl IndexManager {
     /// Create a new IndexManager
     pub fn new(base_path: Option<PathBuf>) -> Result<Self> {
         let base_path = base_path.unwrap_or_else(default_vector_db_path);
-        fs::create_dir_all(&base_path)
-            .context("Failed to create base directory")?;
+        fs::create_dir_all(&base_path).context("Failed to create base directory")?;
         
         let ephemeral_cache_limit = env::var("INDEX_EPHEMERAL_CACHE")
             .ok()
@@ -353,7 +354,7 @@ impl IndexManager {
             provider.search(query, &state.vectors, top_k, &extra_params)
         };
         
-        let total_ms = start.elapsed().as_secs_f64() * 1000.0;
+        let _total_ms = start.elapsed().as_secs_f64() * 1000.0;
         
         let plan = if use_ephemeral {
             HashMap::new() // Ephemeral provider doesn't persist plan
@@ -511,14 +512,12 @@ impl IndexManager {
         let path = self.collection_path(collection);
         let data = state.to_dict();
         let json = serde_json::to_string_pretty(&data)?;
-        fs::write(&path, json)
-            .context(format!("Failed to write collection {}", collection))?;
+        fs::write(&path, json).context(format!("Failed to write collection {}", collection))?;
         Ok(())
     }
     
     fn load_existing_state(&mut self) -> Result<()> {
-        let entries = fs::read_dir(&self.base_path)
-            .context("Failed to read base directory")?;
+        let entries = fs::read_dir(&self.base_path).context("Failed to read base directory")?;
         
         for entry in entries {
             let entry = entry?;

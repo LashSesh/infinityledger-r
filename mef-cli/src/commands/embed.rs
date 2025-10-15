@@ -37,8 +37,7 @@ pub fn execute(
     let response = client
         .post(format!("{}/acquisition", api_url))
         .json(&data)
-        .send()
-        .context("Failed to send request to API")?;
+        .send().context("Failed to send request to API")?;
 
     if response.status().is_success() {
         let result: EmbedResponse = response.json()?;

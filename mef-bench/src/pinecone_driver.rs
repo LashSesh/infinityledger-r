@@ -69,12 +69,10 @@ impl PineconeDriver {
             .get(&list_url)
             .header("Api-Key", &self.api_key)
             .timeout(Duration::from_secs(10))
-            .send()
-            .context("Failed to list indexes")?;
+            .send().context("Failed to list indexes")?;
 
         if response.status().is_success() {
-            let indexes: serde_json::Value = response.json()
-                .context("Failed to parse indexes list")?;
+            let indexes: serde_json::Value = response.json().context("Failed to parse indexes list")?;
             
             if let Some(indexes_array) = indexes.get("indexes").and_then(|i| i.as_array()) {
                 for index in indexes_array {
@@ -118,8 +116,7 @@ impl PineconeDriver {
             .header("Api-Key", &self.api_key)
             .json(&payload)
             .timeout(Duration::from_secs(30))
-            .send()
-            .context("Failed to create index")?;
+            .send().context("Failed to create index")?;
 
         if !response.status().is_success() {
             let text = response.text().unwrap_or_default();
@@ -146,8 +143,7 @@ impl PineconeDriver {
 
             match response {
                 Ok(resp) if resp.status().is_success() => {
-                    let description: serde_json::Value = resp.json()
-                        .context("Failed to parse index description")?;
+                    let description: serde_json::Value = resp.json().context("Failed to parse index description")?;
                     
                     // Check if ready
                     let ready = description.get("status")
@@ -196,8 +192,7 @@ impl PineconeDriver {
 
             match response {
                 Ok(resp) if resp.status().is_success() => {
-                    let indexes: serde_json::Value = resp.json()
-                        .context("Failed to parse indexes list")?;
+                    let indexes: serde_json::Value = resp.json().context("Failed to parse indexes list")?;
                     
                     let mut found = false;
                     if let Some(indexes_array) = indexes.get("indexes").and_then(|i| i.as_array()) {
@@ -278,8 +273,7 @@ impl VectorStoreDriver for PineconeDriver {
 
         let client = reqwest::blocking::Client::builder()
             .timeout(Duration::from_secs(30))
-            .build()
-            .context("Failed to create HTTP client")?;
+            .build().context("Failed to create HTTP client")?;
 
         // Health check - try to list indexes
         let url = format!("{}/indexes", self.control_plane_url());
@@ -481,16 +475,14 @@ impl VectorStoreDriver for PineconeDriver {
             .header("Api-Key", &self.api_key)
             .json(&payload)
             .timeout(Duration::from_secs(30))
-            .send()
-            .context("Failed to query vectors")?;
+            .send().context("Failed to query vectors")?;
 
         if !response.status().is_success() {
             let text = response.text().unwrap_or_default();
             return Err(anyhow::anyhow!("Query failed: {}", text));
         }
 
-        let result: serde_json::Value = response.json()
-            .context("Failed to parse query response")?;
+        let result: serde_json::Value = response.json().context("Failed to parse query response")?;
 
         let mut hits: Vec<(String, f64)> = Vec::new();
         

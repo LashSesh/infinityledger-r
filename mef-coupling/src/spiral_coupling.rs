@@ -191,6 +191,7 @@ pub struct SpiralCouplingEngine {
     resonance: ResonanceMetric,
     #[allow(dead_code)]
     eps_pi: f64,
+    #[allow(dead_code)]
     zk_mu: f64,
     state: CouplingState,
 }
@@ -320,9 +321,8 @@ impl SpiralCouplingEngine {
                 })
                 .unwrap_or_default();
 
-            for j in (i + 1)..ordered_nodes.len() {
-                let (target_id, target_val) = ordered_nodes[j];
-                let key = (source_id.clone(), target_id.clone());
+            for (target_id, target_val) in ordered_nodes.iter().skip(i + 1) {
+                let key = (source_id.clone(), (*target_id).clone());
 
                 if existing.contains(&key) {
                     continue;
@@ -346,7 +346,7 @@ impl SpiralCouplingEngine {
 
                 self.state.hdag.edges.push(EdgePayload {
                     from: source_id.clone(),
-                    to: target_id.clone(),
+                    to: (*target_id).clone(),
                     weight: score,
                 });
 
@@ -670,7 +670,7 @@ impl SpiralCouplingEngine {
         let reference_vector = self.params.coordinates(0.0);
         let output_vector = self.params.coordinates(self.params.theta_step);
         let resonance = self.resonance.score(&output_vector, &reference_vector);
-        let lzk = (1.0 - resonance) + self.zk_mu * (1.0 - 1.0);
+        let lzk = 1.0 - resonance; // Simplified from (1.0 - resonance) + self.zk_mu * (1.0 - 1.0) since (1.0 - 1.0) = 0
 
         let step_hash = self.register_step(
             "ZK_VERIFY",

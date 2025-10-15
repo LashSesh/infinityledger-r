@@ -50,8 +50,7 @@ impl MilvusDriver {
             .post(&url)
             .json(&json!({"collectionName": namespace}))
             .timeout(std::time::Duration::from_secs(10))
-            .send()
-            .context("Failed to check collection existence")?;
+            .send().context("Failed to check collection existence")?;
 
         if check_response.status().is_success() {
             return Ok(());
@@ -73,8 +72,7 @@ impl MilvusDriver {
             .post(&create_url)
             .json(&payload)
             .timeout(std::time::Duration::from_secs(30))
-            .send()
-            .context("Failed to create collection")?;
+            .send().context("Failed to create collection")?;
 
         if !response.status().is_success() {
             let text = response.text().unwrap_or_default();
@@ -114,8 +112,7 @@ impl MilvusDriver {
             .post(&url)
             .json(&payload)
             .timeout(std::time::Duration::from_secs(60))
-            .send()
-            .context("Failed to insert vectors")?;
+            .send().context("Failed to insert vectors")?;
 
         if !response.status().is_success() {
             let text = response.text().unwrap_or_default();
@@ -180,8 +177,7 @@ impl VectorStoreDriver for MilvusDriver {
 
         let client = reqwest::blocking::Client::builder()
             .timeout(std::time::Duration::from_secs(30))
-            .build()
-            .context("Failed to create HTTP client")?;
+            .build().context("Failed to create HTTP client")?;
 
         // Health check
         let url = format!("{}/v1/vector/collections/list", self.base_url());
@@ -304,16 +300,14 @@ impl VectorStoreDriver for MilvusDriver {
             .post(&url)
             .json(&payload)
             .timeout(std::time::Duration::from_secs(30))
-            .send()
-            .context("Failed to search vectors")?;
+            .send().context("Failed to search vectors")?;
 
         if !response.status().is_success() {
             let text = response.text().unwrap_or_default();
             return Err(anyhow::anyhow!("Search failed: {}", text));
         }
 
-        let result: serde_json::Value = response.json()
-            .context("Failed to parse search response")?;
+        let result: serde_json::Value = response.json().context("Failed to parse search response")?;
 
         let mut hits: Vec<(String, f64)> = Vec::new();
         

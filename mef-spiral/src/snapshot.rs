@@ -1,7 +1,7 @@
-/// Spiral Snapshot implementation for 5D storage.
-/// Deterministic transformation and addressing system.
-///
-/// Migrated from: MEF-Core_v1.0/src/spiral/snapshot.py
+//! Spiral Snapshot implementation for 5D storage.
+//! Deterministic transformation and addressing system.
+//!
+//! Migrated from: MEF-Core_v1.0/src/spiral/snapshot.py
 
 use anyhow::{Context, Result};
 use chrono::Duration;
@@ -103,8 +103,7 @@ impl SpiralSnapshot {
     /// * `store_path` - Path to storage directory
     pub fn new(config: SpiralConfig, store_path: impl AsRef<Path>) -> Result<Self> {
         let store_path = store_path.as_ref().to_path_buf();
-        std::fs::create_dir_all(&store_path)
-            .context("Failed to create store directory")?;
+        std::fs::create_dir_all(&store_path).context("Failed to create store directory")?;
         
         Ok(Self {
             config,
@@ -358,10 +357,8 @@ impl SpiralSnapshot {
     pub fn save_snapshot(&self, snapshot: &Snapshot) -> Result<PathBuf> {
         let snapshot_file = self.store_path.join(format!("{}.spiral", snapshot.id));
         
-        let json = serde_json::to_string_pretty(snapshot)
-            .context("Failed to serialize snapshot")?;
-        std::fs::write(&snapshot_file, json)
-            .context("Failed to write snapshot file")?;
+        let json = serde_json::to_string_pretty(snapshot).context("Failed to serialize snapshot")?;
+        std::fs::write(&snapshot_file, json).context("Failed to write snapshot file")?;
         
         Ok(snapshot_file)
     }
@@ -377,10 +374,8 @@ impl SpiralSnapshot {
             return Ok(None);
         }
         
-        let contents = std::fs::read_to_string(&snapshot_file)
-            .context("Failed to read snapshot file")?;
-        let snapshot: Snapshot = serde_json::from_str(&contents)
-            .context("Failed to deserialize snapshot")?;
+        let contents = std::fs::read_to_string(&snapshot_file).context("Failed to read snapshot file")?;
+        let snapshot: Snapshot = serde_json::from_str(&contents).context("Failed to deserialize snapshot")?;
         
         Ok(Some(snapshot))
     }
@@ -415,8 +410,7 @@ impl SpiralSnapshot {
     /// # Arguments
     /// * `snapshot` - Snapshot data
     pub fn get_snapshot_hash(&self, snapshot: &Snapshot) -> Result<String> {
-        let snapshot_str = serde_json::to_string(snapshot)
-            .context("Failed to serialize snapshot for hashing")?;
+        let snapshot_str = serde_json::to_string(snapshot).context("Failed to serialize snapshot for hashing")?;
         
         let mut hasher = Sha256::new();
         hasher.update(snapshot_str.as_bytes());

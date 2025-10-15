@@ -160,8 +160,7 @@ fn main() -> Result<()> {
     let cli = Cli::parse();
 
     // Load configuration
-    let config = CliConfig::load(&cli.config, &cli.api_url)
-        .context("Failed to load configuration")?;
+    let config = CliConfig::load(&cli.config, &cli.api_url).context("Failed to load configuration")?;
 
     // Execute command
     match cli.command {

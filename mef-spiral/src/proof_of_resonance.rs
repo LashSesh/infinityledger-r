@@ -1,8 +1,8 @@
-/// Proof-of-Resonance (PoR) validation system.
-/// Mathematical validation of Spiral snapshot stability.
-///
-/// FFT(s) → ŝ; r' = g(ŝ) ∈ [0,1]
-/// Acceptance: |r' - r_snapshot| ≤ δ ∧ λ_gap ≥ λ_min
+//! Proof-of-Resonance (PoR) validation system.
+//! Mathematical validation of Spiral snapshot stability.
+//!
+//! FFT(s) → ŝ; r' = g(ŝ) ∈ [0,1]
+//! Acceptance: |r' - r_snapshot| ≤ δ ∧ λ_gap ≥ λ_min
 
 use serde::{Deserialize, Serialize};
 use sha2::{Digest, Sha256};
@@ -63,6 +63,7 @@ pub struct BatchValidationResults {
 pub struct ProofOfResonance {
     por_delta: f64,
     lambda_min: f64,
+    #[allow(dead_code)]
     stability_threshold: f64,
 }
 
@@ -150,10 +151,12 @@ impl ProofOfResonance {
         // Construct local Laplacian matrix (circulant structure for 5D topology)
         let mut laplacian = vec![vec![0.0; n]; n];
 
-        for i in 0..n {
-            laplacian[i][i] = 2.0; // Diagonal
-            laplacian[i][(i + 1) % n] = -1.0; // Upper neighbor
-            laplacian[i][(i + n - 1) % n] = -1.0; // Lower neighbor
+        for (i, row) in laplacian.iter_mut().enumerate() {
+            row[i] = 2.0; // Diagonal
+            let next = (i + 1) % n;
+            let prev = (i + n - 1) % n;
+            row[next] = -1.0; // Upper neighbor
+            row[prev] = -1.0; // Lower neighbor
         }
 
         // Compute eigenvalues using nalgebra
@@ -316,7 +319,7 @@ impl ProofOfResonance {
             base_stability
         };
 
-        stability.max(0.0).min(1.0)
+        stability.clamp(0.0, 1.0)
     }
 
     /// Validate a Spiral snapshot

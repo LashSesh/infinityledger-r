@@ -67,8 +67,7 @@ impl ElasticDriver {
             .put(&url)
             .json(&payload)
             .timeout(std::time::Duration::from_secs(15))
-            .send()
-            .context("Failed to create index")?;
+            .send().context("Failed to create index")?;
 
         let status = response.status().as_u16();
         if status == 200 || status == 201 {
@@ -106,13 +105,11 @@ impl ElasticDriver {
             .header("Content-Type", "application/x-ndjson")
             .body(body)
             .timeout(std::time::Duration::from_secs(30))
-            .send()
-            .context("Failed to send bulk request")?;
+            .send().context("Failed to send bulk request")?;
 
         response.error_for_status_ref()?;
         
-        let payload: serde_json::Value = response.json()
-            .context("Failed to parse bulk response")?;
+        let payload: serde_json::Value = response.json().context("Failed to parse bulk response")?;
         
         if payload.get("errors").and_then(|v| v.as_bool()).unwrap_or(false) {
             return Err(anyhow::anyhow!("bulk ingest reported errors"));
@@ -168,8 +165,7 @@ impl VectorStoreDriver for ElasticDriver {
 
         let client = reqwest::blocking::Client::builder()
             .timeout(std::time::Duration::from_secs(30))
-            .build()
-            .context("Failed to build HTTP client")?;
+            .build().context("Failed to build HTTP client")?;
 
         let health_url = format!("{}/_cluster/health", self.base_url);
         let response = client
@@ -203,8 +199,7 @@ impl VectorStoreDriver for ElasticDriver {
         let response = client
             .delete(&url)
             .timeout(std::time::Duration::from_secs(15))
-            .send()
-            .context("Failed to delete index")?;
+            .send().context("Failed to delete index")?;
 
         let status = response.status().as_u16();
         if status != 200 && status != 202 && status != 204 && status != 404 {
@@ -303,13 +298,11 @@ impl VectorStoreDriver for ElasticDriver {
             .get(&url)
             .json(&search_body)
             .timeout(std::time::Duration::from_secs(15))
-            .send()
-            .context("Failed to search")?;
+            .send().context("Failed to search")?;
 
         response.error_for_status_ref()?;
         
-        let payload: serde_json::Value = response.json()
-            .context("Failed to parse search response")?;
+        let payload: serde_json::Value = response.json().context("Failed to parse search response")?;
 
         let hits_payload = payload
             .get("hits")

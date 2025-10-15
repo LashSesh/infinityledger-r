@@ -1,5 +1,5 @@
-/// Spiral Storage management for 5D snapshots.
-/// File-based persistence with indexing and retrieval.
+//! Spiral Storage management for 5D snapshots.
+//! File-based persistence with indexing and retrieval.
 
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;

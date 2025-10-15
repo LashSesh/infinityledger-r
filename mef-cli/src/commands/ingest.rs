@@ -65,8 +65,7 @@ pub fn execute(
         let response = client
             .post(format!("{}/ingest", api_url))
             .json(&request)
-            .send()
-            .context("Failed to send request to API")?;
+            .send().context("Failed to send request to API")?;
 
         if response.status().is_success() {
             let result: IngestResponse = response.json()?;
