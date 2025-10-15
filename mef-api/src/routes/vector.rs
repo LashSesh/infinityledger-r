@@ -114,19 +114,20 @@ async fn upsert_collection_vectors(
     let mut index_manager = state.index_manager.lock()
         .map_err(|e| ApiError::Internal(format!("Failed to lock index manager: {}", e)))?;
     
-    // Convert VectorPayload to VectorRecord
+    // Convert VectorPayload to VectorRecord, using epoch from payload or default to 1 for benchmarking
     let records: Vec<VectorRecord> = request.vectors.into_iter().map(|v| {
         VectorRecord::new(
             v.id,
             v.vector,
             v.metadata.map(|m| m.into_iter().collect()).unwrap_or_default(),
-            None, // epoch
+            v.epoch, // Use epoch from payload
         )
     }).collect();
     
     let count = records.len();
     
-    index_manager.upsert_vectors(&collection, records, None, None)
+    // Provide default epoch of 1 for records that don't have one
+    index_manager.upsert_vectors(&collection, records, Some(1), None)
         .map_err(|e| ApiError::VectorDB(format!("Failed to upsert vectors: {}", e)))?;
     
     Ok(Json(UpsertResponse {
@@ -180,10 +181,14 @@ async fn list_collection_vectors(
                 .and_then(|v| v.as_object())
                 .map(|obj| obj.clone());
             
+            let epoch = vec_data.get("epoch")
+                .and_then(|v| v.as_i64());
+            
             VectorPayload {
                 id: id.clone(),
                 vector,
                 metadata,
+                epoch,
             }
         })
         .collect();
