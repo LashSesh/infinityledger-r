@@ -16,6 +16,7 @@ The `mef-bench` crate provides a flexible driver abstraction for benchmarking ve
 - **Milvus Driver**: Milvus HTTP API client for vector search
 - **Weaviate Driver**: Weaviate HTTP API client for vector search
 - **Pinecone Driver**: Pinecone managed vector database HTTP API client
+- **Dataset Utilities**: Synthetic dataset generation for benchmarking
 - **Driver Registry**: Dynamic driver instantiation by name
 - **Comprehensive Error Handling**: Structured error types with actionable messages
 
@@ -249,10 +250,45 @@ match driver.connect() {
 }
 ```
 
+### Using Dataset Utilities
+
+The `datasets` module provides utilities for generating synthetic benchmark datasets:
+
+```rust
+use mef_bench::{
+    build_spiral_corpus, 
+    generate_query_vectors, 
+    iter_records,
+    chunked,
+    brute_force_top_k,
+};
+
+// Generate a synthetic spiral corpus
+let (ids, vectors) = build_spiral_corpus(1000, 123);
+
+// Create records for bulk ingestion
+let records: Vec<_> = iter_records(&ids, &vectors).collect();
+
+// Process in batches
+for batch in chunked(records, 100) {
+    println!("Processing batch of {} records", batch.len());
+    // Insert batch...
+}
+
+// Generate query vectors with jitter
+let queries = generate_query_vectors(&vectors, 200, 321);
+
+// Compute ground truth with brute force
+let query = &queries[0];
+let top_k = brute_force_top_k(query, &vectors, 10, "cosine");
+println!("Top 10 matches: {:?}", top_k);
+```
+
 ## Type Definitions
 
 - `Vector`: `Vec<f64>` - A vector of floating-point numbers
 - `UpsertItem`: `(String, Vector, Option<HashMap<String, serde_json::Value>>)` - ID, vector, and optional metadata
+- `Record`: Bulk ingestion record with ID, vector, and metadata
 
 ## Dependencies
 
@@ -263,6 +299,8 @@ match driver.connect() {
 - `reqwest` - HTTP client (with `blocking` feature)
 - `ndarray` - NumPy-compatible arrays
 - `tokio` - Async runtime
+- `rand` - Random number generation
+- `rand_distr` - Statistical distributions
 
 ## Testing
 
@@ -272,7 +310,7 @@ Run the test suite:
 cargo test -p mef-bench
 ```
 
-All 75 tests should pass, covering:
+All 89 tests should pass, covering:
 - Driver creation and configuration
 - Connection management
 - Upsert and search operations
@@ -281,6 +319,7 @@ All 75 tests should pass, covering:
 - All supported metrics (cosine, l2, ip)
 - Environment variable configuration
 - All 7 drivers (MEF, FAISS, Elasticsearch, Qdrant, Milvus, Weaviate, Pinecone)
+- Dataset generation and utilities (spiral points, queries, ground truth)
 
 ## License
 
