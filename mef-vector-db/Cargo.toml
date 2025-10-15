@@ -1,0 +1,19 @@
+[package]
+name = "mef-vector-db"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+anyhow = "1.0"
+serde = { version = "1.0", features = ["derive"] }
+serde_json = "1.0"
+chrono = { version = "0.4", features = ["serde"] }
+sha2 = "0.10"
+regex = "1.10"
+thiserror = "1.0"
+aws-sdk-s3 = "1.0"
+aws-config = "1.0"
+tokio = { version = "1.0", features = ["full"] }
+
+[dev-dependencies]
+tempfile = "3.0"
