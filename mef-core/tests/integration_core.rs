@@ -6,13 +6,13 @@
 //! - TIC (Temporal Information Crystals)
 //! - HDAG (Hierarchical Directed Acyclic Graph)
 
-use mef_core::types::MefResult;
+use anyhow::Result;
 use mef_ledger::MEFLedger;
 use mef_spiral::SpiralSnapshot;
 use serde_json::json;
 
 #[test]
-fn test_spiral_ledger_integration() -> MefResult<()> {
+fn test_spiral_ledger_integration() -> Result<()> {
     // Create a temporary directory for test data
     let temp_dir = tempfile::tempdir()?;
     let storage_path = temp_dir.path().join("storage");
@@ -84,7 +84,7 @@ fn test_spiral_ledger_integration() -> MefResult<()> {
 }
 
 #[test]
-fn test_multiple_blocks_chain_integrity() -> MefResult<()> {
+fn test_multiple_blocks_chain_integrity() -> Result<()> {
     let temp_dir = tempfile::tempdir()?;
     let ledger_path = temp_dir.path().join("ledger");
     
@@ -108,7 +108,7 @@ fn test_multiple_blocks_chain_integrity() -> MefResult<()> {
         });
         
         let block = ledger.append_block(&tic, &snapshot)?;
-        assert_eq!(block.index, i as u64);
+        assert_eq!(block.index, i as i32);
     }
     
     // Verify chain integrity for all blocks
@@ -124,7 +124,7 @@ fn test_multiple_blocks_chain_integrity() -> MefResult<()> {
 }
 
 #[test]
-fn test_deterministic_snapshot_creation() -> MefResult<()> {
+fn test_deterministic_snapshot_creation() -> Result<()> {
     let temp_dir = tempfile::tempdir()?;
     let storage_path = temp_dir.path().join("storage");
     
