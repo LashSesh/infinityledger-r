@@ -15,7 +15,7 @@ members = [
     "mef-cli",
     "mef-storage",
     "mef-domains",
-    "mef-vector-db", "mef-acquisition", "mef-specs",
+    "mef-vector-db", "mef-acquisition", "mef-specs", "mef-bench",
 ]
 
 [workspace.package]
