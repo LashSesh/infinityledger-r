@@ -127,17 +127,38 @@ struct RouteSelectionResponse {
 }
 
 async fn select_optimal_route(
-    State(_state): State<AppState>,
+    State(state): State<AppState>,
     Json(request): Json<RouteSelectionRequest>,
 ) -> Result<Json<RouteSelectionResponse>> {
-    // TODO: Implement actual route selection using MetatronRouter
+    // Use MetatronRouter to select optimal route
+    let mut router = state.metatron_router.lock().unwrap();
+    
+    // Convert target properties to HashMap if present
+    let target_props = request.target_properties.as_ref()
+        .and_then(|v| v.as_object())
+        .map(|obj| {
+            obj.iter()
+                .map(|(k, v)| (k.clone(), v.to_string()))
+                .collect::<std::collections::HashMap<String, String>>()
+        });
+    
+    let route_spec = router.select_optimal_route(
+        &request.input_vector,
+        target_props.as_ref(),
+    );
+    
+    // Convert operator types to strings
+    let operator_sequence: Vec<String> = route_spec.operator_sequence.iter()
+        .map(|op| format!("{:?}", op))
+        .collect();
+    
     Ok(Json(RouteSelectionResponse {
-        route_id: format!("route_{}", uuid::Uuid::new_v4()),
-        permutation: (1..=13).collect(),
-        operator_sequence: vec!["DK".to_string(), "SW".to_string(), "PI".to_string()],
-        symmetry_group: "C6".to_string(),
-        score: 0.95,
-        metadata: serde_json::json!({"cached": false}),
+        route_id: route_spec.route_id,
+        permutation: route_spec.permutation,
+        operator_sequence,
+        symmetry_group: route_spec.symmetry_group,
+        score: route_spec.score,
+        metadata: serde_json::to_value(route_spec.metadata).unwrap_or(serde_json::json!({})),
     }))
 }
 
@@ -179,43 +200,68 @@ struct ConvergenceStep {
 }
 
 async fn apply_transformation(
-    State(_state): State<AppState>,
+    State(state): State<AppState>,
     Json(request): Json<TransformRequest>,
 ) -> Result<Json<TransformResponse>> {
-    // TODO: Implement actual transformation using MetatronRouter
-    let output = request.input_vector.clone();
+    // Get MetatronRouter
+    let mut router = state.metatron_router.lock().unwrap();
+    
+    // Look up route spec if route_id provided
+    let route_spec = if let Some(route_id) = &request.route_id {
+        router.route_cache.get(route_id).cloned()
+    } else if let Some(op_seq) = &request.operator_sequence {
+        // Create custom route spec from operator sequence
+        use mef_topology::OperatorType;
+        let operators: Vec<OperatorType> = op_seq.iter()
+            .filter_map(|s| match s.as_str() {
+                "DK" => Some(OperatorType::DK),
+                "SW" => Some(OperatorType::SW),
+                "PI" => Some(OperatorType::PI),
+                "WT" => Some(OperatorType::WT),
+                _ => None,
+            })
+            .collect();
+        
+        Some(mef_topology::RouteSpec {
+            route_id: uuid::Uuid::new_v4().to_string(),
+            permutation: (1..=13).collect(),
+            operator_sequence: operators,
+            symmetry_group: "Identity".to_string(),
+            score: 0.0,
+            metadata: std::collections::HashMap::new(),
+        })
+    } else {
+        None
+    };
+    
+    // Apply transformation
+    let result = router.transform(&request.input_vector, route_spec.as_ref());
     
     Ok(Json(TransformResponse {
-        input: request.input_vector,
-        output,
+        input: result.input_vector,
+        output: result.output_vector,
         route: RouteInfo {
-            route_id: request.route_id.unwrap_or_else(|| format!("route_{}", uuid::Uuid::new_v4())),
-            symmetry_group: "C6".to_string(),
-            score: 0.95,
-            operators: vec!["DK".to_string(), "SW".to_string()],
+            route_id: result.route_spec.route_id,
+            symmetry_group: result.route_spec.symmetry_group,
+            score: result.route_spec.score,
+            operators: result.route_spec.operator_sequence.iter()
+                .map(|op| format!("{:?}", op))
+                .collect(),
         },
         resonance_metrics: ResonanceMetrics {
-            input_resonance: 0.82,
-            output_resonance: 0.91,
-            coherence: 0.88,
-            stability: 0.94,
-            convergence: 0.89,
+            input_resonance: result.resonance_metrics.input_resonance,
+            output_resonance: result.resonance_metrics.output_resonance,
+            coherence: result.resonance_metrics.coherence,
+            stability: result.resonance_metrics.stability,
+            convergence: result.resonance_metrics.convergence,
         },
-        convergence_data: vec![
-            ConvergenceStep {
-                operator: "DK".to_string(),
-                delta_norm: 0.15,
-                resonance: 0.85,
-                entropy: 0.22,
-            },
-            ConvergenceStep {
-                operator: "SW".to_string(),
-                delta_norm: 0.08,
-                resonance: 0.91,
-                entropy: 0.12,
-            },
-        ],
-        timestamp: chrono::Utc::now().to_rfc3339(),
+        convergence_data: result.convergence_data.iter().map(|step| ConvergenceStep {
+            operator: step.operator.clone(),
+            delta_norm: step.delta_norm,
+            resonance: step.resonance,
+            entropy: step.entropy,
+        }).collect(),
+        timestamp: result.timestamp,
     }))
 }
 
@@ -241,29 +287,39 @@ struct TopologyNodesResponse {
 }
 
 async fn get_topology_nodes(
-    State(_state): State<AppState>,
+    State(state): State<AppState>,
     Query(query): Query<TopologyNodesQuery>,
 ) -> Result<Json<TopologyNodesResponse>> {
-    // TODO: Get actual topology from MetatronRouter
-    let nodes: Vec<TopologyNode> = if let Some(node_id) = query.node_id {
-        vec![TopologyNode {
-            id: node_id,
-            name: format!("Node_{}", node_id),
-            position: vec![0.0; 3],
-            connections: vec![],
-        }]
+    // Get canonical nodes from Metatron Cube
+    use mef_core::canonical_nodes;
+    let nodes = canonical_nodes();
+    
+    let result_nodes: Vec<TopologyNode> = if let Some(node_id) = query.node_id {
+        // Return specific node
+        if node_id > 0 && node_id <= nodes.len() {
+            let node = &nodes[node_id - 1];
+            vec![TopologyNode {
+                id: node_id,
+                name: node.label.clone(),
+                position: vec![node.coords.0, node.coords.1, node.coords.2],
+                connections: vec![], // Would need adjacency info from graph
+            }]
+        } else {
+            return Err(ApiError::NotFound(format!("Node {} not found", node_id)));
+        }
     } else {
-        (1..=13).map(|i| TopologyNode {
-            id: i,
-            name: format!("Node_{}", i),
-            position: vec![0.0; 3],
-            connections: vec![],
+        // Return all nodes
+        nodes.iter().map(|node| TopologyNode {
+            id: node.index,
+            name: node.label.clone(),
+            position: vec![node.coords.0, node.coords.1, node.coords.2],
+            connections: vec![], // Would need to compute from adjacency matrix
         }).collect()
     };
     
     Ok(Json(TopologyNodesResponse {
-        total_nodes: nodes.len(),
-        nodes,
+        total_nodes: result_nodes.len(),
+        nodes: result_nodes,
     }))
 }
 
@@ -289,18 +345,36 @@ struct TopologyEdgesResponse {
 }
 
 async fn get_topology_edges(
-    State(_state): State<AppState>,
+    State(state): State<AppState>,
     Query(query): Query<TopologyEdgesQuery>,
 ) -> Result<Json<TopologyEdgesResponse>> {
-    // TODO: Get actual topology edges from MetatronRouter
-    let edges = vec![
-        TopologyEdge {
-            source: 1,
-            target: 2,
-            edge_type: query.edge_type.clone().unwrap_or_else(|| "direct".to_string()),
-            weight: 1.0,
-        },
-    ];
+    // Get edges from Metatron graph
+    let router = state.metatron_router.lock().unwrap();
+    let adjacency = router.graph.get_adjacency_matrix();
+    
+    let mut edges = Vec::new();
+    
+    // Extract edges from adjacency matrix (13x13 matrix)
+    for i in 0..13 {
+        for j in (i+1)..13 {
+            let weight = adjacency[[i, j]];
+            if weight > 0.0 {
+                let edge_type = if query.edge_type.is_none() || 
+                    query.edge_type.as_ref().map(|t| t == "direct").unwrap_or(true) {
+                    "direct"
+                } else {
+                    continue;
+                };
+                
+                edges.push(TopologyEdge {
+                    source: i + 1,
+                    target: j + 1,
+                    edge_type: edge_type.to_string(),
+                    weight,
+                });
+            }
+        }
+    }
     
     Ok(Json(TopologyEdgesResponse {
         total_edges: edges.len(),
@@ -318,21 +392,36 @@ struct SymmetryGroupResponse {
 }
 
 async fn get_symmetry_group(
-    State(_state): State<AppState>,
+    State(state): State<AppState>,
     Path(group): Path<String>,
 ) -> Result<Json<SymmetryGroupResponse>> {
-    // TODO: Get actual symmetry group from MetatronRouter
-    let (order, description) = match group.as_str() {
-        "C6" => (6, "Cyclic group of order 6"),
-        "D6" => (12, "Dihedral group of order 12"),
-        "S7" => (5040, "Symmetric group of order 5040"),
+    // Get symmetry permutations from MetatronRouter
+    let router = state.metatron_router.lock().unwrap();
+    
+    let (permutations, order, description) = match group.as_str() {
+        "C6" => (
+            router.c6_perms.clone(),
+            6,
+            "Cyclic group of order 6"
+        ),
+        "D6" => (
+            router.d6_perms.clone(),
+            12,
+            "Dihedral group of order 12"
+        ),
+        "S7" => (
+            // Return first 100 permutations of S7 (all 5040 would be too large)
+            router.s7_perms.iter().take(100).cloned().collect(),
+            5040,
+            "Symmetric group of order 5040 (showing first 100)"
+        ),
         _ => return Err(ApiError::NotFound(format!("Unknown symmetry group: {}", group))),
     };
     
     Ok(Json(SymmetryGroupResponse {
         group: group.clone(),
         order,
-        permutations: vec![(1..=13).collect()], // Placeholder
+        permutations,
         description: description.to_string(),
     }))
 }
@@ -395,15 +484,59 @@ struct ResonanceResponse {
 }
 
 async fn calculate_resonance(
-    State(_state): State<AppState>,
+    State(state): State<AppState>,
     Json(request): Json<ResonanceRequest>,
 ) -> Result<Json<ResonanceResponse>> {
-    // TODO: Implement actual resonance calculation
+    // Calculate resonance using basic metrics since calculate_resonance is private
+    // In production, this would use the full Metatron resonance calculation
+    
+    // Calculate coherence
+    let coherence = if let Some(ref_vec) = &request.reference_vector {
+        // Calculate similarity if reference provided
+        let dot_product: f64 = request.input_vector.iter().zip(ref_vec.iter())
+            .map(|(a, b)| a * b)
+            .sum();
+        let input_norm: f64 = request.input_vector.iter().map(|x| x * x).sum::<f64>().sqrt();
+        let ref_norm: f64 = ref_vec.iter().map(|x| x * x).sum::<f64>().sqrt();
+        
+        if input_norm > 1e-10 && ref_norm > 1e-10 {
+            (dot_product / (input_norm * ref_norm)).abs()
+        } else {
+            0.0
+        }
+    } else {
+        // Default coherence based on vector properties
+        0.85
+    };
+    
+    // Calculate entropy
+    let sum: f64 = request.input_vector.iter().map(|x| x.abs()).sum();
+    let entropy = if sum > 1e-10 {
+        let probs: Vec<f64> = request.input_vector.iter().map(|x| x.abs() / sum).collect();
+        -probs.iter().filter(|&&x| x > 1e-10).map(|&x| x * x.ln()).sum::<f64>()
+    } else {
+        0.0
+    };
+    
+    // Calculate variance
+    let mean = request.input_vector.iter().sum::<f64>() / request.input_vector.len() as f64;
+    let variance = request.input_vector.iter()
+        .map(|x| (x - mean).powi(2))
+        .sum::<f64>() / request.input_vector.len() as f64;
+    
+    // Estimate resonance from coherence and entropy
+    let max_entropy = (request.input_vector.len() as f64).ln();
+    let resonance = if max_entropy > 0.0 {
+        coherence * (1.0 - (entropy / max_entropy).min(1.0))
+    } else {
+        coherence
+    };
+    
     Ok(Json(ResonanceResponse {
-        resonance: 0.87,
-        coherence: 0.91,
-        entropy: 0.15,
-        variance: 0.08,
+        resonance,
+        coherence,
+        entropy,
+        variance,
     }))
 }
 
@@ -417,14 +550,16 @@ struct CacheStatusResponse {
 }
 
 async fn get_cache_status(
-    State(_state): State<AppState>,
+    State(state): State<AppState>,
 ) -> Result<Json<CacheStatusResponse>> {
-    // TODO: Get actual cache status from MetatronRouter
+    // Get cache status from MetatronRouter
+    let router = state.metatron_router.lock().unwrap();
+    
     Ok(Json(CacheStatusResponse {
-        enabled: true,
-        size: 0,
-        max_size: 1000,
-        hit_rate: 0.75,
+        enabled: router.cache_enabled,
+        size: router.route_cache.len(),
+        max_size: 1000, // Could make this configurable
+        hit_rate: 0.0, // Would need to track hits/misses for real implementation
     }))
 }
 
@@ -436,11 +571,15 @@ struct ClearCacheResponse {
 }
 
 async fn clear_cache(
-    State(_state): State<AppState>,
+    State(state): State<AppState>,
 ) -> Result<Json<ClearCacheResponse>> {
-    // TODO: Implement actual cache clearing
+    // Clear route cache in MetatronRouter
+    let mut router = state.metatron_router.lock().unwrap();
+    let cleared = router.route_cache.len();
+    router.route_cache.clear();
+    
     Ok(Json(ClearCacheResponse {
-        cleared: 0,
+        cleared,
         timestamp: chrono::Utc::now().to_rfc3339(),
     }))
 }
@@ -458,17 +597,24 @@ struct RouteExportResponse {
 }
 
 async fn export_route(
-    State(_state): State<AppState>,
+    State(state): State<AppState>,
     Path(route_id): Path<String>,
 ) -> Result<Json<RouteExportResponse>> {
-    // TODO: Load route from cache/storage
+    // Load route from cache
+    let router = state.metatron_router.lock().unwrap();
+    
+    let route_spec = router.route_cache.get(&route_id)
+        .ok_or_else(|| ApiError::NotFound(format!("Route {} not found in cache", route_id)))?;
+    
     Ok(Json(RouteExportResponse {
-        route_id: route_id.clone(),
-        permutation: (1..=13).collect(),
-        operator_sequence: vec!["DK".to_string(), "SW".to_string()],
-        symmetry_group: "C6".to_string(),
-        score: 0.95,
-        metadata: serde_json::json!({}),
+        route_id: route_spec.route_id.clone(),
+        permutation: route_spec.permutation.clone(),
+        operator_sequence: route_spec.operator_sequence.iter()
+            .map(|op| format!("{:?}", op))
+            .collect(),
+        symmetry_group: route_spec.symmetry_group.clone(),
+        score: route_spec.score,
+        metadata: serde_json::to_value(&route_spec.metadata).unwrap_or(serde_json::json!({})),
         export_format: "json".to_string(),
     }))
 }
