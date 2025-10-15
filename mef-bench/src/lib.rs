@@ -14,6 +14,7 @@ pub mod milvus_driver;
 pub mod weaviate_driver;
 pub mod pinecone_driver;
 pub mod datasets;
+pub mod bench_runner;
 
 // Re-export commonly used types
 pub use base::{DriverUnavailable, UpsertItem, Vector, VectorStoreDriver};
@@ -36,6 +37,17 @@ pub use datasets::{
     brute_force_top_k,
     cosine_similarity,
     negative_l2_squared,
+};
+
+// Re-export benchmark runner
+pub use bench_runner::{
+    BenchmarkConfig,
+    BenchmarkRunner,
+    BenchmarkReport,
+    TimeoutSettings,
+    RetrySettings,
+    BatchSettings,
+    LatencyMetrics,
 };
 
 use std::collections::HashMap;

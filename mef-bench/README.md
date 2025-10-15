@@ -17,6 +17,7 @@ The `mef-bench` crate provides a flexible driver abstraction for benchmarking ve
 - **Weaviate Driver**: Weaviate HTTP API client for vector search
 - **Pinecone Driver**: Pinecone managed vector database HTTP API client
 - **Dataset Utilities**: Synthetic dataset generation for benchmarking
+- **Benchmark Runner**: Configuration, execution, and reporting infrastructure
 - **Driver Registry**: Dynamic driver instantiation by name
 - **Comprehensive Error Handling**: Structured error types with actionable messages
 
@@ -250,6 +251,56 @@ match driver.connect() {
 }
 ```
 
+### Using Benchmark Runner
+
+The `bench_runner` module provides infrastructure for executing benchmarks:
+
+```rust
+use mef_bench::{BenchmarkConfig, BenchmarkRunner};
+use std::path::Path;
+
+// Load configuration from file (or use defaults)
+let config = BenchmarkRunner::load_config(Path::new("bench_config.json"))?;
+
+// Create runner
+let assets_dir = Path::new("assets/bench");
+let base_url = "http://localhost:8080".to_string();
+let mut runner = BenchmarkRunner::new(config, base_url, assets_dir)?;
+
+// Execute benchmark
+let report = runner.run()?;
+
+println!("Status: {}", report.status);
+println!("Latency p50: {:.2}ms", report.latency_ms.p50);
+println!("Latency p95: {:.2}ms", report.latency_ms.p95);
+```
+
+#### Configuration Structure
+
+```rust
+use mef_bench::{BenchmarkConfig, TimeoutSettings, BatchSettings};
+
+let config = BenchmarkConfig {
+    collection: "spiral".to_string(),
+    points: 100000,
+    queries: 200,
+    k: 10,
+    warmup: 100,
+    timeouts: TimeoutSettings {
+        connect: 30.0,
+        read: 60.0,
+        bulk_operation: 120.0,
+    },
+    batch: BatchSettings {
+        size: 2000,
+        adaptive: true,
+        min_size: 500,
+        max_size: 5000,
+    },
+    ..Default::default()
+};
+```
+
 ### Using Dataset Utilities
 
 The `datasets` module provides utilities for generating synthetic benchmark datasets:
@@ -289,6 +340,8 @@ println!("Top 10 matches: {:?}", top_k);
 - `Vector`: `Vec<f64>` - A vector of floating-point numbers
 - `UpsertItem`: `(String, Vector, Option<HashMap<String, serde_json::Value>>)` - ID, vector, and optional metadata
 - `Record`: Bulk ingestion record with ID, vector, and metadata
+- `BenchmarkConfig`: Complete benchmark configuration with timeouts, retry, and batch settings
+- `BenchmarkReport`: Benchmark results with latency metrics and stage durations
 
 ## Dependencies
 
@@ -301,6 +354,7 @@ println!("Top 10 matches: {:?}", top_k);
 - `tokio` - Async runtime
 - `rand` - Random number generation
 - `rand_distr` - Statistical distributions
+- `chrono` - Date and time handling
 
 ## Testing
 
@@ -310,7 +364,7 @@ Run the test suite:
 cargo test -p mef-bench
 ```
 
-All 89 tests should pass, covering:
+All 98 tests should pass, covering:
 - Driver creation and configuration
 - Connection management
 - Upsert and search operations
@@ -320,6 +374,7 @@ All 89 tests should pass, covering:
 - Environment variable configuration
 - All 7 drivers (MEF, FAISS, Elasticsearch, Qdrant, Milvus, Weaviate, Pinecone)
 - Dataset generation and utilities (spiral points, queries, ground truth)
+- Benchmark runner configuration and execution
 
 ## License
 
