@@ -13,6 +13,9 @@ The `mef-bench` crate provides a flexible driver abstraction for benchmarking ve
 - **FAISS Baseline**: Brute-force exact nearest-neighbor search for ground truth
 - **Elasticsearch Driver**: Elasticsearch/OpenSearch dense vector kNN API client
 - **Qdrant Driver**: Qdrant HTTP API client for vector search
+- **Milvus Driver**: Milvus HTTP API client for vector search
+- **Weaviate Driver**: Weaviate HTTP API client for vector search
+- **Pinecone Driver**: Pinecone managed vector database HTTP API client
 - **Driver Registry**: Dynamic driver instantiation by name
 - **Comprehensive Error Handling**: Structured error types with actionable messages
 
@@ -163,6 +166,52 @@ Qdrant HTTP API client for vector search.
 - HTTP-only implementation (no client library required)
 - Wait confirmation for consistency
 
+### MilvusDriver
+
+Milvus HTTP API client for vector search.
+
+**Configuration**:
+- `MILVUS_HOST` environment variable (required)
+- `MILVUS_PORT` environment variable (default: `19530`)
+- Metric: `cosine` (default), `l2`, or `ip`
+
+**Features**:
+- Collection management with metric type configuration
+- Batched vector insert via HTTP API
+- Health check validation
+- Support for COSINE, L2, and IP metrics
+
+### WeaviateDriver
+
+Weaviate HTTP API client for vector search.
+
+**Configuration**:
+- `WEAVIATE_URL` environment variable (required)
+- Metric: `cosine` (default), `l2`, or `ip`
+
+**Features**:
+- Class management with distance metric configuration
+- Batch object insertion via HTTP API
+- GraphQL query support for search
+- Automatic class name sanitization
+- Support for cosine, dot, and l2-squared distance metrics
+
+### PineconeDriver
+
+Pinecone managed vector database HTTP API client.
+
+**Configuration**:
+- `PINECONE_API_KEY` environment variable (required)
+- `PINECONE_ENV` environment variable (optional)
+- Metric: `cosine` (default), `l2`, or `ip`
+
+**Features**:
+- Serverless and pod-based index support
+- Batched vector upsert
+- Index readiness waiting
+- Support for cosine, dotproduct, and euclidean metrics
+- Automatic index creation and deletion
+
 ## VectorStoreDriver Trait
 
 All drivers implement the `VectorStoreDriver` trait:
@@ -223,7 +272,7 @@ Run the test suite:
 cargo test -p mef-bench
 ```
 
-All 39 tests should pass, covering:
+All 75 tests should pass, covering:
 - Driver creation and configuration
 - Connection management
 - Upsert and search operations
@@ -231,6 +280,7 @@ All 39 tests should pass, covering:
 - Driver registry
 - All supported metrics (cosine, l2, ip)
 - Environment variable configuration
+- All 7 drivers (MEF, FAISS, Elasticsearch, Qdrant, Milvus, Weaviate, Pinecone)
 
 ## License
 
