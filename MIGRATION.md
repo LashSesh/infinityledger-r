@@ -485,6 +485,47 @@ let seed_mod = u32::from_be_bytes(seed_hash[..4].try_into().unwrap()) as f64 / (
 
 **Status**: ✅ Complete (5 tests passing)
 
+### Acquisition Module (mef-acquisition)
+
+**Files**:
+- `acquisition/adapters.py` → `adapters.rs` ✅ MIGRATED
+
+**Key Challenges**:
+- Simple data transformation and wrapping
+- Multiple input type handling (JSON, text, raw)
+- Metadata attachment to processed data
+
+**Solutions**:
+- AcquisitionAdapter struct with configurable source
+- Type-based input processing with JSON parsing fallback
+- HashMap-based result structure with data and metadata keys
+- Default implementation for generic source
+
+**Status**: ✅ Complete (5 tests passing)
+
+### Specs Module (mef-specs)
+
+**Files**:
+- `specs/blueprint_models.py` → `blueprint_models.rs` ✅ MIGRATED
+- `specs/blueprint_loader.py` → `blueprint_loader.rs` ✅ MIGRATED
+
+**Key Challenges**:
+- SPEC-002 blueprint data model representation
+- Comprehensive validation of blueprint structure
+- YAML and JSON parsing support
+- Deterministic normalization and hashing
+- Nested structure validation with clear error messages
+
+**Solutions**:
+- Strongly-typed data structures (Spec, Component, API, Storage, Blueprint)
+- from_dict constructors for flexible deserialization
+- Serde-based JSON/YAML serialization
+- Comprehensive validation with thiserror-based error types
+- SHA256 hashing for blueprint fingerprinting
+- Detailed validation error messages with field-level reporting
+
+**Status**: ✅ Complete (15 tests passing)
+
 ### Core Module (mef-core)
 
 **Files**:
@@ -739,6 +780,11 @@ Comparing Python and Rust outputs:
   - [x] proof_registry.rs - Merkle-tree membership proofs (8 tests)
   - [x] providers.rs - Pluggable index providers (HNSW, IVF-PQ) (7 tests)
   - [x] index_manager.rs - Vector collection management (8 tests)
+- [x] mef-acquisition crate ✅ **COMPLETE** (5 tests)
+  - [x] adapters.rs - Simple data acquisition adapter
+- [x] mef-specs crate ✅ **COMPLETE** (15 tests)
+  - [x] blueprint_models.rs - SPEC-002 blueprint data models (5 tests)
+  - [x] blueprint_loader.rs - Blueprint loading and validation (10 tests)
 - [ ] mef-api crate (basic structure in place)
 - [ ] mef-cli crate (basic structure in place)
 
@@ -751,8 +797,8 @@ Comparing Python and Rust outputs:
 - [x] Update MIGRATION.md
 - [ ] Final validation
 
-**Current Progress**: 29 of 76+ modules migrated (38.2%)
-**Total Tests**: 373 comprehensive unit tests, all passing
+**Current Progress**: 31 of 76+ modules migrated (40.8%)
+**Total Tests**: 393 comprehensive unit tests, all passing
 
 ## Known Limitations
 
@@ -805,5 +851,5 @@ Migrate {module_name}.py to Rust
 
 **Last Updated**: 2025-10-15  
 **Status**: Phase 5 (API & Services) - In Progress  
-**Modules Migrated**: 29 of 76+ (38.2%)  
-**Total Tests**: 373 passing
+**Modules Migrated**: 31 of 76+ (40.8%)  
+**Total Tests**: 393 passing
