@@ -22,8 +22,17 @@ async fn append_ledger(
     State(state): State<AppState>,
     Json(request): Json<LedgerAppendRequest>,
 ) -> Result<Json<LedgerAppendResponse>> {
-    // Create JSON values for TIC and snapshot
-    let tic_json = json!({ "id": request.tic_id });
+    // Create JSON values for TIC and snapshot with proper structure
+    // In a real implementation, these would be loaded from storage
+    let tic_json = json!({ 
+        "tic_id": request.tic_id,
+        "seed": "default_seed",
+        "fixpoint": [1.0, 0.0, 0.0],
+        "window": ["w1", "w2"],
+        "invariants": {},
+        "sigma_bar": {},
+        "proof": null,
+    });
     let snapshot_json = json!({ "id": request.snapshot_id });
     
     // Append to ledger - need to lock the mutex
@@ -108,6 +117,9 @@ mod tests {
         };
         
         let result = append_ledger(State(state), Json(request)).await;
+        if let Err(e) = &result {
+            eprintln!("Error: {:?}", e);
+        }
         assert!(result.is_ok());
     }
     

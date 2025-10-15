@@ -166,6 +166,18 @@ pub struct SearchResult {
 }
 
 // ============================================================================
+// Vector Payload Models
+// ============================================================================
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct VectorPayload {
+    pub id: String,
+    pub vector: Vec<f64>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub metadata: Option<serde_json::Map<String, serde_json::Value>>,
+}
+
+// ============================================================================
 // Acquisition Models  
 // ============================================================================
 

@@ -30,6 +30,9 @@ pub enum ApiError {
     
     #[error("Processing error: {0}")]
     Processing(String),
+    
+    #[error("Vector DB error: {0}")]
+    VectorDB(String),
 }
 
 impl IntoResponse for ApiError {
@@ -42,6 +45,7 @@ impl IntoResponse for ApiError {
             ApiError::Storage(msg) => (StatusCode::INTERNAL_SERVER_ERROR, msg.clone()),
             ApiError::Ledger(msg) => (StatusCode::INTERNAL_SERVER_ERROR, msg.clone()),
             ApiError::Processing(msg) => (StatusCode::INTERNAL_SERVER_ERROR, msg.clone()),
+            ApiError::VectorDB(msg) => (StatusCode::INTERNAL_SERVER_ERROR, msg.clone()),
         };
         
         let body = Json(json!({
