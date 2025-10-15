@@ -2,15 +2,15 @@
 
 ## Overview
 
-This session completes the migration of the MEF-Core benchmark driver infrastructure from Python to Rust. The new `mef-bench` crate provides essential tools for performance validation and cross-database comparison, enabling apples-to-apples benchmarking of vector store implementations.
+This session continues the migration of the MEF-Core benchmark driver infrastructure from Python to Rust. The `mef-bench` crate now includes Elasticsearch and Qdrant drivers in addition to the MEF API driver and FAISS baseline, providing comprehensive tools for performance validation and cross-database comparison.
 
-Building on the acquisition and specs modules from the previous session, this brings the overall migration to **44.7% completion** with **414 comprehensive tests passing** (up from 393).
+Building on the previous session, this brings the overall migration to **47.4% completion** with **432 comprehensive tests passing** (up from 414).
 
 ## What Changed
 
 ### New Crate: mef-bench
 
-Migrated three core benchmark driver modules to create a flexible benchmarking infrastructure:
+Migrated five core benchmark driver modules to create a flexible benchmarking infrastructure:
 
 1. **base.py (62 lines)** → **base.rs (105 lines + tests)**
    - `VectorStoreDriver` trait defining the driver interface
@@ -28,6 +28,18 @@ Migrated three core benchmark driver modules to create a flexible benchmarking i
    - ndarray-based matrix operations
    - Support for cosine similarity and L2 distance
    - Vector normalization for metric compatibility
+
+4. **elastic_driver.py (172 lines)** → **elastic_driver.rs (385 lines + tests)**
+   - Elasticsearch/OpenSearch HTTP API integration
+   - Bulk ingestion with NDJSON format
+   - Dense vector kNN search with configurable num_candidates
+   - Index management with similarity metric configuration
+
+5. **qdrant_driver.py (124 lines)** → **qdrant_driver.rs (345 lines + tests)**
+   - Qdrant HTTP API integration
+   - Collection management with distance metric configuration
+   - Batched point upsert with wait confirmation
+   - Search with payload and vector filtering options
 
 ## Code Examples
 
@@ -63,6 +75,8 @@ let registry = get_driver_registry();
 // Dynamically create drivers by name
 let mef_driver = registry.get("mef").unwrap()(Some("cosine"));
 let faiss_driver = registry.get("faiss").unwrap()(Some("l2"));
+let elastic_driver = registry.get("elastic").unwrap()(Some("cosine"));
+let qdrant_driver = registry.get("qdrant").unwrap()(Some("ip"));
 ```
 
 ### FAISS Baseline for Recall Validation
@@ -173,14 +187,14 @@ impl DriverUnavailable {
 
 | Metric | Before | After | Change |
 |--------|--------|-------|--------|
-| Modules migrated | 31/76+ (40.8%) | 34/76+ (44.7%) | +3 modules |
-| Total workspace tests | 393 | 414 | +21 tests (+5.3%) |
-| Unmigrated Python modules | 23 | 20 | -3 modules |
-| Lines of Rust | ~21,300 | ~22,150 | +850 lines |
+| Modules migrated | 34/76+ (44.7%) | 36/76+ (47.4%) | +2 modules |
+| Total workspace tests | 414 | 432 | +18 tests (+4.3%) |
+| mef-bench tests | 21 | 39 | +18 tests |
+| Lines of Rust | ~22,150 | ~23,100 | +950 lines |
 
 ## Quality Assurance
 
-✅ All 414 tests passing across entire workspace  
+✅ All 432 tests passing across entire workspace  
 ✅ Zero compilation errors  
 ✅ Zero compilation warnings for new code  
 ✅ Clean release build  
@@ -190,7 +204,7 @@ impl DriverUnavailable {
 
 ## Test Coverage by Module
 
-### mef-bench (21 tests)
+### mef-bench (39 tests)
 
 1. **base.rs** (3 tests)
    - DriverUnavailable creation and display
@@ -210,9 +224,23 @@ impl DriverUnavailable {
    - L2 distance search
    - Empty index handling
 
-4. **lib.rs** (3 tests)
+4. **elastic_driver.rs** (7 tests)
+   - Driver creation with default/custom metrics
+   - Environment variable configuration (ELASTIC_URL)
+   - Connection requirement enforcement
+   - Search/upsert precondition validation
+   - Error handling for missing configuration
+
+5. **qdrant_driver.rs** (9 tests)
+   - Driver creation with all metric types (cosine, l2, ip)
+   - Environment variable configuration (QDRANT_URL)
+   - Connection requirement enforcement
+   - Clear/search/upsert precondition validation
+   - Error handling for missing configuration
+
+6. **lib.rs** (5 tests)
    - Driver registry functionality
-   - Dynamic driver creation
+   - Dynamic driver creation for all driver types
 
 ## Dependencies Added
 
@@ -244,12 +272,12 @@ The following modules still need to be migrated (20 remaining):
 - api/grpc/vector_server.py (~210 lines)
 - cli/mef.py (~480 lines)
 
-**Additional Benchmark Drivers** (6 modules, ~1,245 lines):
-- bench/drivers/qdrant_driver.py (~120 lines)
+**Additional Benchmark Drivers** (4 modules remaining, ~555 lines):
 - bench/drivers/milvus_driver.py (~180 lines)
 - bench/drivers/weaviate_driver.py (~145 lines)
 - bench/drivers/pinecone_driver.py (~195 lines)
-- bench/drivers/elastic_driver.py (~170 lines)
+- bench/drivers/elastic_driver.py ✅ **MIGRATED**
+- bench/drivers/qdrant_driver.py ✅ **MIGRATED**
 
 **Individual Operator Files** (4 modules, likely incorporated):
 - solvecoagula/doublekick.py (~106 lines)
@@ -304,8 +332,8 @@ The benchmark infrastructure has been validated with:
 
 ## Conclusion
 
-The mef-bench crate provides a solid foundation for performance validation and cross-database comparison. With the base driver trait, MEF API driver, and FAISS baseline in place, the project now has the tools to validate migration correctness through recall@k metrics and performance benchmarking.
+The mef-bench crate provides a solid foundation for performance validation and cross-database comparison. With five drivers now in place (MEF API, FAISS baseline, Elasticsearch, and Qdrant), the project has comprehensive tools to validate migration correctness through recall@k metrics and performance benchmarking across multiple vector database backends.
 
-**Migration Progress**: ████████████░░░░░░░░░░░░░░░░ 44.7%
+**Migration Progress**: █████████████░░░░░░░░░░░░░░░ 47.4%
 
-This PR maintains the project's high standards for code quality, comprehensive testing, and full Python compatibility while advancing toward production-ready benchmarking capabilities.
+This PR maintains the project's high standards for code quality, comprehensive testing, and full Python compatibility while advancing toward production-ready benchmarking capabilities with multi-backend support.
