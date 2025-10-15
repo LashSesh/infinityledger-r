@@ -123,7 +123,9 @@ pub struct IndexManager {
     pub collections: HashMap<String, CollectionState>,
     pub collection_providers: HashMap<String, String>,
     provider_instances: HashMap<String, Box<dyn IndexProvider>>,
+    #[allow(dead_code)]
     ephemeral_provider_cache: HashMap<String, Box<dyn IndexProvider>>,
+    #[allow(dead_code)]
     ephemeral_cache_limit: usize,
     last_search_plan: HashMap<String, Value>,
     index_status: HashMap<String, HashMap<String, Value>>,
@@ -352,7 +354,7 @@ impl IndexManager {
             provider.search(query, &state.vectors, top_k, &extra_params)
         };
         
-        let total_ms = start.elapsed().as_secs_f64() * 1000.0;
+        let _total_ms = start.elapsed().as_secs_f64() * 1000.0;
         
         let plan = if use_ephemeral {
             HashMap::new() // Ephemeral provider doesn't persist plan

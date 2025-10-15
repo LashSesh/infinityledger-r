@@ -139,8 +139,7 @@ impl VectorStoreDriver for QdrantDriver {
 
         let client = reqwest::blocking::Client::builder()
             .timeout(std::time::Duration::from_secs(30))
-            .build()
-            .context("Failed to build HTTP client")?;
+            .build().context("Failed to build HTTP client")?;
 
         let health_url = format!("{}/health", self.base_url);
         let response = client
@@ -271,8 +270,7 @@ impl VectorStoreDriver for QdrantDriver {
             .into());
         }
 
-        let payload: serde_json::Value = response.json()
-            .context("Failed to parse search response")?;
+        let payload: serde_json::Value = response.json().context("Failed to parse search response")?;
 
         let results = payload
             .get("result")

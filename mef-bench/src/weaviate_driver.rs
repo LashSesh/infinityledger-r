@@ -70,12 +70,10 @@ impl WeaviateDriver {
         let response = client
             .get(&url)
             .timeout(std::time::Duration::from_secs(10))
-            .send()
-            .context("Failed to get schema")?;
+            .send().context("Failed to get schema")?;
 
         if response.status().is_success() {
-            let schema: serde_json::Value = response.json()
-                .context("Failed to parse schema")?;
+            let schema: serde_json::Value = response.json().context("Failed to parse schema")?;
             
             if let Some(classes) = schema.get("classes").and_then(|c| c.as_array()) {
                 for class in classes {
@@ -112,8 +110,7 @@ impl WeaviateDriver {
             .post(&create_url)
             .json(&payload)
             .timeout(std::time::Duration::from_secs(30))
-            .send()
-            .context("Failed to create class")?;
+            .send().context("Failed to create class")?;
 
         if !response.status().is_success() {
             let text = response.text().unwrap_or_default();
@@ -171,8 +168,7 @@ impl VectorStoreDriver for WeaviateDriver {
 
         let client = reqwest::blocking::Client::builder()
             .timeout(std::time::Duration::from_secs(30))
-            .build()
-            .context("Failed to create HTTP client")?;
+            .build().context("Failed to create HTTP client")?;
 
         // Health check
         let url = format!("{}/v1/schema", self.base_url);
@@ -267,8 +263,7 @@ impl VectorStoreDriver for WeaviateDriver {
                     .post(&url)
                     .json(&payload)
                     .timeout(std::time::Duration::from_secs(60))
-                    .send()
-                    .context("Failed to batch insert objects")?;
+                    .send().context("Failed to batch insert objects")?;
 
                 if !response.status().is_success() {
                     let text = response.text().unwrap_or_default();
@@ -288,8 +283,7 @@ impl VectorStoreDriver for WeaviateDriver {
                 .post(&url)
                 .json(&payload)
                 .timeout(std::time::Duration::from_secs(60))
-                .send()
-                .context("Failed to batch insert objects")?;
+                .send().context("Failed to batch insert objects")?;
 
             if !response.status().is_success() {
                 let text = response.text().unwrap_or_default();
@@ -332,16 +326,14 @@ impl VectorStoreDriver for WeaviateDriver {
             .post(&url)
             .json(&payload)
             .timeout(std::time::Duration::from_secs(30))
-            .send()
-            .context("Failed to search vectors")?;
+            .send().context("Failed to search vectors")?;
 
         if !response.status().is_success() {
             let text = response.text().unwrap_or_default();
             return Err(anyhow::anyhow!("Search failed: {}", text));
         }
 
-        let result: serde_json::Value = response.json()
-            .context("Failed to parse search response")?;
+        let result: serde_json::Value = response.json().context("Failed to parse search response")?;
 
         let mut hits: Vec<(String, f64)> = Vec::new();
         

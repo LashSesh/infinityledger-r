@@ -112,8 +112,7 @@ impl VectorStoreDriver for FaissBaselineDriver {
         _batch_size: usize,
     ) -> Result<(), anyhow::Error> {
         for (identifier, vector, _metadata) in items {
-            let prepared = self.prepare_vector(&vector)
-                .context("Failed to prepare vector")?;
+            let prepared = self.prepare_vector(&vector).context("Failed to prepare vector")?;
             self.ids.push(identifier);
             self.vectors.push(prepared);
         }
@@ -138,8 +137,7 @@ impl VectorStoreDriver for FaissBaselineDriver {
             dimension: self.dimension,
         };
 
-        let vector = driver_copy.prepare_query(query)
-            .context("Failed to prepare query vector")?;
+        let vector = driver_copy.prepare_query(query).context("Failed to prepare query vector")?;
 
         // Build matrix from all vectors
         let n_vectors = self.vectors.len();

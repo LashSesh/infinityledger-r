@@ -1,7 +1,7 @@
-/// MEF Ledger implementation with hash-chained blocks.
-/// Immutable audit log for TICs with deterministic hashing.
-///
-/// Migrated from: MEF-Core_v1.0/src/ledger/mef_block.py
+//! MEF Ledger implementation with hash-chained blocks.
+//! Immutable audit log for TICs with deterministic hashing.
+//!
+//! Migrated from: MEF-Core_v1.0/src/ledger/mef_block.py
 
 use anyhow::{Context, Result};
 use chrono::Utc;

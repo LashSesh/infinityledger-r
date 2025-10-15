@@ -157,8 +157,7 @@ impl BenchmarkRunner {
         let client = Client::builder()
             .timeout(Duration::from_secs_f64(config.timeouts.read))
             .connect_timeout(Duration::from_secs_f64(config.timeouts.connect))
-            .build()
-            .context("Failed to build HTTP client")?;
+            .build().context("Failed to build HTTP client")?;
 
         let progress_log = assets_dir.join("progress.log");
         let report_path = assets_dir.join("bench_report.json");
@@ -178,10 +177,8 @@ impl BenchmarkRunner {
             return Ok(BenchmarkConfig::default());
         }
 
-        let content = fs::read_to_string(path)
-            .context("Failed to read benchmark config")?;
-        let config: BenchmarkConfig = serde_json::from_str(&content)
-            .context("Failed to parse benchmark config")?;
+        let content = fs::read_to_string(path).context("Failed to read benchmark config")?;
+        let config: BenchmarkConfig = serde_json::from_str(&content).context("Failed to parse benchmark config")?;
 
         Ok(config)
     }
@@ -214,10 +211,8 @@ impl BenchmarkRunner {
             fs::create_dir_all(parent)?;
         }
 
-        let json = serde_json::to_string_pretty(report)
-            .context("Failed to serialize report")?;
-        fs::write(&self.report_path, json)
-            .context("Failed to write report")?;
+        let json = serde_json::to_string_pretty(report).context("Failed to serialize report")?;
+        fs::write(&self.report_path, json).context("Failed to write report")?;
 
         Ok(())
     }

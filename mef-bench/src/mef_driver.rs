@@ -48,12 +48,10 @@ impl MEFDriver {
             .post(&url)
             .json(&payload)
             .timeout(std::time::Duration::from_secs(120))
-            .send()
-            .context("Failed to send upsert request")?;
+            .send().context("Failed to send upsert request")?;
 
         response
-            .error_for_status()
-            .context("Upsert request failed")?;
+            .error_for_status().context("Upsert request failed")?;
 
         Ok(())
     }
@@ -71,8 +69,7 @@ impl VectorStoreDriver for MEFDriver {
     fn connect(&mut self) -> Result<(), anyhow::Error> {
         let client = reqwest::blocking::Client::builder()
             .timeout(std::time::Duration::from_secs(30))
-            .build()
-            .context("Failed to build HTTP client")?;
+            .build().context("Failed to build HTTP client")?;
 
         let health_url = format!("{}/healthz", self.base_url);
         let response = client
@@ -113,8 +110,7 @@ impl VectorStoreDriver for MEFDriver {
             .post(&url)
             .json(&payload)
             .timeout(std::time::Duration::from_secs(15))
-            .send()
-            .context("Failed to send clear request")?;
+            .send().context("Failed to send clear request")?;
 
         let status = response.status().as_u16();
         if status == 200 || status == 204 || status == 404 {
@@ -130,8 +126,7 @@ impl VectorStoreDriver for MEFDriver {
         }
 
         response
-            .error_for_status()
-            .context("Clear namespace failed")?;
+            .error_for_status().context("Clear namespace failed")?;
 
         Ok(())
     }
@@ -199,12 +194,10 @@ impl VectorStoreDriver for MEFDriver {
             .post(&url)
             .json(&payload)
             .timeout(std::time::Duration::from_secs(120))
-            .send()
-            .context("Failed to send search request")?;
+            .send().context("Failed to send search request")?;
 
         let response = response
-            .error_for_status()
-            .context("Search request failed")?;
+            .error_for_status().context("Search request failed")?;
 
         let body: serde_json::Value = response.json().context("Failed to parse search response")?;
         let results = body

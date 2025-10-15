@@ -1,7 +1,7 @@
-/// Spiral Snapshot implementation for 5D storage.
-/// Deterministic transformation and addressing system.
-///
-/// Migrated from: MEF-Core_v1.0/src/spiral/snapshot.py
+//! Spiral Snapshot implementation for 5D storage.
+//! Deterministic transformation and addressing system.
+//!
+//! Migrated from: MEF-Core_v1.0/src/spiral/snapshot.py
 
 use anyhow::{Context, Result};
 use chrono::Duration;
