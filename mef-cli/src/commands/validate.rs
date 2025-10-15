@@ -41,8 +41,7 @@ pub fn execute(
 
         let response = reqwest::blocking::Client::new()
             .post(format!("{}/validate/snapshot/{}", api_url, snapshot_id))
-            .send()
-            .context("Failed to send request to API")?;
+            .send().context("Failed to send request to API")?;
 
         if response.status().is_success() {
             let report: ValidateResponse = response.json()?;

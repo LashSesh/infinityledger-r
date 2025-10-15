@@ -115,8 +115,7 @@ impl MEFLedger {
     /// * `ledger_path` - Directory for ledger storage
     pub fn new(ledger_path: impl AsRef<Path>) -> Result<Self> {
         let ledger_path = ledger_path.as_ref().to_path_buf();
-        std::fs::create_dir_all(&ledger_path)
-            .context("Failed to create ledger directory")?;
+        std::fs::create_dir_all(&ledger_path).context("Failed to create ledger directory")?;
         
         let index_file = ledger_path.join("ledger_index.json");
         let index = Self::load_index(&index_file)?;
@@ -132,10 +131,8 @@ impl MEFLedger {
     /// Load ledger index from disk
     fn load_index(index_file: &Path) -> Result<LedgerIndex> {
         if index_file.exists() {
-            let contents = std::fs::read_to_string(index_file)
-                .context("Failed to read ledger index")?;
-            let index: LedgerIndex = serde_json::from_str(&contents)
-                .context("Failed to parse ledger index")?;
+            let contents = std::fs::read_to_string(index_file).context("Failed to read ledger index")?;
+            let index: LedgerIndex = serde_json::from_str(&contents).context("Failed to parse ledger index")?;
             Ok(index)
         } else {
             Ok(LedgerIndex::default())
@@ -147,10 +144,8 @@ impl MEFLedger {
         self.index.metadata.last_updated = Utc::now().format("%Y-%m-%dT%H:%M:%S%.6fZ").to_string();
         
         let index_file = self.ledger_path.join("ledger_index.json");
-        let json = serde_json::to_string_pretty(&self.index)
-            .context("Failed to serialize ledger index")?;
-        std::fs::write(&index_file, json)
-            .context("Failed to write ledger index")?;
+        let json = serde_json::to_string_pretty(&self.index).context("Failed to serialize ledger index")?;
+        std::fs::write(&index_file, json).context("Failed to write ledger index")?;
         
         Ok(())
     }
@@ -187,10 +182,8 @@ impl MEFLedger {
             return Ok(None);
         }
         
-        let contents = std::fs::read_to_string(&block_file)
-            .context("Failed to read block file")?;
-        let block: MefBlock = serde_json::from_str(&contents)
-            .context("Failed to parse block")?;
+        let contents = std::fs::read_to_string(&block_file).context("Failed to read block file")?;
+        let block: MefBlock = serde_json::from_str(&contents).context("Failed to parse block")?;
         
         Ok(Some(block))
     }
@@ -256,8 +249,7 @@ impl MEFLedger {
         let previous_hash = self.get_last_hash()?;
         
         // Compute snapshot hash
-        let snapshot_str = serde_json::to_string(snapshot)
-            .context("Failed to serialize snapshot")?;
+        let snapshot_str = serde_json::to_string(snapshot).context("Failed to serialize snapshot")?;
         let mut hasher = Sha256::new();
         hasher.update(snapshot_str.as_bytes());
         let snapshot_hash = format!("{:x}", hasher.finalize());
@@ -282,8 +274,7 @@ impl MEFLedger {
         block_json["hash"] = serde_json::json!(hash);
         
         // Deserialize to MefBlock
-        let block: MefBlock = serde_json::from_value(block_json)
-            .context("Failed to create block")?;
+        let block: MefBlock = serde_json::from_value(block_json).context("Failed to create block")?;
         
         Ok(block)
     }
@@ -304,10 +295,8 @@ impl MEFLedger {
         
         // Save block to disk
         let block_file = self.ledger_path.join(format!("block_{:06}.mef", block.index));
-        let json = serde_json::to_string_pretty(&block)
-            .context("Failed to serialize block")?;
-        std::fs::write(&block_file, json)
-            .context("Failed to write block file")?;
+        let json = serde_json::to_string_pretty(&block).context("Failed to serialize block")?;
+        std::fs::write(&block_file, json).context("Failed to write block file")?;
         
         // Update index
         self.index.blocks.push(BlockSummary {
@@ -334,10 +323,8 @@ impl MEFLedger {
             return Ok(None);
         }
         
-        let contents = std::fs::read_to_string(&block_file)
-            .context("Failed to read block file")?;
-        let block: MefBlock = serde_json::from_str(&contents)
-            .context("Failed to parse block")?;
+        let contents = std::fs::read_to_string(&block_file).context("Failed to read block file")?;
+        let block: MefBlock = serde_json::from_str(&contents).context("Failed to parse block")?;
         
         Ok(Some(block))
     }

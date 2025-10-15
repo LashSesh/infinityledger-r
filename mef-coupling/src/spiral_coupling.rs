@@ -670,7 +670,7 @@ impl SpiralCouplingEngine {
         let reference_vector = self.params.coordinates(0.0);
         let output_vector = self.params.coordinates(self.params.theta_step);
         let resonance = self.resonance.score(&output_vector, &reference_vector);
-        let lzk = (1.0 - resonance) + self.zk_mu * (1.0 - 1.0);
+        let lzk = 1.0 - resonance; // Simplified from (1.0 - resonance) + self.zk_mu * (1.0 - 1.0) since (1.0 - 1.0) = 0
 
         let step_hash = self.register_step(
             "ZK_VERIFY",

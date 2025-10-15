@@ -21,8 +21,7 @@ pub fn execute(
 
     let response = reqwest::blocking::Client::new()
         .post(format!("{}/solve?snapshot_id={}", api_url, snapshot))
-        .send()
-        .context("Failed to send request to API")?;
+        .send().context("Failed to send request to API")?;
 
     if response.status().is_success() {
         let result: SolveResponse = response.json()?;

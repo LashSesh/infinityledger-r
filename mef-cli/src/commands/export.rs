@@ -11,8 +11,7 @@ pub fn execute(
 ) -> Result<()> {
     let api_url = &config.api_url;
 
-    let response = reqwest::blocking::get(format!("{}/export/{}", api_url, format))
-        .context("Failed to send request to API")?;
+    let response = reqwest::blocking::get(format!("{}/export/{}", api_url, format)).context("Failed to send request to API")?;
 
     if response.status().is_success() {
         if let Some(output_path) = output {
