@@ -233,16 +233,41 @@ impl Xswap {
         }
 
         let n = source_embedding.nrows().min(target_embedding.nrows());
-        let src = source_embedding.rows(0, n);
-        let tgt = target_embedding.rows(0, n);
+        let m = source_embedding.ncols().min(target_embedding.ncols());
+        let src = source_embedding.view((0, 0), (n, m));
+        let tgt = target_embedding.view((0, 0), (n, m));
 
-        // Calculate centroids
-        let src_centroid = src.column_mean();
-        let tgt_centroid = tgt.column_mean();
+        // Calculate centroids (column means)
+        let src_centroid = DVector::from_iterator(
+            m,
+            (0..m).map(|col| src.column(col).mean()),
+        );
+        let tgt_centroid = DVector::from_iterator(
+            m,
+            (0..m).map(|col| tgt.column(col).mean()),
+        );
 
         // Center the data
-        let src_centered = src - DMatrix::from_rows(&vec![src_centroid.transpose(); n]);
-        let tgt_centered = tgt - DMatrix::from_rows(&vec![tgt_centroid.transpose(); n]);
+        let mut src_centered = DMatrix::zeros(n, m);
+        let mut tgt_centered = DMatrix::zeros(n, m);
+        
+        for i in 0..n {
+            for j in 0..m {
+                src_centered[(i, j)] = src[(i, j)] - src_centroid[j];
+                tgt_centered[(i, j)] = tgt[(i, j)] - tgt_centroid[j];
+            }
+        }
+
+        // Check if data is already aligned (centered data has very small norm)
+        let src_norm = src_centered.norm();
+        let tgt_norm = tgt_centered.norm();
+        
+        if src_norm < 1e-10 && tgt_norm < 1e-10 {
+            // Data is already centered, perfect alignment
+            let identity = DMatrix::identity(m, m);
+            let zero_vec = DVector::zeros(m);
+            return Ok((identity, zero_vec, 0.0));
+        }
 
         // Compute covariance matrix
         let covariance = src_centered.transpose() * &tgt_centered;
@@ -616,6 +641,8 @@ mod tests {
     use crate::adapter::TextDomainAdapter;
     use mef_core::MEFCore;
     use mef_topology::MetatronRouter;
+    use std::sync::Arc;
+    use tempfile::TempDir;
 
     #[test]
     fn test_alignment_artifacts_creation() {
@@ -655,5 +682,221 @@ mod tests {
         let matrix = DMatrix::from_row_slice(2, 2, &[1.0, 2.0, 3.0, 4.0]);
         let vec = Xswap::matrix_to_vec(&matrix);
         assert_eq!(vec, vec![vec![1.0, 2.0], vec![3.0, 4.0]]);
+    }
+
+    #[test]
+    fn test_combine_fixpoints() {
+        let temp_dir = TempDir::new().unwrap();
+        let storage_path = temp_dir.path().join("storage");
+        let hdag_path = temp_dir.path().join("hdag");
+        let ledger_path = temp_dir.path().join("ledger");
+        let audit_path = temp_dir.path().join("audit.jsonl");
+
+        let mef_core = Arc::new(MEFCore::new("test-seed", None).unwrap());
+        let router = Arc::new(Mutex::new(MetatronRouter::default()));
+        let domain_layer = Arc::new(Mutex::new(
+            DomainLayer::new(mef_core.clone(), router.clone(), &storage_path).unwrap(),
+        ));
+        let merkaba_gate = Arc::new(Mutex::new(MerkabaGate::new(
+            temp_dir.path().join("merkaba_audit.jsonl"),
+        )));
+        let hdag = Arc::new(Mutex::new(HDAG::new(&hdag_path).unwrap()));
+        let ledger = Arc::new(Mutex::new(MEFLedger::new(&ledger_path).unwrap()));
+
+        let xswap = Xswap::new(
+            domain_layer,
+            merkaba_gate,
+            hdag,
+            ledger,
+            &audit_path,
+        )
+        .unwrap();
+
+        let source = vec![1.0, 2.0, 3.0];
+        let target = vec![4.0, 5.0, 6.0];
+        let combined = xswap.combine_fixpoints(&source, &target);
+
+        assert_eq!(combined.len(), 3);
+        assert_eq!(combined[0], 2.5);
+        assert_eq!(combined[1], 3.5);
+        assert_eq!(combined[2], 4.5);
+    }
+
+    #[test]
+    fn test_combine_fixpoints_different_lengths() {
+        let temp_dir = TempDir::new().unwrap();
+        let storage_path = temp_dir.path().join("storage");
+        let hdag_path = temp_dir.path().join("hdag");
+        let ledger_path = temp_dir.path().join("ledger");
+        let audit_path = temp_dir.path().join("audit.jsonl");
+
+        let mef_core = Arc::new(MEFCore::new("test-seed", None).unwrap());
+        let router = Arc::new(Mutex::new(MetatronRouter::default()));
+        let domain_layer = Arc::new(Mutex::new(
+            DomainLayer::new(mef_core.clone(), router.clone(), &storage_path).unwrap(),
+        ));
+        let merkaba_gate = Arc::new(Mutex::new(MerkabaGate::new(
+            temp_dir.path().join("merkaba_audit.jsonl"),
+        )));
+        let hdag = Arc::new(Mutex::new(HDAG::new(&hdag_path).unwrap()));
+        let ledger = Arc::new(Mutex::new(MEFLedger::new(&ledger_path).unwrap()));
+
+        let xswap = Xswap::new(
+            domain_layer,
+            merkaba_gate,
+            hdag,
+            ledger,
+            &audit_path,
+        )
+        .unwrap();
+
+        let source = vec![1.0, 2.0, 3.0, 4.0];
+        let target = vec![5.0, 6.0];
+        let combined = xswap.combine_fixpoints(&source, &target);
+
+        assert_eq!(combined.len(), 2);
+        assert_eq!(combined[0], 3.0);
+        assert_eq!(combined[1], 4.0);
+    }
+
+    #[test]
+    fn test_orthonormalize_identity() {
+        let temp_dir = TempDir::new().unwrap();
+        let storage_path = temp_dir.path().join("storage");
+        let hdag_path = temp_dir.path().join("hdag");
+        let ledger_path = temp_dir.path().join("ledger");
+        let audit_path = temp_dir.path().join("audit.jsonl");
+
+        let mef_core = Arc::new(MEFCore::new("test-seed", None).unwrap());
+        let router = Arc::new(Mutex::new(MetatronRouter::default()));
+        let domain_layer = Arc::new(Mutex::new(
+            DomainLayer::new(mef_core.clone(), router.clone(), &storage_path).unwrap(),
+        ));
+        let merkaba_gate = Arc::new(Mutex::new(MerkabaGate::new(
+            temp_dir.path().join("merkaba_audit.jsonl"),
+        )));
+        let hdag = Arc::new(Mutex::new(HDAG::new(&hdag_path).unwrap()));
+        let ledger = Arc::new(Mutex::new(MEFLedger::new(&ledger_path).unwrap()));
+
+        let xswap = Xswap::new(
+            domain_layer,
+            merkaba_gate,
+            hdag,
+            ledger,
+            &audit_path,
+        )
+        .unwrap();
+
+        let identity = DMatrix::identity(3, 3);
+        let ortho = xswap.orthonormalize_matrix(&identity).unwrap();
+
+        // Check it's still close to identity
+        for i in 0..3 {
+            for j in 0..3 {
+                let expected = if i == j { 1.0 } else { 0.0 };
+                assert!((ortho[(i, j)] - expected).abs() < 1e-10);
+            }
+        }
+    }
+
+    #[test]
+    fn test_align_embeddings_basic() {
+        let temp_dir = TempDir::new().unwrap();
+        let storage_path = temp_dir.path().join("storage");
+        let hdag_path = temp_dir.path().join("hdag");
+        let ledger_path = temp_dir.path().join("ledger");
+        let audit_path = temp_dir.path().join("audit.jsonl");
+
+        let mef_core = Arc::new(MEFCore::new("test-seed", None).unwrap());
+        let router = Arc::new(Mutex::new(MetatronRouter::default()));
+        let domain_layer = Arc::new(Mutex::new(
+            DomainLayer::new(mef_core.clone(), router.clone(), &storage_path).unwrap(),
+        ));
+        let merkaba_gate = Arc::new(Mutex::new(MerkabaGate::new(
+            temp_dir.path().join("merkaba_audit.jsonl"),
+        )));
+        let hdag = Arc::new(Mutex::new(HDAG::new(&hdag_path).unwrap()));
+        let ledger = Arc::new(Mutex::new(MEFLedger::new(&ledger_path).unwrap()));
+
+        let xswap = Xswap::new(
+            domain_layer,
+            merkaba_gate,
+            hdag,
+            ledger,
+            &audit_path,
+        )
+        .unwrap();
+
+        // Test alignment produces valid outputs
+        let embedding1 = DMatrix::from_row_slice(
+            3,
+            3,
+            &[
+                1.0, 0.0, 0.0,
+                0.0, 1.0, 0.0,
+                0.0, 0.0, 1.0,
+            ],
+        );
+        
+        let embedding2 = DMatrix::from_row_slice(
+            3,
+            3,
+            &[
+                1.0, 0.0, 0.0,
+                0.0, 1.0, 0.0,
+                0.0, 0.0, 1.0,
+            ],
+        );
+
+        let (rotation, translation, gap) = xswap
+            .align_embeddings(&embedding1, &embedding2)
+            .unwrap();
+
+        // Check outputs are valid
+        assert_eq!(rotation.nrows(), 3);
+        assert_eq!(rotation.ncols(), 3);
+        assert_eq!(translation.len(), 3);
+        assert!(gap >= 0.0 && gap <= 1.0);
+    }
+
+    #[test]
+    fn test_align_embeddings_empty() {
+        let temp_dir = TempDir::new().unwrap();
+        let storage_path = temp_dir.path().join("storage");
+        let hdag_path = temp_dir.path().join("hdag");
+        let ledger_path = temp_dir.path().join("ledger");
+        let audit_path = temp_dir.path().join("audit.jsonl");
+
+        let mef_core = Arc::new(MEFCore::new("test-seed", None).unwrap());
+        let router = Arc::new(Mutex::new(MetatronRouter::default()));
+        let domain_layer = Arc::new(Mutex::new(
+            DomainLayer::new(mef_core.clone(), router.clone(), &storage_path).unwrap(),
+        ));
+        let merkaba_gate = Arc::new(Mutex::new(MerkabaGate::new(
+            temp_dir.path().join("merkaba_audit.jsonl"),
+        )));
+        let hdag = Arc::new(Mutex::new(HDAG::new(&hdag_path).unwrap()));
+        let ledger = Arc::new(Mutex::new(MEFLedger::new(&ledger_path).unwrap()));
+
+        let xswap = Xswap::new(
+            domain_layer,
+            merkaba_gate,
+            hdag,
+            ledger,
+            &audit_path,
+        )
+        .unwrap();
+
+        let empty = DMatrix::from_row_slice(0, 0, &[]);
+        let non_empty = DMatrix::from_row_slice(2, 3, &[1.0, 2.0, 3.0, 4.0, 5.0, 6.0]);
+
+        let (rotation, translation, gap) = xswap
+            .align_embeddings(&empty, &non_empty)
+            .unwrap();
+
+        assert_eq!(rotation.nrows(), 13);
+        assert_eq!(rotation.ncols(), 13);
+        assert_eq!(translation.len(), 13);
+        assert_eq!(gap, 1.0);
     }
 }
