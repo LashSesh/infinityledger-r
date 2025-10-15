@@ -401,17 +401,36 @@ let seed_mod = u32::from_be_bytes(seed_hash[..4].try_into().unwrap()) as f64 / (
 ### CLI Module (mef-cli)
 
 **Files**:
-- `mef.py` → `main.rs`
+- `mef.py` → `main.rs` ✅ MIGRATED
+- Supporting modules: `config.rs`, `commands/*.rs`
 
 **Key Challenges**:
-- Command-line argument parsing
-- Interactive prompts
-- Output formatting
+- Command-line argument parsing (click → clap)
+- Configuration file loading (YAML)
+- Remote API client integration
+- Multiple command modes (local vs remote)
+- Output formatting with checkmarks and colors
 
 **Solutions**:
-- Use clap for argument parsing
-- Same command structure
-- Match output format
+- Use clap with derive macros for argument parsing
+- Subcommand enum pattern for clean command routing
+- serde_yaml for configuration file parsing
+- reqwest blocking client for API calls
+- Environment variable support (MEF_CONFIG, MEF_API_URL, MEF_STORE_DIR, MEF_LEDGER_DIR)
+- Same command structure and output format as Python version
+
+**Status**: ✅ Complete (binary only, 0 tests - CLI tested via manual invocation)
+
+**Commands Implemented**:
+1. `ingest` - Ingest files into MEF-Core system
+2. `process` - Process snapshots through Solve-Coagula
+3. `audit` - Audit ledger integrity
+4. `validate` - Validate snapshots using Proof-of-Resonance
+5. `export` - Export system data
+6. `embed` - SPEC-002 Spiral embedding
+7. `solve` - SPEC-002 fixpoint calculation
+8. `ledger` - SPEC-002 ledger operations (append, verify)
+9. `ping` - Test API server connectivity
 
 ### Domains Module (mef-domains)
 
@@ -821,7 +840,18 @@ Comparing Python and Rust outputs:
   - [x] blueprint_models.rs - SPEC-002 blueprint data models (5 tests)
   - [x] blueprint_loader.rs - Blueprint loading and validation (10 tests)
 - [ ] mef-api crate (basic structure in place)
-- [ ] mef-cli crate (basic structure in place)
+- [x] mef-cli crate ✅ **COMPLETE** (0 tests, binary only)
+  - [x] main.rs - Command-line interface with clap
+  - [x] config.rs - Configuration management
+  - [x] commands/ingest.rs - File ingestion command
+  - [x] commands/process.rs - Snapshot processing command
+  - [x] commands/audit.rs - Ledger audit command
+  - [x] commands/validate.rs - Snapshot validation command
+  - [x] commands/export.rs - Data export command
+  - [x] commands/embed.rs - SPEC-002 embed command
+  - [x] commands/solve.rs - SPEC-002 solve command
+  - [x] commands/ledger.rs - SPEC-002 ledger commands
+  - [x] commands/ping.rs - API server ping command
 
 ### Phase 6: Benchmark & Test Infrastructure ⏳ IN PROGRESS
 - [x] mef-bench crate ⏳ (98 tests)
@@ -843,12 +873,22 @@ Comparing Python and Rust outputs:
 - [x] Update MIGRATION.md
 - [ ] Final validation
 
-**Current Progress**: 44 of 76+ modules migrated (57.9%)
-**Total Tests**: 545 comprehensive unit tests, all passing ✅
+**Current Progress**: 45 of 76+ modules migrated (59.2%)
+**Total Tests**: 544 comprehensive unit tests, all passing ✅
 
 ## Recent Updates (2025-10-15)
 
-### Migration Continuation Session
+### Migration Continuation Session 3
+- Migrated cli/mef.py (480 lines) → mef-cli binary (900+ lines across 14 files)
+  - Implemented full CLI with clap crate
+  - All 9 main commands: ingest, process, audit, validate, export, embed, solve, ledger, ping
+  - Configuration management with YAML support
+  - Remote API and local processing modes
+  - Environment variable support for configuration
+- All 544 tests passing (removed 1 placeholder test from CLI lib.rs)
+- Progress: 57.9% → 59.2%
+
+### Migration Continuation Session 2
 - Fixed floating-point tolerance issue in pfadinvarianz::test_verify_idempotence
 - Migrated weight_transfer.py (208 lines) → weight_transfer.rs (424 lines with tests)
   - Implemented WeightTransfer operator with scale-based redistribution (micro/meso/macro)
