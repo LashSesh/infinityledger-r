@@ -13,6 +13,7 @@ pub mod qdrant_driver;
 pub mod milvus_driver;
 pub mod weaviate_driver;
 pub mod pinecone_driver;
+pub mod datasets;
 
 // Re-export commonly used types
 pub use base::{DriverUnavailable, UpsertItem, Vector, VectorStoreDriver};
@@ -23,6 +24,19 @@ pub use qdrant_driver::QdrantDriver;
 pub use milvus_driver::MilvusDriver;
 pub use weaviate_driver::WeaviateDriver;
 pub use pinecone_driver::PineconeDriver;
+
+// Re-export dataset utilities
+pub use datasets::{
+    Record, 
+    generate_spiral_points, 
+    build_spiral_corpus,
+    iter_records,
+    chunked,
+    generate_query_vectors,
+    brute_force_top_k,
+    cosine_similarity,
+    negative_l2_squared,
+};
 
 use std::collections::HashMap;
 
