@@ -10,6 +10,7 @@
 use crate::base::{DriverUnavailable, UpsertItem, Vector, VectorStoreDriver};
 use anyhow::{Context, Result};
 use serde_json::json;
+use sha2::{Sha256, Digest};
 
 /// Benchmark driver that interacts with a Weaviate cluster via HTTP API
 pub struct WeaviateDriver {
@@ -34,6 +35,23 @@ impl WeaviateDriver {
             client: None,
             dimension: None,
         }
+    }
+
+    /// Convert a string ID to a deterministic UUID (v5-style)
+    fn id_to_uuid(&self, id: &str) -> String {
+        let mut hasher = Sha256::new();
+        hasher.update(id.as_bytes());
+        let hash = hasher.finalize();
+        
+        // Format as UUID (8-4-4-4-12 format)
+        format!(
+            "{:02x}{:02x}{:02x}{:02x}-{:02x}{:02x}-{:02x}{:02x}-{:02x}{:02x}-{:02x}{:02x}{:02x}{:02x}{:02x}{:02x}",
+            hash[0], hash[1], hash[2], hash[3],
+            hash[4], hash[5],
+            hash[6], hash[7],
+            hash[8], hash[9],
+            hash[10], hash[11], hash[12], hash[13], hash[14], hash[15]
+        )
     }
 
     fn class_name(&self, namespace: &str) -> String {
@@ -244,12 +262,15 @@ impl VectorStoreDriver for WeaviateDriver {
         
         for (identifier, vector, _metadata) in items {
             let prepared = self.prepare_vector(&vector)?;
+            let uuid = self.id_to_uuid(&identifier);
             
             let object = json!({
                 "class": class_name,
-                "id": identifier,
+                "id": uuid,
                 "vector": prepared,
-                "properties": {}
+                "properties": {
+                    "original_id": identifier
+                }
             });
 
             batch.push(object);

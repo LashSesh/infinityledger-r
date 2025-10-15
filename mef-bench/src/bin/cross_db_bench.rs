@@ -230,6 +230,12 @@ fn main() -> Result<()> {
     let output_path = std::env::var("BENCH_OUTPUT")
         .unwrap_or_else(|_| "benchmark_results.json".to_string());
     
+    // Create parent directory if it doesn't exist
+    if let Some(parent) = std::path::Path::new(&output_path).parent() {
+        fs::create_dir_all(parent)
+            .context(format!("Failed to create directory for {}", output_path))?;
+    }
+    
     let json_output = serde_json::to_string_pretty(&report)
         .context("Failed to serialize benchmark report")?;
     
