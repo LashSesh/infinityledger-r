@@ -5,10 +5,12 @@ use axum::{
     Json, Router,
 };
 use chrono::Utc;
+use ndarray::Array1;
+use serde_json::json;
 
 use crate::{error::ApiError, models::*, AppState, Result};
-use mef_solvecoagula::SolveCoagula;
-use mef_tic::TICCrystallizer;
+use mef_solvecoagula::{SolveCoagula, SolveCoagulaConfig};
+use mef_tic::{TICCrystallizer, TICConfig};
 use mef_spiral::SpiralSnapshot;
 
 pub fn router() -> Router<AppState> {
@@ -33,19 +35,42 @@ async fn process(
         .ok_or_else(|| ApiError::NotFound(format!("Snapshot {} not found", request.snapshot_id)))?;
     
     // Create Solve-Coagula operator
-    let mut solver = SolveCoagula::new(0.8, 1e-6, 1000);
+    let sc_config = SolveCoagulaConfig::default();
+    let solver = SolveCoagula::new(sc_config)
+        .map_err(|e| ApiError::Internal(format!("Failed to create SolveCoagula: {}", e)))?;
     
-    // Process the snapshot - convert coords to the expected format
-    let coords_vec = snapshot.coords.iter().flat_map(|c| vec![c.x, c.y, c.z, c.w, c.u]).collect::<Vec<f64>>();
-    let result = solver.apply(coords_vec)
+    // Process the snapshot - convert coordinates to Array1
+    let coords_array = Array1::from_vec(snapshot.coordinates.clone());
+    let (fixpoint, info) = solver.iterate_to_fixpoint(&coords_array, true)
         .map_err(|e| ApiError::Processing(format!("Solve-Coagula failed: {}", e)))?;
     
     // Create TIC from result
-    let crystallizer = TICCrystallizer::new();
-    let tic = crystallizer.crystallize(&result)
-        .map_err(|e| ApiError::Processing(format!("TIC crystallization failed: {}", e)))?;
+    let tic_config = TICConfig::default();
+    let crystallizer = TICCrystallizer::new(tic_config, state.store_path.as_ref())
+        .map_err(|e| ApiError::Internal(format!("Failed to create TICCrystallizer: {}", e)))?;
     
-    let tic_id = tic.id.clone();
+    // Prepare convergence info and snapshot data as JSON
+    let convergence_json = json!({
+        "converged": info.converged,
+        "iterations": info.iterations,
+        "final_delta": info.final_delta,
+    });
+    
+    let snapshot_json = json!({
+        "id": snapshot.id,
+        "phase": snapshot.phase,
+        "coordinates": snapshot.coordinates,
+    });
+    
+    let tic = crystallizer.create_tic(
+        &fixpoint,
+        &snapshot.id,
+        &snapshot.seed,
+        &convergence_json,
+        &snapshot_json,
+    ).map_err(|e| ApiError::Processing(format!("TIC creation failed: {}", e)))?;
+    
+    let tic_id = tic.tic_id.clone();
     
     // If commit is requested, append to ledger
     if request.commit.unwrap_or(false) {
@@ -55,9 +80,9 @@ async fn process(
     
     Ok(Json(ProcessResponse {
         tic_id,
-        converged: result.converged,
-        iterations: result.iterations,
-        final_eigenvalue: result.final_eigenvalue,
+        converged: info.converged,
+        iterations: info.iterations,
+        final_eigenvalue: fixpoint[0], // Use first component as representative
         timestamp: Utc::now().to_rfc3339(),
     }))
 }
@@ -77,22 +102,44 @@ async fn solve(
         .ok_or_else(|| ApiError::NotFound(format!("Snapshot {} not found", request.snapshot_id)))?;
     
     // Create Solve-Coagula operator
-    let mut solver = SolveCoagula::new(0.8, 1e-6, 1000);
+    let sc_config = SolveCoagulaConfig::default();
+    let solver = SolveCoagula::new(sc_config)
+        .map_err(|e| ApiError::Internal(format!("Failed to create SolveCoagula: {}", e)))?;
     
     // Process the snapshot
-    let coords_vec = snapshot.coords.iter().flat_map(|c| vec![c.x, c.y, c.z, c.w, c.u]).collect::<Vec<f64>>();
-    let result = solver.apply(coords_vec)
+    let coords_array = Array1::from_vec(snapshot.coordinates.clone());
+    let (fixpoint, info) = solver.iterate_to_fixpoint(&coords_array, true)
         .map_err(|e| ApiError::Processing(format!("Solve-Coagula failed: {}", e)))?;
     
     // Create TIC
-    let crystallizer = TICCrystallizer::new();
-    let tic = crystallizer.crystallize(&result)
-        .map_err(|e| ApiError::Processing(format!("TIC crystallization failed: {}", e)))?;
+    let tic_config = TICConfig::default();
+    let crystallizer = TICCrystallizer::new(tic_config, state.store_path.as_ref())
+        .map_err(|e| ApiError::Internal(format!("Failed to create TICCrystallizer: {}", e)))?;
+    
+    let convergence_json = json!({
+        "converged": info.converged,
+        "iterations": info.iterations,
+        "final_delta": info.final_delta,
+    });
+    
+    let snapshot_json = json!({
+        "id": snapshot.id,
+        "phase": snapshot.phase,
+        "coordinates": snapshot.coordinates,
+    });
+    
+    let tic = crystallizer.create_tic(
+        &fixpoint,
+        &snapshot.id,
+        &snapshot.seed,
+        &convergence_json,
+        &snapshot_json,
+    ).map_err(|e| ApiError::Processing(format!("TIC creation failed: {}", e)))?;
     
     Ok(Json(SolveResponse {
-        tic_id: tic.id.clone(),
-        status: if result.converged { "converged" } else { "max_iterations" }.to_string(),
-        steps: result.iterations,
+        tic_id: tic.tic_id.clone(),
+        status: if info.converged { "converged" } else { "max_iterations" }.to_string(),
+        steps: info.iterations,
     }))
 }
 
@@ -110,20 +157,20 @@ async fn validate(
         .map_err(|e| ApiError::NotFound(format!("Failed to load snapshot: {}", e)))?
         .ok_or_else(|| ApiError::NotFound(format!("Snapshot {} not found", snapshot_id)))?;
     
-    // Parse PoR value
-    let por: f64 = snapshot.por.parse().unwrap_or(0.0);
+    // Parse PoR value from metrics
+    let por: f64 = snapshot.metrics.por.parse().unwrap_or(0.0);
     let valid = por > 0.5; // Threshold for validity
     
     Ok(Json(ValidateResponse {
         snapshot_id,
         overall_valid: valid,
         resonance: ResonanceMetrics {
-            fft_resonance: por,
+            fft_resonance: snapshot.metrics.resonance,
             spectral_gap: 0.0, // TODO: Implement
             phase_coherence: snapshot.phase,
         },
         stability: StabilityMetrics {
-            convergence_rate: 0.0, // TODO: Implement
+            convergence_rate: snapshot.metrics.stability,
             entropy: 0.0, // TODO: Implement
         },
     }))
@@ -143,12 +190,8 @@ mod tests {
         let spiral = SpiralSnapshot::new(state.spiral_config.as_ref().clone(), state.store_path.as_ref()).unwrap();
         
         // Create and store a test snapshot
-        let normalized = vec![1.0, 2.0, 3.0];
-        let snapshot = spiral.create_snapshot(
-            normalized,
-            "test_seed",
-            "text",
-        ).unwrap();
+        let data = serde_json::json!({"test": "data"});
+        let snapshot = spiral.create_snapshot(&data, "test_seed", None).unwrap();
         
         let _snapshot_path = spiral.save_snapshot(&snapshot).unwrap();
         let snapshot_id = snapshot.id.clone();

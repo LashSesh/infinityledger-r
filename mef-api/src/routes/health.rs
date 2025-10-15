@@ -34,7 +34,7 @@ async fn healthz() -> Json<HealthResponse> {
 }
 
 /// Readiness endpoint - readiness probe
-async fn readyz(State(state): State<AppState>) -> Json<ReadyResponse> {
+async fn readyz(State(_state): State<AppState>) -> Json<ReadyResponse> {
     let mut components = HashMap::new();
     
     // Check snapshot store

@@ -41,6 +41,9 @@ chrono = { version = "0.4", features = ["serde"] }
 # Path utilities
 dirs = "5.0"
 
+# Numeric
+ndarray = "0.15"
+
 # MEF crates
 mef-spiral = { path = "../mef-spiral" }
 mef-ledger = { path = "../mef-ledger" }

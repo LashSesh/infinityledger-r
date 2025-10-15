@@ -57,7 +57,8 @@ async fn get_block(
         "hash": block.hash,
         "previous_hash": block.previous_hash,
         "timestamp": block.timestamp,
-        "tic": block.tic,
+        "tic_id": block.tic_id,
+        "snapshot_hash": block.snapshot_hash,
     })))
 }
 
@@ -81,7 +82,7 @@ async fn audit(State(state): State<AppState>) -> Result<Json<AuditResponse>> {
     let mut statistics = HashMap::new();
     statistics.insert("blocks".to_string(), json!(blocks));
     statistics.insert("valid".to_string(), json!(valid));
-    statistics.insert("total_tics".to_string(), json!(stats.total_tics));
+    statistics.insert("total_size_mb".to_string(), json!(stats.total_size_mb));
     
     Ok(Json(AuditResponse {
         valid,
