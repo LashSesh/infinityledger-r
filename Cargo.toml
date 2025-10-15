@@ -15,7 +15,7 @@ members = [
     "mef-cli",
     "mef-storage",
     "mef-domains",
-    "mef-vector-db", "mef-acquisition", "mef-specs", "mef-bench",
+    "mef-vector-db", "mef-acquisition", "mef-specs", "mef-bench", "mef-benchmarks",
 ]
 
 [workspace.package]
@@ -73,6 +73,10 @@ tracing-subscriber = { version = "0.3", features = ["env-filter"] }
 
 # Testing
 proptest = "1.0"
+tempfile = "3.8"
+
+# Benchmarking
+criterion = { version = "0.5", features = ["html_reports"] }
 
 [profile.release]
 opt-level = 3
