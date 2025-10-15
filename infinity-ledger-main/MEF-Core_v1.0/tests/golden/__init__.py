@@ -1,1 +1,0 @@
-"""Golden test helpers package."""
