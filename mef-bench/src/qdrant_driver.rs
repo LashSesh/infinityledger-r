@@ -141,7 +141,8 @@ impl VectorStoreDriver for QdrantDriver {
             .timeout(std::time::Duration::from_secs(30))
             .build().context("Failed to build HTTP client")?;
 
-        let health_url = format!("{}/health", self.base_url);
+        // Use collections endpoint for health check as /health may not exist in all versions
+        let health_url = format!("{}/collections", self.base_url);
         let response = client
             .get(&health_url)
             .timeout(std::time::Duration::from_secs(5))

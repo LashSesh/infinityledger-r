@@ -176,20 +176,90 @@ jobs:
           path: target
           key: ${{ runner.os }}-cargo-build-target-${{ hashFiles('**/Cargo.lock') }}
       
-      - name: Run benchmarks
+      - name: Run criterion benchmarks
         run: |
-          # Build benchmarks
-          cargo build --package mef-bench --release
-          
-          # Run benchmarks and save results
-          mkdir -p benchmark-results
-          cargo run --package mef-bench --release > benchmark-results/benchmark.txt
+          # Build and run criterion benchmarks
+          cargo build --package mef-benchmarks --release
+          cargo bench --package mef-benchmarks
       
-      - name: Upload benchmark results
+      - name: Upload criterion results
         uses: actions/upload-artifact@v4
         with:
-          name: benchmark-results
+          name: criterion-results
+          path: target/criterion/
+
+  # Cross-database benchmarks with services
+  cross-db-benchmark:
+    name: Cross-Database Benchmarks
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+      
+      - name: Install Rust toolchain
+        uses: dtolnay/rust-toolchain@stable
+      
+      - name: Cache cargo registry
+        uses: actions/cache@v4
+        with:
+          path: ~/.cargo/registry
+          key: ${{ runner.os }}-cargo-registry-${{ hashFiles('**/Cargo.lock') }}
+      
+      - name: Cache cargo build
+        uses: actions/cache@v4
+        with:
+          path: target
+          key: ${{ runner.os }}-cargo-build-release-${{ hashFiles('**/Cargo.lock') }}
+      
+      - name: Build cross-db-bench binary
+        run: cargo build --package mef-bench --bin cross-db-bench --release
+      
+      - name: Start benchmark services
+        run: |
+          # For now, we use FAISS which doesn't require external services
+          # Docker services (Elasticsearch, Qdrant, Milvus, Weaviate) are available
+          # in docker-compose.bench.yml for future cross-db comparisons
+          echo "Using FAISS baseline (no external services required)"
+      
+      - name: Run cross-database benchmarks
+        env:
+          BENCH_NUM_VECTORS: 5000
+          BENCH_NUM_QUERIES: 50
+          BENCH_DIMENSION: 128
+          BENCH_K: 10
+          BENCH_METRIC: cosine
+          BENCH_BATCH_SIZE: 500
+          BENCH_OUTPUT: benchmark-results/cross_db_results.json
+          QDRANT_URL: http://localhost:6333
+          WEAVIATE_URL: http://localhost:8080
+        run: |
+          mkdir -p benchmark-results
+          
+          # Run benchmarks with FAISS baseline
+          # Additional drivers (qdrant, weaviate, elastic, milvus) require further driver refinement
+          # and are available for future enhancement
+          ./target/release/cross-db-bench faiss | tee benchmark-results/cross_db_output.txt
+      
+      - name: Display benchmark results
+        if: always()
+        run: |
+          if [ -f benchmark-results/cross_db_results.json ]; then
+            echo "=== Benchmark Results ==="
+            cat benchmark-results/cross_db_results.json | jq .
+          fi
+      
+      - name: Upload benchmark results
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: cross-db-benchmark-results
           path: benchmark-results/
+      
+      - name: Stop benchmark services
+        if: always()
+        run: |
+          # No services to stop for FAISS baseline
+          echo "Benchmark complete"
 
   # Security audit
   security-audit:
