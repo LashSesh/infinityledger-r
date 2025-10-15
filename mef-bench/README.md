@@ -11,6 +11,8 @@ The `mef-bench` crate provides a flexible driver abstraction for benchmarking ve
 - **VectorStoreDriver Trait**: Common interface for all benchmark targets
 - **MEF Driver**: HTTP client for MEF-Core API endpoints
 - **FAISS Baseline**: Brute-force exact nearest-neighbor search for ground truth
+- **Elasticsearch Driver**: Elasticsearch/OpenSearch dense vector kNN API client
+- **Qdrant Driver**: Qdrant HTTP API client for vector search
 - **Driver Registry**: Dynamic driver instantiation by name
 - **Comprehensive Error Handling**: Structured error types with actionable messages
 
@@ -133,6 +135,34 @@ Brute-force exact nearest-neighbor search using ndarray.
 - In-memory index
 - No external dependencies required
 
+### ElasticDriver
+
+Elasticsearch/OpenSearch dense vector kNN API client.
+
+**Configuration**:
+- `ELASTIC_URL` environment variable (required)
+- Metric: `cosine` (default), `l2`, or `ip`
+
+**Features**:
+- Bulk ingestion with NDJSON format
+- Dense vector kNN search
+- Automatic index creation with similarity configuration
+- Configurable num_candidates for search quality
+
+### QdrantDriver
+
+Qdrant HTTP API client for vector search.
+
+**Configuration**:
+- `QDRANT_URL` environment variable (required)
+- Metric: `cosine` (default), `l2`, or `ip`
+
+**Features**:
+- Collection management with distance metric configuration
+- Batched point upsert
+- HTTP-only implementation (no client library required)
+- Wait confirmation for consistency
+
 ## VectorStoreDriver Trait
 
 All drivers implement the `VectorStoreDriver` trait:
@@ -193,12 +223,14 @@ Run the test suite:
 cargo test -p mef-bench
 ```
 
-All 21 tests should pass, covering:
+All 39 tests should pass, covering:
 - Driver creation and configuration
 - Connection management
 - Upsert and search operations
 - Error handling
 - Driver registry
+- All supported metrics (cosine, l2, ip)
+- Environment variable configuration
 
 ## License
 

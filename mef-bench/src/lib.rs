@@ -8,11 +8,15 @@
 pub mod base;
 pub mod mef_driver;
 pub mod faiss_baseline;
+pub mod elastic_driver;
+pub mod qdrant_driver;
 
 // Re-export commonly used types
 pub use base::{DriverUnavailable, UpsertItem, Vector, VectorStoreDriver};
 pub use mef_driver::MEFDriver;
 pub use faiss_baseline::FaissBaselineDriver;
+pub use elastic_driver::ElasticDriver;
+pub use qdrant_driver::QdrantDriver;
 
 use std::collections::HashMap;
 
@@ -30,6 +34,16 @@ pub fn get_driver_registry() -> HashMap<String, fn(Option<&str>) -> Box<dyn Vect
         |metric| Box::new(FaissBaselineDriver::new(metric)) as Box<dyn VectorStoreDriver>,
     );
     
+    registry.insert(
+        "elastic".to_string(),
+        |metric| Box::new(ElasticDriver::new(metric)) as Box<dyn VectorStoreDriver>,
+    );
+    
+    registry.insert(
+        "qdrant".to_string(),
+        |metric| Box::new(QdrantDriver::new(metric)) as Box<dyn VectorStoreDriver>,
+    );
+    
     registry
 }
 
@@ -42,6 +56,8 @@ mod tests {
         let registry = get_driver_registry();
         assert!(registry.contains_key("mef"));
         assert!(registry.contains_key("faiss"));
+        assert!(registry.contains_key("elastic"));
+        assert!(registry.contains_key("qdrant"));
     }
 
     #[test]
@@ -60,5 +76,23 @@ mod tests {
         let driver = constructor(Some("l2"));
         assert_eq!(driver.name(), "faiss-baseline");
         assert_eq!(driver.metric(), "l2");
+    }
+
+    #[test]
+    fn test_create_elastic_driver_from_registry() {
+        let registry = get_driver_registry();
+        let constructor = registry.get("elastic").unwrap();
+        let driver = constructor(Some("cosine"));
+        assert_eq!(driver.name(), "Elastic");
+        assert_eq!(driver.metric(), "cosine");
+    }
+
+    #[test]
+    fn test_create_qdrant_driver_from_registry() {
+        let registry = get_driver_registry();
+        let constructor = registry.get("qdrant").unwrap();
+        let driver = constructor(Some("ip"));
+        assert_eq!(driver.name(), "Qdrant");
+        assert_eq!(driver.metric(), "ip");
     }
 }
