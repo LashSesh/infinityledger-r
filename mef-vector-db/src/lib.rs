@@ -10,9 +10,13 @@
 
 mod manifest_store;
 mod proof_registry;
+mod providers;
+mod index_manager;
 
 pub use manifest_store::{ManifestStore, Manifest, PersistenceConfig, CollectionState as ManifestCollectionState};
 pub use proof_registry::{ProofRegistry, MembershipProof, ProofError, CollectionState};
+pub use providers::{IndexProvider, HNSWProvider, IVFPQProvider, get_provider, get_providers, ProviderRegistry};
+pub use index_manager::{IndexManager, VectorRecord, CollectionState as IndexCollectionState};
 
 // Type aliases for NumPy compatibility
 /// Float32 type (equivalent to np.float32)
