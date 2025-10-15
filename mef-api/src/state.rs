@@ -8,6 +8,8 @@ use mef_spiral::SpiralConfig;
 use mef_ledger::MEFLedger;
 use mef_vector_db::IndexManager;
 use mef_coupling::SpiralCouplingEngine;
+use mef_topology::MetatronRouter;
+use mef_core::gates::merkaba_gate::MerkabaGate;
 
 /// Shared application state
 #[derive(Clone)]
@@ -18,6 +20,8 @@ pub struct AppState {
     pub ledger: Arc<Mutex<MEFLedger>>,
     pub index_manager: Arc<Mutex<IndexManager>>,
     pub coupling_engine: Arc<Mutex<SpiralCouplingEngine>>,
+    pub metatron_router: Arc<Mutex<MetatronRouter>>,
+    pub merkaba_gate: Arc<Mutex<MerkabaGate>>,
 }
 
 impl AppState {
@@ -43,6 +47,12 @@ impl AppState {
             0.1,  // zk_mu - zero-knowledge threshold
         )?;
         
+        // Initialize Metatron Router
+        let metatron_router = MetatronRouter::new(store_path.join("metatron"));
+        
+        // Initialize Merkaba Gate
+        let merkaba_gate = MerkabaGate::new(store_path.join("merkaba_audit.jsonl"));
+        
         Ok(Self {
             config: Arc::new(config),
             spiral_config: Arc::new(spiral_config),
@@ -50,6 +60,8 @@ impl AppState {
             ledger: Arc::new(Mutex::new(ledger)),
             index_manager: Arc::new(Mutex::new(index_manager)),
             coupling_engine: Arc::new(Mutex::new(coupling_engine)),
+            metatron_router: Arc::new(Mutex::new(metatron_router)),
+            merkaba_gate: Arc::new(Mutex::new(merkaba_gate)),
         })
     }
 }
