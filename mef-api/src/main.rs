@@ -33,6 +33,13 @@ async fn main() -> anyhow::Result<()> {
         .merge(routes::ingest::router())
         .merge(routes::process::router())
         .merge(routes::ledger::router())
+        .merge(routes::vector::router())
+        .merge(routes::coupling::router())
+        .merge(routes::tic::router())
+        .merge(routes::index::router())
+        .merge(routes::system::router())
+        .merge(routes::commit::router())
+        .merge(routes::zk::router())
         .with_state(state)
         .layer(TraceLayer::new_for_http());
 
