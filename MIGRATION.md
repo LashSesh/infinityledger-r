@@ -733,9 +733,12 @@ Comparing Python and Rust outputs:
   - [x] adapter.rs - Domain-specific data transformation (9 tests)
   - [x] domain_layer.rs - Main orchestration pipeline (7 tests)
   - [x] xswap.rs - Cross-domain manifold alignment (9 tests)
-- [x] mef-vector-db crate ✅ (14 tests)
+- [x] mef-vector-db crate ✅ **COMPLETE** (29 tests)
+  - [x] np_compat.py - Type aliases for NumPy compatibility
   - [x] manifest_store.rs - S3-backed manifest and persistence (6 tests)
   - [x] proof_registry.rs - Merkle-tree membership proofs (8 tests)
+  - [x] providers.rs - Pluggable index providers (HNSW, IVF-PQ) (7 tests)
+  - [x] index_manager.rs - Vector collection management (8 tests)
 - [ ] mef-api crate (basic structure in place)
 - [ ] mef-cli crate (basic structure in place)
 
@@ -748,8 +751,8 @@ Comparing Python and Rust outputs:
 - [x] Update MIGRATION.md
 - [ ] Final validation
 
-**Current Progress**: 27 of 76+ modules migrated (35.5%)
-**Total Tests**: 358 comprehensive unit tests, all passing
+**Current Progress**: 29 of 76+ modules migrated (38.2%)
+**Total Tests**: 373 comprehensive unit tests, all passing
 
 ## Known Limitations
 
@@ -800,7 +803,7 @@ Migrate {module_name}.py to Rust
 
 ---
 
-**Last Updated**: 2025-10-14  
+**Last Updated**: 2025-10-15  
 **Status**: Phase 5 (API & Services) - In Progress  
-**Modules Migrated**: 24 of 76+ (31.6%)
-**Total Tests**: 335 passing
+**Modules Migrated**: 29 of 76+ (38.2%)  
+**Total Tests**: 373 passing
