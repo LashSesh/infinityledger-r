@@ -1,17 +1,17 @@
 /*!
  * Geometry Module - Metatron Cube Canonical Definitions
- * 
+ *
  * This module provides the canonical geometric definition of the Metatron Cube
  * as described in the blueprint. It defines the 13 nodes (one center, six
  * hexagon vertices and six cube corners) and their explicit 3D coordinates.
- * 
+ *
  * The aim of this module is twofold:
- * 
+ *
  * 1. Provide a single source of truth for the canonical node list used by
  *    graph-based modules.
  * 2. Offer simple utility functions such as computing pairwise distances or
  *    looking up nodes by label or index.
- * 
+ *
  * The node coordinates follow the convention laid out in the "Complete
  * Canonical Node Table" of the blueprint. The six cube corners deliberately
  * omit the two negative-negative combinations to match the 13-node structure
@@ -59,13 +59,13 @@ impl Node {
 }
 
 /// Return the canonical list of Metatron Cube nodes
-/// 
+///
 /// The 13 nodes are defined exactly as in Table 2 of the blueprint.
 /// Node indices start at 1. For convenience, the coordinates are given as
 /// plain Rust tuples, but all arithmetic is performed using ndarray.
 pub fn canonical_nodes() -> Vec<Node> {
     let sqrt3 = 3.0_f64.sqrt();
-    
+
     vec![
         // Center
         Node::new(1, "C", "center", (0.0, 0.0, 0.0)),
@@ -88,7 +88,7 @@ pub fn canonical_nodes() -> Vec<Node> {
 }
 
 /// Return the canonical list of Metatron Cube nodes
-/// 
+///
 /// Alias for backwards compatibility with earlier versions of the prototype
 /// and existing unit tests.
 pub fn get_metatron_nodes() -> Vec<Node> {
@@ -96,7 +96,7 @@ pub fn get_metatron_nodes() -> Vec<Node> {
 }
 
 /// Return the canonical edge list for the Metatron Cube
-/// 
+///
 /// The returned list contains pairs of node indices (1-based) representing
 /// undirected edges. It follows the partial enumeration in the blueprint.
 /// This covers the center-hexagon edges, the hexagon cycle, and a selection
@@ -104,20 +104,38 @@ pub fn get_metatron_nodes() -> Vec<Node> {
 pub fn canonical_edges() -> Vec<(usize, usize)> {
     vec![
         // Base edges from the blueprint: center to hexagon
-        (1, 2), (1, 3), (1, 4), (1, 5), (1, 6), (1, 7),
+        (1, 2),
+        (1, 3),
+        (1, 4),
+        (1, 5),
+        (1, 6),
+        (1, 7),
         // Hexagon cycle
-        (2, 3), (3, 4), (4, 5), (5, 6), (6, 7), (7, 2),
+        (2, 3),
+        (3, 4),
+        (4, 5),
+        (5, 6),
+        (6, 7),
+        (7, 2),
         // Cube edges (one face): Q1-Q2-Q4-Q3-Q1
-        (8, 9), (9, 11), (11, 10), (10, 8),
+        (8, 9),
+        (9, 11),
+        (11, 10),
+        (10, 8),
         // Additional cube cross-edges and diagonals
-        (8, 12), (9, 13), (10, 12), (11, 13), (12, 13),
+        (8, 12),
+        (9, 13),
+        (10, 12),
+        (11, 13),
+        (12, 13),
         // Face diagonals
-        (8, 10), (9, 11),
+        (8, 10),
+        (9, 11),
     ]
 }
 
 /// Return the exhaustive edge list for the Metatron Cube
-/// 
+///
 /// While canonical_edges returns a minimal subset of edges for clarity,
 /// the full Metatron Cube embeds all lines connecting the 13 nodes.
 /// This function enumerates all C(13, 2) = 78 undirected edges, yielding
@@ -127,7 +145,7 @@ pub fn complete_canonical_edges() -> Vec<(usize, usize)> {
 }
 
 /// Return the canonical edge list for the Metatron Cube
-/// 
+///
 /// Alias for backwards compatibility. If full is true, returns the
 /// exhaustive edge list via complete_canonical_edges.
 pub fn get_metatron_edges(full: bool) -> Vec<(usize, usize)> {
@@ -139,7 +157,7 @@ pub fn get_metatron_edges(full: bool) -> Vec<(usize, usize)> {
 }
 
 /// Return the complete set of undirected edges for n nodes
-/// 
+///
 /// This convenience function generates all pairs (i, j) with 1 <= i < j <= n.
 /// It can be used to build a fully connected Metatron Cube graph when a
 /// maximal connectivity is desired.
@@ -154,14 +172,14 @@ pub fn full_edge_list(n: usize) -> Vec<(usize, usize)> {
 }
 
 /// Find a node by its label or index
-/// 
+///
 /// Exactly one of label or index must be provided. If a node is not found,
 /// None is returned.
 pub fn find_node(nodes: &[Node], label: Option<&str>, index: Option<usize>) -> Option<Node> {
     if (label.is_none()) == (index.is_none()) {
         return None; // Must specify exactly one
     }
-    
+
     for node in nodes {
         if let Some(lbl) = label {
             if node.label == lbl {
@@ -200,20 +218,14 @@ mod tests {
     #[test]
     fn test_hexagon_nodes() {
         let nodes = canonical_nodes();
-        let hexagon_nodes: Vec<&Node> = nodes
-            .iter()
-            .filter(|n| n.node_type == "hexagon")
-            .collect();
+        let hexagon_nodes: Vec<&Node> = nodes.iter().filter(|n| n.node_type == "hexagon").collect();
         assert_eq!(hexagon_nodes.len(), 6);
     }
 
     #[test]
     fn test_cube_nodes() {
         let nodes = canonical_nodes();
-        let cube_nodes: Vec<&Node> = nodes
-            .iter()
-            .filter(|n| n.node_type == "cube")
-            .collect();
+        let cube_nodes: Vec<&Node> = nodes.iter().filter(|n| n.node_type == "cube").collect();
         assert_eq!(cube_nodes.len(), 6);
     }
 
@@ -222,7 +234,7 @@ mod tests {
         let nodes = canonical_nodes();
         let center = &nodes[0]; // C
         let h1 = &nodes[1]; // H1
-        
+
         // Distance from center to H1 should be 1.0
         let dist = center.distance_to(h1);
         assert!((dist - 1.0).abs() < 1e-10);
@@ -263,7 +275,7 @@ mod tests {
         // Both None - invalid
         let node = find_node(&nodes, None, None);
         assert!(node.is_none());
-        
+
         // Both Some - invalid
         let node = find_node(&nodes, Some("C"), Some(1));
         assert!(node.is_none());
@@ -281,7 +293,7 @@ mod tests {
         let edges1 = canonical_edges();
         let edges2 = get_metatron_edges(false);
         assert_eq!(edges1.len(), edges2.len());
-        
+
         let edges3 = complete_canonical_edges();
         let edges4 = get_metatron_edges(true);
         assert_eq!(edges3.len(), edges4.len());
@@ -292,7 +304,7 @@ mod tests {
         let edges = full_edge_list(5);
         // C(5, 2) = 5 * 4 / 2 = 10
         assert_eq!(edges.len(), 10);
-        
+
         // Check first and last edges
         assert_eq!(edges[0], (1, 2));
         assert_eq!(edges[edges.len() - 1], (4, 5));

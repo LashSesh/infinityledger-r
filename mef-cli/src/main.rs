@@ -2,7 +2,6 @@
 /// CLI for interacting with the MEF-Core system.
 ///
 /// Migrated from: MEF-Core_v1.0/src/cli/mef.py
-
 use anyhow::{Context, Result};
 use clap::{Parser, Subcommand};
 use std::path::PathBuf;
@@ -160,7 +159,8 @@ fn main() -> Result<()> {
     let cli = Cli::parse();
 
     // Load configuration
-    let config = CliConfig::load(&cli.config, &cli.api_url).context("Failed to load configuration")?;
+    let config =
+        CliConfig::load(&cli.config, &cli.api_url).context("Failed to load configuration")?;
 
     // Execute command
     match cli.command {
@@ -183,10 +183,9 @@ fn main() -> Result<()> {
             local,
         } => commands::audit::execute(&config, start, export, local),
 
-        Commands::Validate {
-            snapshot_id,
-            local,
-        } => commands::validate::execute(&config, &snapshot_id, local),
+        Commands::Validate { snapshot_id, local } => {
+            commands::validate::execute(&config, &snapshot_id, local)
+        }
 
         Commands::Export { format, output } => commands::export::execute(&config, &format, output),
 

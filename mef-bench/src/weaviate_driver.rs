@@ -1,8 +1,8 @@
 /*!
  * Driver for Weaviate using HTTP API.
- * 
+ *
  * Migrated from MEF-Core_v1.0/src/bench/drivers/weaviate_driver.py
- * 
+ *
  * This implementation uses the Weaviate HTTP API directly via reqwest
  * instead of the weaviate-client library to minimize dependencies.
  */
@@ -10,7 +10,7 @@
 use crate::base::{DriverUnavailable, UpsertItem, Vector, VectorStoreDriver};
 use anyhow::{Context, Result};
 use serde_json::json;
-use sha2::{Sha256, Digest};
+use sha2::{Digest, Sha256};
 
 /// Benchmark driver that interacts with a Weaviate cluster via HTTP API
 pub struct WeaviateDriver {
@@ -28,7 +28,7 @@ impl WeaviateDriver {
             .unwrap_or_default()
             .trim_end_matches('/')
             .to_string();
-        
+
         Self {
             metric,
             base_url,
@@ -42,7 +42,7 @@ impl WeaviateDriver {
         let mut hasher = Sha256::new();
         hasher.update(id.as_bytes());
         let hash = hasher.finalize();
-        
+
         // Format as UUID (8-4-4-4-12 format)
         format!(
             "{:02x}{:02x}{:02x}{:02x}-{:02x}{:02x}-{:02x}{:02x}-{:02x}{:02x}-{:02x}{:02x}{:02x}{:02x}{:02x}{:02x}",
@@ -57,10 +57,8 @@ impl WeaviateDriver {
     fn class_name(&self, namespace: &str) -> String {
         // Sanitize namespace to valid Weaviate class name
         // Must start with uppercase letter, contain only alphanumeric
-        let token: String = namespace.chars()
-            .filter(|c| c.is_alphanumeric())
-            .collect();
-        
+        let token: String = namespace.chars().filter(|c| c.is_alphanumeric()).collect();
+
         let token = if token.is_empty() {
             "Namespace".to_string()
         } else if token.chars().next().unwrap().is_alphabetic() {
@@ -78,7 +76,9 @@ impl WeaviateDriver {
     }
 
     fn ensure_class(&mut self, namespace: &str, dimension: usize) -> Result<()> {
-        let client = self.client.as_ref()
+        let client = self
+            .client
+            .as_ref()
             .ok_or_else(|| anyhow::anyhow!("connect() must be called before upsert()"))?;
 
         let class_name = self.class_name(namespace);
@@ -88,11 +88,12 @@ impl WeaviateDriver {
         let response = client
             .get(&url)
             .timeout(std::time::Duration::from_secs(10))
-            .send().context("Failed to get schema")?;
+            .send()
+            .context("Failed to get schema")?;
 
         if response.status().is_success() {
             let schema: serde_json::Value = response.json().context("Failed to parse schema")?;
-            
+
             if let Some(classes) = schema.get("classes").and_then(|c| c.as_array()) {
                 for class in classes {
                     if let Some(name) = class.get("class").and_then(|n| n.as_str()) {
@@ -128,7 +129,8 @@ impl WeaviateDriver {
             .post(&create_url)
             .json(&payload)
             .timeout(std::time::Duration::from_secs(30))
-            .send().context("Failed to create class")?;
+            .send()
+            .context("Failed to create class")?;
 
         if !response.status().is_success() {
             let text = response.text().unwrap_or_default();
@@ -141,7 +143,7 @@ impl WeaviateDriver {
 
     fn prepare_vector(&mut self, vector: &Vector) -> Result<Vec<f64>> {
         let array = vector.clone();
-        
+
         if let Some(dim) = self.dimension {
             if array.len() != dim {
                 return Err(anyhow::anyhow!(
@@ -177,16 +179,13 @@ impl VectorStoreDriver for WeaviateDriver {
 
     fn connect(&mut self) -> Result<()> {
         if self.base_url.is_empty() {
-            return Err(DriverUnavailable::new(
-                "Weaviate",
-                "WEAVIATE_URL not configured",
-            )
-            .into());
+            return Err(DriverUnavailable::new("Weaviate", "WEAVIATE_URL not configured").into());
         }
 
         let client = reqwest::blocking::Client::builder()
             .timeout(std::time::Duration::from_secs(30))
-            .build().context("Failed to create HTTP client")?;
+            .build()
+            .context("Failed to create HTTP client")?;
 
         // Health check
         let url = format!("{}/v1/schema", self.base_url);
@@ -219,7 +218,9 @@ impl VectorStoreDriver for WeaviateDriver {
     }
 
     fn clear(&mut self, namespace: &str) -> Result<()> {
-        let client = self.client.as_ref()
+        let client = self
+            .client
+            .as_ref()
             .ok_or_else(|| anyhow::anyhow!("connect() must be called before clear()"))?;
 
         let class_name = self.class_name(namespace);
@@ -234,12 +235,7 @@ impl VectorStoreDriver for WeaviateDriver {
         Ok(())
     }
 
-    fn upsert(
-        &mut self,
-        items: Vec<UpsertItem>,
-        namespace: &str,
-        batch_size: usize,
-    ) -> Result<()> {
+    fn upsert(&mut self, items: Vec<UpsertItem>, namespace: &str, batch_size: usize) -> Result<()> {
         if self.client.is_none() {
             return Err(anyhow::anyhow!("connect() must be called before upsert()"));
         }
@@ -259,11 +255,11 @@ impl VectorStoreDriver for WeaviateDriver {
 
         // Batch insert
         let mut batch: Vec<serde_json::Value> = Vec::new();
-        
+
         for (identifier, vector, _metadata) in items {
             let prepared = self.prepare_vector(&vector)?;
             let uuid = self.id_to_uuid(&identifier);
-            
+
             let object = json!({
                 "class": class_name,
                 "id": uuid,
@@ -279,12 +275,13 @@ impl VectorStoreDriver for WeaviateDriver {
                 // Send batch
                 let url = format!("{}/v1/batch/objects", self.base_url);
                 let payload = json!({"objects": batch});
-                
+
                 let response = client
                     .post(&url)
                     .json(&payload)
                     .timeout(std::time::Duration::from_secs(60))
-                    .send().context("Failed to batch insert objects")?;
+                    .send()
+                    .context("Failed to batch insert objects")?;
 
                 if !response.status().is_success() {
                     let text = response.text().unwrap_or_default();
@@ -299,12 +296,13 @@ impl VectorStoreDriver for WeaviateDriver {
         if !batch.is_empty() {
             let url = format!("{}/v1/batch/objects", self.base_url);
             let payload = json!({"objects": batch});
-            
+
             let response = client
                 .post(&url)
                 .json(&payload)
                 .timeout(std::time::Duration::from_secs(60))
-                .send().context("Failed to batch insert objects")?;
+                .send()
+                .context("Failed to batch insert objects")?;
 
             if !response.status().is_success() {
                 let text = response.text().unwrap_or_default();
@@ -315,13 +313,10 @@ impl VectorStoreDriver for WeaviateDriver {
         Ok(())
     }
 
-    fn search(
-        &self,
-        query: &Vector,
-        k: usize,
-        namespace: &str,
-    ) -> Result<Vec<(String, f64)>> {
-        let client = self.client.as_ref()
+    fn search(&self, query: &Vector, k: usize, namespace: &str) -> Result<Vec<(String, f64)>> {
+        let client = self
+            .client
+            .as_ref()
             .ok_or_else(|| anyhow::anyhow!("connect() must be called before search()"))?;
 
         let class_name = self.class_name(namespace);
@@ -347,24 +342,26 @@ impl VectorStoreDriver for WeaviateDriver {
             .post(&url)
             .json(&payload)
             .timeout(std::time::Duration::from_secs(30))
-            .send().context("Failed to search vectors")?;
+            .send()
+            .context("Failed to search vectors")?;
 
         if !response.status().is_success() {
             let text = response.text().unwrap_or_default();
             return Err(anyhow::anyhow!("Search failed: {}", text));
         }
 
-        let result: serde_json::Value = response.json().context("Failed to parse search response")?;
+        let result: serde_json::Value =
+            response.json().context("Failed to parse search response")?;
 
         let mut hits: Vec<(String, f64)> = Vec::new();
-        
+
         if let Some(get) = result.get("data").and_then(|d| d.get("Get")) {
             if let Some(class_results) = get.get(&class_name).and_then(|c| c.as_array()) {
                 for entry in class_results.iter().take(k) {
                     if let Some(additional) = entry.get("_additional") {
                         if let (Some(id), Some(distance)) = (
                             additional.get("id").and_then(|v| v.as_str()),
-                            additional.get("distance").and_then(|v| v.as_f64())
+                            additional.get("distance").and_then(|v| v.as_f64()),
                         ) {
                             hits.push((id.to_string(), distance));
                         }
@@ -421,15 +418,16 @@ mod tests {
         let mut driver = WeaviateDriver::new(None);
         let result = driver.connect();
         assert!(result.is_err());
-        assert!(result.unwrap_err().to_string().contains("WEAVIATE_URL not configured"));
+        assert!(result
+            .unwrap_err()
+            .to_string()
+            .contains("WEAVIATE_URL not configured"));
     }
 
     #[test]
     fn test_upsert_without_connect() {
         let mut driver = WeaviateDriver::new(Some("cosine"));
-        let items = vec![
-            ("id1".to_string(), vec![1.0, 2.0, 3.0], None),
-        ];
+        let items = vec![("id1".to_string(), vec![1.0, 2.0, 3.0], None)];
         let result = driver.upsert(items, "test", 1000);
         assert!(result.is_err());
     }
@@ -452,19 +450,19 @@ mod tests {
     #[test]
     fn test_class_name_sanitization() {
         let driver = WeaviateDriver::new(None);
-        
+
         // Normal case
         assert_eq!(driver.class_name("test"), "Test");
-        
+
         // With special characters
         assert_eq!(driver.class_name("test-collection"), "Testcollection");
-        
+
         // Starting with number
         assert_eq!(driver.class_name("123test"), "N123test");
-        
+
         // Empty after sanitization
         assert_eq!(driver.class_name("---"), "Namespace");
-        
+
         // Already capitalized
         assert_eq!(driver.class_name("MyClass"), "MyClass");
     }

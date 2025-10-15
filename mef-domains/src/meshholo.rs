@@ -1,6 +1,6 @@
 /*!
  * MeshHolo - Holographic triangulation of information space
- * 
+ *
  * Leverages Metatron Cube topology for enhanced triangulation
  * and topological invariant calculations.
  */
@@ -82,7 +82,7 @@ impl MeshHolo {
         let vertices = Self::create_vertices(&resonat.resonits);
         let edges = Self::create_edges(&vertices, resonat);
         let simplices = Vec::new(); // Would be filled by Delaunay triangulation
-        
+
         let invariants = TopologicalInvariants {
             betti: resonat.metrics.betti.clone(),
             lambda_gap: Self::calculate_spectral_gap(&edges, &vertices),
@@ -120,8 +120,9 @@ impl MeshHolo {
             .iter()
             .map(|resonit| {
                 let sigma_vec = resonit.to_vector();
-                let norm = (sigma_vec[0].powi(2) + sigma_vec[1].powi(2) + sigma_vec[2].powi(2)).sqrt();
-                
+                let norm =
+                    (sigma_vec[0].powi(2) + sigma_vec[1].powi(2) + sigma_vec[2].powi(2)).sqrt();
+
                 let theta = sigma_vec[1].atan2(sigma_vec[0]);
                 let chi = if norm > 1e-10 {
                     (sigma_vec[2] / norm).clamp(-1.0, 1.0).acos()
@@ -152,7 +153,7 @@ impl MeshHolo {
         for i in 0..resonat.resonits.len() {
             for j in (i + 1)..resonat.resonits.len() {
                 let weight = resonat.resonits[i].resonance_with(&resonat.resonits[j]);
-                
+
                 // Only add edges with significant resonance
                 if weight > 0.1 {
                     edges.push(EdgeData {
@@ -199,15 +200,15 @@ impl MeshHolo {
         }
 
         // Calculate eigenvalues using nalgebra
-        use nalgebra::{DMatrix};
+        use nalgebra::DMatrix;
         let lap_vec: Vec<f64> = lap.iter().cloned().collect();
         let nalg_matrix = DMatrix::from_row_slice(n, n, &lap_vec);
-        
+
         match nalg_matrix.symmetric_eigenvalues() {
             eigs => {
                 let mut eigenvalues: Vec<f64> = eigs.iter().cloned().collect();
                 eigenvalues.sort_by(|a, b| a.partial_cmp(b).unwrap());
-                
+
                 if eigenvalues.len() > 1 {
                     eigenvalues[1] - eigenvalues[0]
                 } else {
@@ -224,13 +225,13 @@ impl MeshHolo {
 
         for vertex in vertices {
             let v_coords = [vertex.theta, vertex.chi, 0.0];
-            
+
             let mut min_dist = f64::INFINITY;
             let mut closest_node = 1;
 
             for node in &nodes {
                 let node_coords = [node.coords.0, node.coords.1, 0.0];
-                
+
                 let dist: f64 = v_coords
                     .iter()
                     .zip(node_coords.iter())
@@ -254,7 +255,7 @@ impl MeshHolo {
     pub fn to_metatron_embedding(&self) -> Array2<f64> {
         let n_vertices = self.vertices.len();
         let mut embedding = Array2::<f64>::zeros((n_vertices, 13));
-        
+
         let nodes = canonical_nodes();
 
         for (i, vertex) in self.vertices.iter().enumerate() {
@@ -296,13 +297,13 @@ mod tests {
     fn test_meshholo_creation() {
         let sigma1 = Sigma::new(0.5, 0.5, 0.5);
         let sigma2 = Sigma::new(0.6, 0.6, 0.6);
-        
+
         let r1 = Resonit::new(sigma1, "test".to_string(), 0);
         let r2 = Resonit::new(sigma2, "test".to_string(), 0);
-        
+
         let resonat = Resonat::new(vec![r1, r2]).unwrap();
         let mesh = MeshHolo::from_resonat(&resonat, "test-seed".to_string());
-        
+
         assert_eq!(mesh.vertices.len(), 2);
         assert_eq!(mesh.seed, "test-seed");
         assert!(mesh.metatron_mapping.is_some());
@@ -312,10 +313,10 @@ mod tests {
     fn test_vertex_creation() {
         let sigma = Sigma::new(1.0, 0.0, 0.0);
         let r = Resonit::new(sigma, "test".to_string(), 0);
-        
+
         let resonat = Resonat::new(vec![r]).unwrap();
         let mesh = MeshHolo::from_resonat(&resonat, "seed".to_string());
-        
+
         assert_eq!(mesh.vertices.len(), 1);
         assert!(mesh.vertices[0].sigma.contains_key("psi"));
         assert!(mesh.vertices[0].sigma.contains_key("rho"));
@@ -326,13 +327,13 @@ mod tests {
     fn test_edge_creation() {
         let sigma1 = Sigma::new(0.5, 0.5, 0.5);
         let sigma2 = Sigma::new(0.5, 0.5, 0.5);
-        
+
         let r1 = Resonit::new(sigma1, "test".to_string(), 0);
         let r2 = Resonit::new(sigma2, "test".to_string(), 0);
-        
+
         let resonat = Resonat::new(vec![r1, r2]).unwrap();
         let mesh = MeshHolo::from_resonat(&resonat, "seed".to_string());
-        
+
         // High resonance should create edges
         assert!(!mesh.edges.is_empty());
     }
@@ -343,10 +344,10 @@ mod tests {
         let r1 = Resonit::new(sigma, "test".to_string(), 0);
         let r2 = Resonit::new(sigma, "test".to_string(), 0);
         let r3 = Resonit::new(sigma, "test".to_string(), 0);
-        
+
         let resonat = Resonat::new(vec![r1, r2, r3]).unwrap();
         let mesh = MeshHolo::from_resonat(&resonat, "seed".to_string());
-        
+
         assert!(mesh.invariants.lambda_gap >= 0.0);
     }
 
@@ -354,13 +355,13 @@ mod tests {
     fn test_metatron_mapping() {
         let sigma = Sigma::new(0.5, 0.5, 0.5);
         let r = Resonit::new(sigma, "test".to_string(), 0);
-        
+
         let resonat = Resonat::new(vec![r.clone()]).unwrap();
         let mesh = MeshHolo::from_resonat(&resonat, "seed".to_string());
-        
+
         let mapping = mesh.metatron_mapping.unwrap();
         assert!(mapping.contains_key(&r.id));
-        
+
         let node_idx = mapping.get(&r.id).unwrap();
         assert!(*node_idx >= 1 && *node_idx <= 13);
     }
@@ -369,16 +370,16 @@ mod tests {
     fn test_metatron_embedding() {
         let sigma1 = Sigma::new(0.5, 0.5, 0.5);
         let sigma2 = Sigma::new(0.6, 0.6, 0.6);
-        
+
         let r1 = Resonit::new(sigma1, "test".to_string(), 0);
         let r2 = Resonit::new(sigma2, "test".to_string(), 0);
-        
+
         let resonat = Resonat::new(vec![r1, r2]).unwrap();
         let mesh = MeshHolo::from_resonat(&resonat, "seed".to_string());
-        
+
         let embedding = mesh.to_metatron_embedding();
         assert_eq!(embedding.shape(), &[2, 13]);
-        
+
         // Check normalization
         for i in 0..2 {
             let row_sum: f64 = embedding.row(i).sum();
@@ -390,13 +391,13 @@ mod tests {
     fn test_serialization() {
         let sigma = Sigma::new(0.5, 0.5, 0.5);
         let r = Resonit::new(sigma, "test".to_string(), 0);
-        
+
         let resonat = Resonat::new(vec![r]).unwrap();
         let mesh = MeshHolo::from_resonat(&resonat, "seed".to_string());
-        
+
         let json = serde_json::to_string(&mesh).unwrap();
         let deserialized: MeshHolo = serde_json::from_str(&json).unwrap();
-        
+
         assert_eq!(mesh.id, deserialized.id);
         assert_eq!(mesh.seed, deserialized.seed);
         assert_eq!(mesh.vertices.len(), deserialized.vertices.len());

@@ -1,26 +1,26 @@
 /*!
  * Graph Module - Metatron Cube Graph Representation
- * 
+ *
  * This module implements the core data structure representing the Metatron Cube
  * as a graph. Each graph consists of a set of canonical nodes (from the geometry
  * module) and an undirected edge list. The class `MetatronCubeGraph` provides
  * methods to obtain the adjacency matrix, add or remove edges, and apply
  * permutations on the node order.
- * 
+ *
  * While the default instance uses the canonical nodes and partial edge list from
  * the blueprint, the class accepts custom node/edge inputs for experimentation.
  * This allows integration with additional research modules without changing the
  * core definitions.
- * 
+ *
  * The adjacency matrix is always symmetric, reflecting the undirected nature of
  * the Metatron Cube. Self-loops are not used and are explicitly prohibited.
  */
 
+use anyhow::{anyhow, Result};
 use ndarray::Array2;
 use std::collections::HashMap;
-use anyhow::{Result, anyhow};
 
-use crate::geometry::{Node, canonical_nodes, canonical_edges};
+use crate::geometry::{canonical_edges, canonical_nodes, Node};
 
 /// A graph representation of the Metatron Cube
 #[derive(Debug, Clone)]
@@ -40,15 +40,15 @@ impl MetatronCubeGraph {
     }
 
     /// Create a new Metatron Cube graph with custom nodes and/or edges
-    /// 
+    ///
     /// # Arguments
-    /// 
+    ///
     /// * `nodes` - Optional custom nodes. If None, uses canonical nodes.
     /// * `edges` - Optional unweighted edges. If None and weighted_edges is None, uses canonical edges.
     /// * `weighted_edges` - Optional weighted edges. Takes precedence over edges parameter.
-    /// 
+    ///
     /// # Returns
-    /// 
+    ///
     /// A new MetatronCubeGraph instance
     pub fn with_nodes_and_edges(
         nodes: Option<Vec<Node>>,
@@ -56,8 +56,8 @@ impl MetatronCubeGraph {
         weighted_edges: Option<Vec<(usize, usize, f64)>>,
     ) -> Self {
         // Use canonical definitions if not provided
-        let nodes = nodes.unwrap_or_else(|| canonical_nodes());
-        
+        let nodes = nodes.unwrap_or_else(canonical_nodes);
+
         // Validate node indices are unique and consecutive
         let mut indices: Vec<usize> = nodes.iter().map(|n| n.index).collect();
         indices.sort();
@@ -68,7 +68,7 @@ impl MetatronCubeGraph {
 
         // Build the internal edge list with weights
         let mut edge_weights = HashMap::new();
-        
+
         if let Some(weighted) = weighted_edges {
             for (i, j, w) in weighted {
                 if i == j {
@@ -79,7 +79,7 @@ impl MetatronCubeGraph {
             }
         } else {
             // Fallback to unweighted edges (canonical if None)
-            let edge_list = edges.unwrap_or_else(|| canonical_edges());
+            let edge_list = edges.unwrap_or_else(canonical_edges);
             for (i, j) in edge_list {
                 if i == j {
                     panic!("Self-loops are not allowed: edge ({}, {})", i, j);
@@ -105,14 +105,14 @@ impl MetatronCubeGraph {
     ) -> Array2<f64> {
         let n = nodes.len();
         let mut adjacency = Array2::zeros((n, n));
-        
+
         for ((i, j), w) in edge_weights {
             let u = i - 1;
             let v = j - 1;
             adjacency[[u, v]] = *w;
             adjacency[[v, u]] = *w;
         }
-        
+
         adjacency
     }
 
@@ -122,20 +122,21 @@ impl MetatronCubeGraph {
     }
 
     /// Return the neighboring node indices of a given node
-    /// 
+    ///
     /// # Arguments
-    /// 
+    ///
     /// * `index` - 1-based node index
-    /// 
+    ///
     /// # Returns
-    /// 
+    ///
     /// Vector of 1-based node indices adjacent to the given node
     pub fn neighbors(&self, index: usize) -> Result<Vec<usize>> {
         self.validate_node_index(index)?;
         let idx0 = index - 1;
         let row = self.adjacency.row(idx0);
-        
-        Ok(row.iter()
+
+        Ok(row
+            .iter()
             .enumerate()
             .filter(|(_, &v)| v != 0.0)
             .map(|(i, _)| i + 1)
@@ -153,28 +154,28 @@ impl MetatronCubeGraph {
     }
 
     /// Add or update an undirected edge with the given weight
-    /// 
+    ///
     /// # Arguments
-    /// 
+    ///
     /// * `i` - 1-based node index
     /// * `j` - 1-based node index  
     /// * `weight` - Weight for the edge. If zero, the edge is removed.
     pub fn add_weighted_edge(&mut self, i: usize, j: usize, weight: f64) -> Result<()> {
         self.validate_node_index(i)?;
         self.validate_node_index(j)?;
-        
+
         if i == j {
             return Err(anyhow!("Self-loops are not allowed"));
         }
-        
+
         let key = (i.min(j), i.max(j));
-        
+
         if weight == 0.0 {
             self.edge_weights.remove(&key);
         } else {
             self.edge_weights.insert(key, weight);
         }
-        
+
         self.adjacency = Self::compute_adjacency_matrix(&self.nodes, &self.edge_weights);
         Ok(())
     }
@@ -200,22 +201,22 @@ impl MetatronCubeGraph {
     }
 
     /// Return a new graph with node order permuted by sigma
-    /// 
+    ///
     /// The permutation sigma must be a vector of length equal to the number of
     /// nodes, containing each integer from 1..n exactly once. It describes the
     /// new order of the nodes (1-based). For example, sigma = [1, 3, 2, 4, ...]
     /// swaps nodes 2 and 3.
-    /// 
+    ///
     /// # Arguments
-    /// 
+    ///
     /// * `sigma` - A permutation of 1..n
-    /// 
+    ///
     /// # Returns
-    /// 
+    ///
     /// A new graph with permuted nodes and edges
     pub fn permute(&self, sigma: &[usize]) -> Result<Self> {
         let n = self.nodes.len();
-        
+
         if sigma.len() != n {
             return Err(anyhow!(
                 "Permutation must have length {}, got {}",
@@ -223,7 +224,7 @@ impl MetatronCubeGraph {
                 sigma.len()
             ));
         }
-        
+
         // Validate sigma is a valid permutation
         let mut sigma_set: Vec<usize> = sigma.to_vec();
         sigma_set.sort();
@@ -260,21 +261,21 @@ impl MetatronCubeGraph {
     }
 
     /// Apply a permutation matrix to the adjacency matrix
-    /// 
+    ///
     /// This method produces a new graph with the same node order but with
     /// adjacency corresponding to the permuted indices. The provided matrix P
     /// must be orthogonal and binary (a valid permutation matrix).
-    /// 
+    ///
     /// # Arguments
-    /// 
+    ///
     /// * `p` - Permutation matrix of shape (n, n)
-    /// 
+    ///
     /// # Returns
-    /// 
+    ///
     /// A new graph whose adjacency matrix equals P @ A @ P^T
     pub fn apply_permutation_matrix(&self, p: &Array2<f64>) -> Result<Self> {
         let a = self.get_adjacency_matrix();
-        
+
         if p.shape() != a.shape() {
             return Err(anyhow!(
                 "Permutation matrix must be same shape as adjacency matrix"
@@ -287,7 +288,7 @@ impl MetatronCubeGraph {
         // Derive new edge list from A_prime
         let n = self.nodes.len();
         let mut new_edges = Vec::new();
-        
+
         for i in 0..n {
             for j in (i + 1)..n {
                 if a_prime[[i, j]] != 0.0 {
@@ -343,7 +344,7 @@ mod tests {
     fn test_adjacency_matrix_symmetric() {
         let g = MetatronCubeGraph::new();
         let adj = g.get_adjacency_matrix();
-        
+
         // Check symmetry
         for i in 0..13 {
             for j in 0..13 {
@@ -364,7 +365,7 @@ mod tests {
         let g = MetatronCubeGraph::new();
         let neighbors = g.neighbors(1).unwrap();
         assert_eq!(neighbors.len(), 6);
-        
+
         // Center should be connected to hexagon nodes 2-7
         for i in 2..=7 {
             assert!(neighbors.contains(&i));
@@ -375,11 +376,11 @@ mod tests {
     fn test_add_edge() {
         let mut g = MetatronCubeGraph::new();
         let initial_edges = g.num_edges();
-        
+
         // Add an edge that doesn't exist yet (e.g., between two cube nodes not already connected)
         g.add_edge(8, 13).unwrap();
         assert_eq!(g.num_edges(), initial_edges + 1);
-        
+
         // Check adjacency matrix updated
         let adj = g.get_adjacency_matrix();
         assert_eq!(adj[[7, 12]], 1.0);
@@ -390,11 +391,11 @@ mod tests {
     fn test_remove_edge() {
         let mut g = MetatronCubeGraph::new();
         let initial_edges = g.num_edges();
-        
+
         // Remove an existing edge (e.g., center to H1)
         g.remove_edge(1, 2);
         assert_eq!(g.num_edges(), initial_edges - 1);
-        
+
         // Check adjacency matrix updated
         let adj = g.get_adjacency_matrix();
         assert_eq!(adj[[0, 1]], 0.0);
@@ -412,7 +413,7 @@ mod tests {
     fn test_weighted_edges() {
         let weighted = vec![(1, 2, 2.5), (2, 3, 1.5)];
         let g = MetatronCubeGraph::with_nodes_and_edges(None, None, Some(weighted));
-        
+
         let adj = g.get_adjacency_matrix();
         assert_eq!(adj[[0, 1]], 2.5);
         assert_eq!(adj[[1, 2]], 1.5);
@@ -423,10 +424,10 @@ mod tests {
         let g = MetatronCubeGraph::new();
         let sigma: Vec<usize> = (1..=13).collect();
         let g2 = g.permute(&sigma).unwrap();
-        
+
         let adj1 = g.get_adjacency_matrix();
         let adj2 = g2.get_adjacency_matrix();
-        
+
         // Identity permutation should not change adjacency
         for i in 0..13 {
             for j in 0..13 {
@@ -441,10 +442,10 @@ mod tests {
         // Swap nodes 2 and 3 (H1 and H2)
         let sigma = vec![1, 3, 2, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13];
         let g2 = g.permute(&sigma).unwrap();
-        
+
         let adj1 = g.get_adjacency_matrix();
         let adj2 = g2.get_adjacency_matrix();
-        
+
         // After swapping nodes 2 and 3, check that edges are remapped
         assert_eq!(adj2[[0, 1]], adj1[[0, 2]]); // new position of node 3
         assert_eq!(adj2[[0, 2]], adj1[[0, 1]]); // new position of node 2
@@ -462,7 +463,7 @@ mod tests {
         let g = MetatronCubeGraph::new();
         let bad_sigma = vec![1, 2, 3]; // too short
         assert!(g.permute(&bad_sigma).is_err());
-        
+
         let bad_sigma2 = vec![1, 2, 2, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13]; // duplicate
         assert!(g.permute(&bad_sigma2).is_err());
     }

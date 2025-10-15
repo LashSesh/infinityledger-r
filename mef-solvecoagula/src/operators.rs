@@ -33,7 +33,7 @@ pub fn dk(
         u2_orth = &u2_orth - dot * u1;
         let norm = u2_orth.dot(&u2_orth).sqrt();
         if norm > 0.0 {
-            u2_orth = u2_orth / norm;
+            u2_orth /= norm;
         }
     }
 
@@ -88,13 +88,11 @@ pub fn pi_project(v: &Array1<f64>, canon: &str, tol: f64) -> Array1<f64> {
     let n = v.len();
 
     // Generate path-equivalent states (limited permutations for efficiency)
-    let permutations = vec![
-        (0..n).collect::<Vec<_>>(),                         // Identity
-        (1..n).chain(std::iter::once(0)).collect::<Vec<_>>(), // Cyclic rotation
-        std::iter::once(n - 1)
-            .chain(0..n - 1)
-            .collect::<Vec<_>>(), // Backward rotation
-        (0..n).rev().collect::<Vec<_>>(),                  // Reversal
+    let permutations = [
+        (0..n).collect::<Vec<_>>(),                                 // Identity
+        (1..n).chain(std::iter::once(0)).collect::<Vec<_>>(),       // Cyclic rotation
+        std::iter::once(n - 1).chain(0..n - 1).collect::<Vec<_>>(), // Backward rotation
+        (0..n).rev().collect::<Vec<_>>(),                           // Reversal
     ];
 
     let mut path_vectors: Vec<Array1<f64>> = permutations
@@ -126,14 +124,18 @@ pub fn pi_project(v: &Array1<f64>, canon: &str, tol: f64) -> Array1<f64> {
             path_vectors.sort_by(|a, b| {
                 let norm_a = a.dot(a).sqrt();
                 let norm_b = b.dot(b).sqrt();
-                norm_a.partial_cmp(&norm_b).unwrap_or(std::cmp::Ordering::Equal)
+                norm_a
+                    .partial_cmp(&norm_b)
+                    .unwrap_or(std::cmp::Ordering::Equal)
             });
         }
         "sum" => {
             path_vectors.sort_by(|a, b| {
                 let sum_a: f64 = a.sum();
                 let sum_b: f64 = b.sum();
-                sum_a.partial_cmp(&sum_b).unwrap_or(std::cmp::Ordering::Equal)
+                sum_a
+                    .partial_cmp(&sum_b)
+                    .unwrap_or(std::cmp::Ordering::Equal)
             });
         }
         _ => {}
@@ -142,9 +144,9 @@ pub fn pi_project(v: &Array1<f64>, canon: &str, tol: f64) -> Array1<f64> {
     // Average over path-equivalent states
     let mut v_mean: Array1<f64> = Array1::zeros(n);
     for pv in &path_vectors {
-        v_mean = v_mean + pv;
+        v_mean += pv;
     }
-    v_mean = v_mean / path_vectors.len() as f64;
+    v_mean /= path_vectors.len() as f64;
 
     // Check distance
     let distance = (&v_mean - v).dot(&(&v_mean - v)).sqrt();
@@ -194,7 +196,7 @@ fn finite_difference_gradient(v: &Array1<f64>, beta: f64) -> Array1<f64> {
     }
 
     if base_norm > 0.0 {
-        gradient = gradient / base_norm.max(1e-6);
+        gradient /= base_norm.max(1e-6);
     }
 
     gradient * beta
@@ -284,6 +286,17 @@ pub struct ConvergenceStep {
     pub norm: f64,
 }
 
+/// Parameters for fixpoint iteration
+#[derive(Debug, Clone)]
+pub struct FixpointParams<'a> {
+    pub eps: f64,
+    pub max_iter: usize,
+    pub dk_args: Option<&'a DKArgs>,
+    pub sw_args: Option<&'a SWArgs>,
+    pub pi_args: Option<&'a PIArgs>,
+    pub wt_args: Option<&'a WTArgs>,
+}
+
 /// SPEC-002 Fixpoint Iteration
 /// Order: dk→sw→pi→wt→affine, v_{t+1}=lambda*(W@v + b)
 ///
@@ -292,12 +305,7 @@ pub struct ConvergenceStep {
 /// * `w` - Weight matrix
 /// * `b` - Bias vector
 /// * `lambda` - Contraction factor (0 < lambda < 1)
-/// * `eps` - Convergence epsilon
-/// * `max_iter` - Maximum iterations
-/// * `dk_args` - DoubleKick arguments
-/// * `sw_args` - Sweep arguments
-/// * `pi_args` - Pfadinvarianz arguments
-/// * `wt_args` - WeightTransfer arguments
+/// * `params` - Fixpoint iteration parameters
 ///
 /// # Returns
 /// (v_star, steps) - Fixpoint and number of steps
@@ -306,12 +314,7 @@ pub fn iterate_to_fixpoint(
     w: &ndarray::Array2<f64>,
     b: &Array1<f64>,
     lambda: f64,
-    eps: f64,
-    max_iter: usize,
-    dk_args: Option<&DKArgs>,
-    sw_args: Option<&SWArgs>,
-    pi_args: Option<&PIArgs>,
-    wt_args: Option<&WTArgs>,
+    params: &FixpointParams,
 ) -> Result<(Array1<f64>, usize)> {
     // Contraction check
     if lambda <= 0.0 || lambda >= 1.0 {
@@ -329,26 +332,26 @@ pub fn iterate_to_fixpoint(
 
     let mut v = v0.clone();
 
-    for step in 0..max_iter {
+    for step in 0..params.max_iter {
         let v_old = v.clone();
 
         // 1. DoubleKick
-        if let Some(args) = dk_args {
+        if let Some(args) = params.dk_args {
             v = dk(&v, args.alpha1, args.alpha2, &args.u1, &args.u2);
         }
 
         // 2. Sweep
-        if let Some(args) = sw_args {
+        if let Some(args) = params.sw_args {
             v = sw(&v, args.tau, args.beta);
         }
 
         // 3. Pfadinvarianz
-        if let Some(args) = pi_args {
+        if let Some(args) = params.pi_args {
             v = pi_project(&v, &args.canon, args.tol);
         }
 
         // 4. Weight-Transfer
-        if let Some(args) = wt_args {
+        if let Some(args) = params.wt_args {
             v = wt(&v, &args.weights, args.beta, &args.mode);
         }
 
@@ -357,13 +360,13 @@ pub fn iterate_to_fixpoint(
 
         // Convergence check
         let delta = (&v - &v_old).dot(&(&v - &v_old)).sqrt();
-        if delta < eps {
+        if delta < params.eps {
             return Ok((v, step + 1));
         }
     }
 
     // Max iterations reached
-    Ok((v, max_iter))
+    Ok((v, params.max_iter))
 }
 
 /// DoubleKick operator arguments

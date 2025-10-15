@@ -1,6 +1,6 @@
+use crate::config::CliConfig;
 /// Validate command - validate snapshots using Proof-of-Resonance
 use anyhow::{Context, Result};
-use crate::config::CliConfig;
 use serde::Deserialize;
 
 #[derive(Debug, Deserialize)]
@@ -25,11 +25,7 @@ struct StabilityMetrics {
     valid: bool,
 }
 
-pub fn execute(
-    config: &CliConfig,
-    snapshot_id: &str,
-    local: bool,
-) -> Result<()> {
+pub fn execute(config: &CliConfig, snapshot_id: &str, local: bool) -> Result<()> {
     if local {
         println!("Local validation not yet fully implemented");
         println!("Snapshot: {}", snapshot_id);
@@ -41,15 +37,13 @@ pub fn execute(
 
         let response = reqwest::blocking::Client::new()
             .post(format!("{}/validate/snapshot/{}", api_url, snapshot_id))
-            .send().context("Failed to send request to API")?;
+            .send()
+            .context("Failed to send request to API")?;
 
         if response.status().is_success() {
             let report: ValidateResponse = response.json()?;
             println!("Snapshot: {}", report.snapshot_id);
-            println!(
-                "Valid: {}",
-                if report.overall_valid { "✓" } else { "✗" }
-            );
+            println!("Valid: {}", if report.overall_valid { "✓" } else { "✗" });
             println!("Resonance:");
             println!("  FFT: {:.4}", report.resonance.fft_resonance);
             println!("  Claimed: {:.4}", report.resonance.claimed_resonance);

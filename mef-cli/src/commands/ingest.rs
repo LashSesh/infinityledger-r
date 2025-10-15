@@ -1,6 +1,6 @@
+use crate::config::CliConfig;
 /// Ingest command - ingest files into MEF-Core system
 use anyhow::{Context, Result};
-use crate::config::CliConfig;
 use serde::{Deserialize, Serialize};
 use std::fs;
 use std::path::PathBuf;
@@ -36,8 +36,7 @@ pub fn execute(
             .with_context(|| format!("Failed to read file: {:?}", file_path))?;
 
         if data_type == "json" {
-            serde_json::from_str(&contents)
-                .with_context(|| "Failed to parse JSON file")?
+            serde_json::from_str(&contents).with_context(|| "Failed to parse JSON file")?
         } else {
             serde_json::Value::String(contents)
         }
@@ -65,7 +64,8 @@ pub fn execute(
         let response = client
             .post(format!("{}/ingest", api_url))
             .json(&request)
-            .send().context("Failed to send request to API")?;
+            .send()
+            .context("Failed to send request to API")?;
 
         if response.status().is_success() {
             let result: IngestResponse = response.json()?;

@@ -1,11 +1,11 @@
 //! Spiral Storage management for 5D snapshots.
 //! File-based persistence with indexing and retrieval.
 
+use chrono::Utc;
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 use std::fs;
 use std::path::{Path, PathBuf};
-use chrono::Utc;
 
 /// Snapshot metadata in the index
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -160,10 +160,7 @@ impl SpiralStorage {
         // Update index
         let metadata = SnapshotMetadata {
             id: snapshot_id.clone(),
-            timestamp: snapshot["timestamp"]
-                .as_str()
-                .unwrap_or("")
-                .to_string(),
+            timestamp: snapshot["timestamp"].as_str().unwrap_or("").to_string(),
             seed: snapshot["seed"].as_str().unwrap_or("").to_string(),
             phase: snapshot["phase"].as_f64().unwrap_or(0.0),
             por: snapshot["metrics"]["por"]
@@ -191,7 +188,10 @@ impl SpiralStorage {
     ///
     /// # Returns
     /// Snapshot data or None
-    pub fn retrieve_snapshot(&self, snapshot_id: &str) -> Result<Option<serde_json::Value>, String> {
+    pub fn retrieve_snapshot(
+        &self,
+        snapshot_id: &str,
+    ) -> Result<Option<serde_json::Value>, String> {
         let file_path = self.store_path.join(format!("{}.spiral", snapshot_id));
 
         if !file_path.exists() {
@@ -254,26 +254,19 @@ impl SpiralStorage {
     /// # Returns
     /// File path of stored TIC
     pub fn store_tic(&mut self, tic: &serde_json::Value) -> Result<String, String> {
-        let tic_id = tic["tic_id"]
-            .as_str()
-            .ok_or("Missing tic_id")?
-            .to_string();
+        let tic_id = tic["tic_id"].as_str().ok_or("Missing tic_id")?.to_string();
         let file_path = self.store_path.join(format!("{}.tic", tic_id));
 
         // Write TIC file
         let content = serde_json::to_string_pretty(tic)
             .map_err(|e| format!("Failed to serialize TIC: {}", e))?;
-        fs::write(&file_path, content)
-            .map_err(|e| format!("Failed to write TIC file: {}", e))?;
+        fs::write(&file_path, content).map_err(|e| format!("Failed to write TIC file: {}", e))?;
 
         // Update index
         let metadata = TicMetadata {
             id: tic_id.clone(),
             seed: tic["seed"].as_str().unwrap_or("").to_string(),
-            source_snapshot: tic["source_snapshot"]
-                .as_str()
-                .unwrap_or("")
-                .to_string(),
+            source_snapshot: tic["source_snapshot"].as_str().unwrap_or("").to_string(),
             window: tic["window"].as_u64().unwrap_or(0) as usize,
             por: tic["proof"]["por"]
                 .as_str()
@@ -322,22 +315,12 @@ impl SpiralStorage {
     pub fn get_statistics(&self) -> Result<StorageStatistics, std::io::Error> {
         let snapshot_files: Vec<_> = fs::read_dir(&self.store_path)?
             .filter_map(|e| e.ok())
-            .filter(|e| {
-                e.path()
-                    .extension()
-                    .and_then(|s| s.to_str())
-                    == Some("spiral")
-            })
+            .filter(|e| e.path().extension().and_then(|s| s.to_str()) == Some("spiral"))
             .collect();
 
         let tic_files: Vec<_> = fs::read_dir(&self.store_path)?
             .filter_map(|e| e.ok())
-            .filter(|e| {
-                e.path()
-                    .extension()
-                    .and_then(|s| s.to_str())
-                    == Some("tic")
-            })
+            .filter(|e| e.path().extension().and_then(|s| s.to_str()) == Some("tic"))
             .collect();
 
         let total_size: u64 = snapshot_files
@@ -391,9 +374,7 @@ impl SpiralStorage {
         for tic_id in self.index.tics.keys() {
             let file_path = self.store_path.join(format!("{}.tic", tic_id));
             if !file_path.exists() {
-                results
-                    .errors
-                    .push(format!("Missing TIC file: {}", tic_id));
+                results.errors.push(format!("Missing TIC file: {}", tic_id));
                 results.valid = false;
             }
         }
@@ -414,9 +395,7 @@ impl SpiralStorage {
                     } else if ext == "tic" {
                         if let Some(stem) = path.file_stem().and_then(|s| s.to_str()) {
                             if !self.index.tics.contains_key(stem) {
-                                results
-                                    .warnings
-                                    .push(format!("Unindexed TIC: {}", stem));
+                                results.warnings.push(format!("Unindexed TIC: {}", stem));
                             }
                         }
                     }

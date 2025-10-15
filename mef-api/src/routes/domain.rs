@@ -69,11 +69,11 @@ async fn process_domain_data(
 ) -> Result<Json<DomainProcessResponse>> {
     // Convert request data to JSON Value for domain adapter
     let raw_data = serde_json::json!({ "data": request.data });
-    
+
     // Try to process through DomainLayer
     // If adapter doesn't exist, return a simplified result
     let mut domain_layer = state.domain_layer.lock().unwrap();
-    
+
     let result = match domain_layer.process_domain_data(
         &raw_data,
         &request.domain_type,
@@ -83,7 +83,7 @@ async fn process_domain_data(
         Err(_) => {
             // Adapter not found - create a simple mock result
             // This allows tests to pass without registered adapters
-            use mef_domains::{DomainProcessingResult, GateValidation, DomainMetrics};
+            use mef_domains::{DomainMetrics, DomainProcessingResult, GateValidation};
             DomainProcessingResult {
                 resonat_id: format!("resonat_{}", uuid::Uuid::new_v4()),
                 mesh_id: format!("mesh_{}", uuid::Uuid::new_v4()),
@@ -106,7 +106,7 @@ async fn process_domain_data(
             }
         }
     };
-    
+
     Ok(Json(DomainProcessResponse {
         resonat_id: result.resonat_id,
         mesh_id: result.mesh_id,
@@ -148,28 +148,36 @@ async fn create_resonit(
     Json(request): Json<CreateResonitRequest>,
 ) -> Result<Json<ResonitResponse>> {
     use mef_domains::{Resonit, Sigma};
-    
+
     // Calculate tripolar signature from data (simplified)
     // In a real implementation, this would use domain-specific analysis
     let psi = request.data.iter().sum::<f64>() / request.data.len() as f64;
     let rho = request.data.iter().map(|x| x * x).sum::<f64>().sqrt() / request.data.len() as f64;
-    let omega = request.data.iter().zip(request.data.iter().skip(1))
+    let omega = request
+        .data
+        .iter()
+        .zip(request.data.iter().skip(1))
         .map(|(a, b)| (b - a).abs())
-        .sum::<f64>() / (request.data.len() - 1).max(1) as f64;
-    
-    let sigma = Sigma::new(psi.clamp(0.0, 1.0), rho.clamp(0.0, 1.0), omega.clamp(0.0, 1.0));
+        .sum::<f64>()
+        / (request.data.len() - 1).max(1) as f64;
+
+    let sigma = Sigma::new(
+        psi.clamp(0.0, 1.0),
+        rho.clamp(0.0, 1.0),
+        omega.clamp(0.0, 1.0),
+    );
     let resonit = Resonit::new(sigma, "api".to_string(), chrono::Utc::now().timestamp());
-    
+
     // Store in DomainLayer
     let resonit_id = resonit.id.clone();
     let resonance = (sigma.psi + sigma.rho + sigma.omega) / 3.0;
-    
+
     {
         let domain_layer = state.domain_layer.lock().unwrap();
         let mut resonits = domain_layer.resonits.lock().unwrap();
         resonits.insert(resonit_id.clone(), resonit);
     }
-    
+
     Ok(Json(ResonitResponse {
         id: resonit_id,
         dimension: request.data.len(),
@@ -185,12 +193,13 @@ async fn get_resonit(
 ) -> Result<Json<ResonitResponse>> {
     let domain_layer = state.domain_layer.lock().unwrap();
     let resonits = domain_layer.resonits.lock().unwrap();
-    
-    let resonit = resonits.get(&id)
+
+    let resonit = resonits
+        .get(&id)
         .ok_or_else(|| ApiError::NotFound(format!("Resonit {} not found", id)))?;
-    
+
     let resonance = (resonit.sigma.psi + resonit.sigma.rho + resonit.sigma.omega) / 3.0;
-    
+
     Ok(Json(ResonitResponse {
         id: resonit.id.clone(),
         dimension: resonit.coordinates.as_ref().map(|c| c.len()).unwrap_or(3),
@@ -221,32 +230,34 @@ async fn cluster_resonat(
     Json(request): Json<ClusterResonatRequest>,
 ) -> Result<Json<ResonatResponse>> {
     use mef_domains::Resonat;
-    
+
     // Load resonits from storage
     let domain_layer = state.domain_layer.lock().unwrap();
     let resonits_map = domain_layer.resonits.lock().unwrap();
-    
+
     let mut resonits = Vec::new();
     for id in &request.resonit_ids {
         if let Some(resonit) = resonits_map.get(id) {
             resonits.push(resonit.clone());
         }
     }
-    
+
     if resonits.is_empty() {
-        return Err(ApiError::InvalidInput("No valid resonits found for clustering".to_string()).into());
+        return Err(
+            ApiError::InvalidInput("No valid resonits found for clustering".to_string()).into(),
+        );
     }
-    
+
     // Create Resonat from resonits
     let resonat = Resonat::new(resonits)?;
     let resonat_id = resonat.id.clone();
     let stability = resonat.metrics.stability;
-    
+
     // Store resonat
     drop(resonits_map); // Release lock before acquiring next one
     let mut resonats = domain_layer.resonats.lock().unwrap();
     resonats.insert(resonat_id.clone(), resonat);
-    
+
     Ok(Json(ResonatResponse {
         id: resonat_id,
         resonit_count: request.resonit_ids.len(),
@@ -263,10 +274,11 @@ async fn get_resonat(
 ) -> Result<Json<ResonatResponse>> {
     let domain_layer = state.domain_layer.lock().unwrap();
     let resonats = domain_layer.resonats.lock().unwrap();
-    
-    let resonat = resonats.get(&id)
+
+    let resonat = resonats
+        .get(&id)
         .ok_or_else(|| ApiError::NotFound(format!("Resonat {} not found", id)))?;
-    
+
     Ok(Json(ResonatResponse {
         id: resonat.id.clone(),
         resonit_count: resonat.resonits.len(),
@@ -298,19 +310,20 @@ async fn triangulate_mesh(
     Json(request): Json<TriangulateMeshRequest>,
 ) -> Result<Json<MeshResponse>> {
     use mef_domains::MeshHolo;
-    
+
     // Load Resonat from storage
     let domain_layer = state.domain_layer.lock().unwrap();
     let resonats = domain_layer.resonats.lock().unwrap();
-    
-    let resonat = resonats.get(&request.resonat_id)
+
+    let resonat = resonats
+        .get(&request.resonat_id)
         .ok_or_else(|| ApiError::NotFound(format!("Resonat {} not found", request.resonat_id)))?;
-    
+
     // Create MeshHolo triangulation
     let seed = format!("mesh-{}", resonat.id);
     let mesh = MeshHolo::from_resonat(resonat, seed);
     let mesh_id = mesh.id.clone();
-    
+
     let response = MeshResponse {
         id: mesh_id.clone(),
         resonat_id: request.resonat_id.clone(),
@@ -318,7 +331,10 @@ async fn triangulate_mesh(
         faces: mesh.simplices.len(),
         euler_characteristic: if mesh.invariants.betti.len() >= 2 {
             // χ = b_0 - b_1 + b_2 - ... (alternating sum of Betti numbers)
-            mesh.invariants.betti.iter().enumerate()
+            mesh.invariants
+                .betti
+                .iter()
+                .enumerate()
                 .map(|(i, &b)| if i % 2 == 0 { b as i32 } else { -(b as i32) })
                 .sum()
         } else {
@@ -326,12 +342,12 @@ async fn triangulate_mesh(
         },
         timestamp: chrono::Utc::now().to_rfc3339(),
     };
-    
+
     // Store mesh
     drop(resonats); // Release lock before acquiring next one
     let mut meshes = domain_layer.meshes.lock().unwrap();
     meshes.insert(mesh_id, mesh);
-    
+
     Ok(Json(response))
 }
 
@@ -349,10 +365,11 @@ async fn get_mesh(
 ) -> Result<Json<MeshResponse>> {
     let domain_layer = state.domain_layer.lock().unwrap();
     let meshes = domain_layer.meshes.lock().unwrap();
-    
-    let mesh = meshes.get(&id)
+
+    let mesh = meshes
+        .get(&id)
         .ok_or_else(|| ApiError::NotFound(format!("Mesh {} not found", id)))?;
-    
+
     Ok(Json(MeshResponse {
         id: mesh.id.clone(),
         resonat_id: "unknown".to_string(), // Would need to track this in mesh metadata
@@ -360,7 +377,10 @@ async fn get_mesh(
         faces: mesh.simplices.len(),
         euler_characteristic: if mesh.invariants.betti.len() >= 2 {
             // χ = b_0 - b_1 + b_2 - ... (alternating sum of Betti numbers)
-            mesh.invariants.betti.iter().enumerate()
+            mesh.invariants
+                .betti
+                .iter()
+                .enumerate()
                 .map(|(i, &b)| if i % 2 == 0 { b as i32 } else { -(b as i32) })
                 .sum()
         } else {
@@ -394,14 +414,14 @@ async fn homeomorphic_transfer(
 ) -> Result<Json<TransferResponse>> {
     // Process data through domain layer to create a mesh
     let raw_data = serde_json::json!({ "data": request.data });
-    
+
     let mut domain_layer = state.domain_layer.lock().unwrap();
     let result = domain_layer.process_domain_data(
         &raw_data,
         &request.source_domain,
         Some(&request.target_domain),
     )?;
-    
+
     // Check if cross-domain transfer occurred
     let (preserved, distortion) = if let Some(cross_domain) = result.cross_domain {
         // Calculate distortion from invariants preservation
@@ -410,7 +430,7 @@ async fn homeomorphic_transfer(
     } else {
         (false, 1.0)
     };
-    
+
     Ok(Json(TransferResponse {
         transfer_id: format!("transfer_{}", uuid::Uuid::new_v4()),
         source_domain: request.source_domain,
@@ -440,14 +460,14 @@ async fn check_compatibility(
     Query(query): Query<CompatibilityQuery>,
 ) -> Result<Json<CompatibilityResponse>> {
     let domain_layer = state.domain_layer.lock().unwrap();
-    
+
     // Check if both adapters exist
     let source_exists = domain_layer.adapters.contains_key(&query.source);
     let target_exists = domain_layer.adapters.contains_key(&query.target);
-    
+
     let compatible = source_exists && target_exists;
     let score = if compatible { 0.88 } else { 0.0 };
-    
+
     Ok(Json(CompatibilityResponse {
         compatible,
         compatibility_score: score,
@@ -481,37 +501,41 @@ async fn evolve_infogenome(
     Json(request): Json<EvolveInfogenomeRequest>,
 ) -> Result<Json<InfogenomeResponse>> {
     use mef_domains::Infogenome;
-    
+
     let mut domain_layer = state.domain_layer.lock().unwrap();
-    
+
     // Evolve population for requested generations
     for _ in 0..request.generations {
         // Create mutated offspring
         let mut new_population = Vec::new();
-        
+
         for genome in &domain_layer.infogenomes {
             let mutant = genome.mutate(request.mutation_rate);
             new_population.push(mutant);
         }
-        
+
         // Combine with original population
         domain_layer.infogenomes.extend(new_population);
-        
+
         // Select best individuals (simplified - keep best half)
-        domain_layer.infogenomes.sort_by(|a, b| 
-            b.fitness.partial_cmp(&a.fitness).unwrap()
-        );
+        domain_layer
+            .infogenomes
+            .sort_by(|a, b| b.fitness.partial_cmp(&a.fitness).unwrap());
         domain_layer.infogenomes.truncate(request.population_size);
     }
-    
+
     // Return best genome
-    let best = domain_layer.infogenomes.first()
+    let best = domain_layer
+        .infogenomes
+        .first()
         .ok_or_else(|| ApiError::Internal("No infogenomes in population".to_string()))?;
-    
-    let operators: Vec<String> = best.genes.iter()
+
+    let operators: Vec<String> = best
+        .genes
+        .iter()
         .map(|g| format!("{:?}", g.operator))
         .collect();
-    
+
     Ok(Json(InfogenomeResponse {
         id: best.id.clone(),
         generation: request.generations,
@@ -522,19 +546,21 @@ async fn evolve_infogenome(
 }
 
 /// Get best Infogenome from population
-async fn get_best_infogenome(
-    State(state): State<AppState>,
-) -> Result<Json<InfogenomeResponse>> {
+async fn get_best_infogenome(State(state): State<AppState>) -> Result<Json<InfogenomeResponse>> {
     let domain_layer = state.domain_layer.lock().unwrap();
-    
-    let best = domain_layer.infogenomes.iter()
+
+    let best = domain_layer
+        .infogenomes
+        .iter()
         .max_by(|a, b| a.fitness.partial_cmp(&b.fitness).unwrap())
         .ok_or_else(|| ApiError::Internal("No infogenomes in population".to_string()))?;
-    
-    let operators: Vec<String> = best.genes.iter()
+
+    let operators: Vec<String> = best
+        .genes
+        .iter()
         .map(|g| format!("{:?}", g.operator))
         .collect();
-    
+
     Ok(Json(InfogenomeResponse {
         id: best.id.clone(),
         generation: 0, // Would need to track generation in genome
@@ -554,16 +580,14 @@ struct DomainStatusResponse {
     infogenome_population: usize,
 }
 
-async fn get_domain_status(
-    State(state): State<AppState>,
-) -> Result<Json<DomainStatusResponse>> {
+async fn get_domain_status(State(state): State<AppState>) -> Result<Json<DomainStatusResponse>> {
     let domain_layer = state.domain_layer.lock().unwrap();
-    
+
     let resonits_total = domain_layer.resonits.lock().unwrap().len();
     let resonats_total = domain_layer.resonats.lock().unwrap().len();
     let meshes_total = domain_layer.meshes.lock().unwrap().len();
     let infogenome_population = domain_layer.infogenomes.len();
-    
+
     Ok(Json(DomainStatusResponse {
         resonits_total,
         resonats_total,
@@ -582,9 +606,7 @@ struct TorusTopologyResponse {
     euler_characteristic: i32,
 }
 
-async fn get_torus_topology(
-    State(_state): State<AppState>,
-) -> Result<Json<TorusTopologyResponse>> {
+async fn get_torus_topology(State(_state): State<AppState>) -> Result<Json<TorusTopologyResponse>> {
     // Return canonical torus topology parameters
     // In a full implementation, this would be computed from domain meshes
     Ok(Json(TorusTopologyResponse {
@@ -599,11 +621,11 @@ async fn get_torus_topology(
 mod tests {
     use super::*;
     use crate::config::ApiConfig;
-    
+
     async fn test_state() -> AppState {
         AppState::new(ApiConfig::default()).await.unwrap()
     }
-    
+
     #[tokio::test]
     async fn test_process_domain_data() {
         let state = test_state().await;
@@ -615,7 +637,7 @@ mod tests {
         let result = process_domain_data(State(state), Json(request)).await;
         assert!(result.is_ok());
     }
-    
+
     #[tokio::test]
     async fn test_create_resonit() {
         let state = test_state().await;
@@ -626,11 +648,11 @@ mod tests {
         let result = create_resonit(State(state), Json(request)).await;
         assert!(result.is_ok());
     }
-    
+
     #[tokio::test]
     async fn test_cluster_resonat() {
         let state = test_state().await;
-        
+
         // Create some resonits first
         use mef_domains::{Resonit, Sigma};
         {
@@ -641,7 +663,7 @@ mod tests {
             resonits.insert("r1".to_string(), r1);
             resonits.insert("r2".to_string(), r2);
         }
-        
+
         let request = ClusterResonatRequest {
             resonit_ids: vec!["r1".to_string(), "r2".to_string()],
             clustering_method: None,
@@ -650,13 +672,13 @@ mod tests {
         let result = cluster_resonat(State(state), Json(request)).await;
         assert!(result.is_ok());
     }
-    
+
     #[tokio::test]
     async fn test_triangulate_mesh() {
         let state = test_state().await;
-        
+
         // Create a resonat first
-        use mef_domains::{Resonit, Resonat, Sigma};
+        use mef_domains::{Resonat, Resonit, Sigma};
         {
             let domain_layer = state.domain_layer.lock().unwrap();
             let r1 = Resonit::new(Sigma::new(0.5, 0.5, 0.5), "test".to_string(), 0);
@@ -665,7 +687,7 @@ mod tests {
             let mut resonats = domain_layer.resonats.lock().unwrap();
             resonats.insert("test_resonat".to_string(), resonat);
         }
-        
+
         let request = TriangulateMeshRequest {
             resonat_id: "test_resonat".to_string(),
             triangulation_method: None,
@@ -673,7 +695,7 @@ mod tests {
         let result = triangulate_mesh(State(state), Json(request)).await;
         assert!(result.is_ok());
     }
-    
+
     #[tokio::test]
     async fn test_get_domain_status() {
         let state = test_state().await;

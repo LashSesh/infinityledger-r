@@ -1,6 +1,6 @@
+use crate::config::CliConfig;
 /// Ping command - test API server connectivity
 use anyhow::Result;
-use crate::config::CliConfig;
 use serde::Deserialize;
 
 #[derive(Debug, Deserialize)]

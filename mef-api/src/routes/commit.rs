@@ -48,19 +48,19 @@ struct RotateCommitResponse {
 async fn rotate_commit(
     Json(request): Json<RotateCommitRequest>,
 ) -> Result<Json<RotateCommitResponse>> {
-    use sha2::{Sha256, Digest};
-    
+    use sha2::{Digest, Sha256};
+
     // Generate or use provided secret
     let new_secret = request.new_secret.unwrap_or_else(|| {
         use uuid::Uuid;
         Uuid::new_v4().to_string()
     });
-    
+
     // Hash the new secret
     let mut hasher = Sha256::new();
     hasher.update(new_secret.as_bytes());
     let new_secret_hash = format!("0x{:x}", hasher.finalize());
-    
+
     Ok(Json(RotateCommitResponse {
         status: "rotated".to_string(),
         old_secret_hash: "0x1234567890abcdef...".to_string(),
@@ -72,19 +72,19 @@ async fn rotate_commit(
 #[cfg(test)]
 mod tests {
     use super::*;
-    
+
     #[tokio::test]
     async fn test_get_commit() {
         let result = get_commit().await;
         assert!(result.is_ok());
     }
-    
+
     #[tokio::test]
     async fn test_rotate_commit() {
         let request = RotateCommitRequest {
             new_secret: Some("test_secret".to_string()),
         };
-        
+
         let result = rotate_commit(Json(request)).await;
         assert!(result.is_ok());
     }

@@ -104,7 +104,7 @@ impl SpiralSnapshot {
     pub fn new(config: SpiralConfig, store_path: impl AsRef<Path>) -> Result<Self> {
         let store_path = store_path.as_ref().to_path_buf();
         std::fs::create_dir_all(&store_path).context("Failed to create store directory")?;
-        
+
         Ok(Self {
             config,
             store_path,
@@ -123,17 +123,18 @@ impl SpiralSnapshot {
         let mut hasher = Sha256::new();
         hasher.update(seed.as_bytes());
         let seed_hash = hasher.finalize();
-        
+
         let seed_mod = u32::from_be_bytes([seed_hash[0], seed_hash[1], seed_hash[2], seed_hash[3]])
-            as f64 / (2_u64.pow(32) as f64);
-        
+            as f64
+            / (2_u64.pow(32) as f64);
+
         // Apply seed-based deterministic modification
         let r_mod = self.config.r * (1.0 + 0.1 * seed_mod);
-        
+
         vec![
-            r_mod * theta.cos(),                          // x1
-            r_mod * theta.sin(),                          // x2
-            self.config.a * theta,                        // x3
+            r_mod * theta.cos(),                                  // x1
+            r_mod * theta.sin(),                                  // x2
+            self.config.a * theta,                                // x3
             self.config.b * (self.config.k as f64 * theta).sin(), // x4
             self.config.c * (self.config.k as f64 * theta).cos(), // x5
         ]
@@ -149,7 +150,7 @@ impl SpiralSnapshot {
         let mut hasher = Sha256::new();
         hasher.update(seed.as_bytes());
         let seed_hash = hasher.finalize();
-        
+
         let seed_vals: Vec<f64> = (0..3)
             .map(|i| {
                 let offset = i * 4;
@@ -158,22 +159,23 @@ impl SpiralSnapshot {
                     seed_hash[offset + 1],
                     seed_hash[offset + 2],
                     seed_hash[offset + 3],
-                ]) as f64 / (2_u64.pow(32) as f64)
+                ]) as f64
+                    / (2_u64.pow(32) as f64)
             })
             .collect();
-        
+
         let coords_array = Array1::from_vec(coords.to_vec());
-        
+
         // Compute deterministic sigma values
         let dot_product = coords_array.dot(&coords_array);
         let psi = (dot_product * seed_vals[0]).tanh();
-        
+
         let sum: f64 = coords_array.sum();
         let rho = (sum * seed_vals[1]).sin().abs();
-        
+
         let prod: f64 = coords_array.iter().take(3).map(|x| x.abs()).product();
         let omega = (prod * seed_vals[2]).cos();
-        
+
         Sigma { psi, rho, omega }
     }
 
@@ -184,19 +186,17 @@ impl SpiralSnapshot {
     /// * `sigma` - Sigma values
     pub fn compute_resonance(&self, coords: &[f64], sigma: &Sigma) -> f64 {
         let coords_array = Array1::from_vec(coords.to_vec());
-        
+
         // Resonance function: F(q, θ) = σ(⟨u(q), u(θ)⟩ + α·κ(q,θ) - β·d_T(q,θ))
         let inner_product = coords_array.dot(&coords_array);
         let norm_squared: f64 = coords_array.iter().map(|x| x * x).sum();
         let kernel_value = (-norm_squared / 2.0).exp();
         let topology_distance = norm_squared.sqrt();
-        
-        let resonance = (
-            inner_product * sigma.psi
-            + 0.5 * kernel_value
-            - 0.3 * topology_distance / (1.0 + topology_distance)
-        ).tanh();
-        
+
+        let resonance = (inner_product * sigma.psi + 0.5 * kernel_value
+            - 0.3 * topology_distance / (1.0 + topology_distance))
+            .tanh();
+
         resonance.abs()
     }
 
@@ -210,19 +210,16 @@ impl SpiralSnapshot {
             // Create a small Laplacian for local neighborhood
             let local_laplacian = Array2::from_shape_vec(
                 (3, 3),
-                vec![
-                    2.0, -1.0, 0.0,
-                    -1.0, 2.0, -1.0,
-                    0.0, -1.0, 2.0,
-                ],
-            ).unwrap();
-            
+                vec![2.0, -1.0, 0.0, -1.0, 2.0, -1.0, 0.0, -1.0, 2.0],
+            )
+            .unwrap();
+
             // Compute eigenvalues (simplified - using trace-based approximation)
             // For a proper implementation, we'd use ndarray-linalg
             // For determinism, we use a fixed calculation
             let _trace = local_laplacian.diag().sum();
             let spectral_gap = 1.0; // Simplified for determinism
-            
+
             (spectral_gap * resonance).tanh().abs()
         } else {
             (resonance * 0.8).abs()
@@ -238,23 +235,22 @@ impl SpiralSnapshot {
     pub fn validate_por(&self, coords: &[f64], resonance: f64, delta: f64) -> String {
         // Simplified FFT validation (deterministic approximation)
         let coords_array = Array1::from_vec(coords.to_vec());
-        
+
         // Approximate FFT magnitude using basic statistics
         let mean = coords_array.mean().unwrap_or(0.0);
-        let variance: f64 = coords_array.iter()
-            .map(|x| (x - mean).powi(2))
-            .sum::<f64>() / coords.len() as f64;
+        let variance: f64 =
+            coords_array.iter().map(|x| (x - mean).powi(2)).sum::<f64>() / coords.len() as f64;
         let std_dev = variance.sqrt();
-        
+
         let fft_resonance = mean.abs() / (1.0 + std_dev);
-        
+
         // Simplified spectral gap (deterministic)
         let spectral_gap = 1.0;
-        
+
         // Validation criteria
         let resonance_check = (fft_resonance - resonance).abs() <= delta;
         let gap_check = spectral_gap >= 0.1;
-        
+
         if resonance_check && gap_check {
             "valid".to_string()
         } else {
@@ -280,30 +276,29 @@ impl SpiralSnapshot {
         let mut hasher = Sha256::new();
         hasher.update(id_source.as_bytes());
         let snapshot_id = format!("{:x}", hasher.finalize())[..16].to_string();
-        
+
         // Generate deterministic timestamp
         let base_time = chrono::NaiveDate::from_ymd_opt(2025, 1, 1)
             .unwrap()
             .and_hms_opt(0, 0, 0)
             .unwrap();
-        
+
         let sequence = self.sequence.get();
         let sequence_offset = Duration::minutes((5 * sequence) as i64);
-        
+
         let mut time_hasher = Sha256::new();
         time_hasher.update(format!("{}{}", snapshot_id, seed).as_bytes());
         let time_hash = time_hasher.finalize();
-        let hash_offset_secs = u32::from_be_bytes([
-            time_hash[0], time_hash[1], time_hash[2], time_hash[3]
-        ]) % 300;
+        let hash_offset_secs =
+            u32::from_be_bytes([time_hash[0], time_hash[1], time_hash[2], time_hash[3]]) % 300;
         let hash_offset = Duration::seconds(hash_offset_secs as i64);
-        
+
         let timestamp = (base_time + sequence_offset + hash_offset)
             .format("%Y-%m-%dT%H:%M:%S")
             .to_string();
-        
+
         self.sequence.set(sequence + 1);
-        
+
         // Compute phase if not provided
         let phase = if let Some(p) = phase {
             p
@@ -312,23 +307,22 @@ impl SpiralSnapshot {
             let mut phase_hasher = Sha256::new();
             phase_hasher.update(format!("{}{}", data_str, seed).as_bytes());
             let phase_hash = phase_hasher.finalize();
-            let phase_int = u32::from_be_bytes([
-                phase_hash[0], phase_hash[1], phase_hash[2], phase_hash[3]
-            ]);
+            let phase_int =
+                u32::from_be_bytes([phase_hash[0], phase_hash[1], phase_hash[2], phase_hash[3]]);
             (phase_int as f64 / (2_u64.pow(32) as f64)) * 2.0 * PI
         };
-        
+
         // Compute spiral coordinates
         let coordinates = self.compute_coordinates(phase, seed);
-        
+
         // Compute sigma values
         let sigma = self.compute_sigma(&coordinates, seed);
-        
+
         // Compute metrics
         let resonance = self.compute_resonance(&coordinates, &sigma);
         let stability = self.compute_stability(&coordinates, resonance);
         let por_status = self.validate_por(&coordinates, resonance, self.config.por_delta);
-        
+
         // Create snapshot structure
         Ok(Snapshot {
             id: snapshot_id.clone(),
@@ -356,10 +350,11 @@ impl SpiralSnapshot {
     /// * `snapshot` - Snapshot data
     pub fn save_snapshot(&self, snapshot: &Snapshot) -> Result<PathBuf> {
         let snapshot_file = self.store_path.join(format!("{}.spiral", snapshot.id));
-        
-        let json = serde_json::to_string_pretty(snapshot).context("Failed to serialize snapshot")?;
+
+        let json =
+            serde_json::to_string_pretty(snapshot).context("Failed to serialize snapshot")?;
         std::fs::write(&snapshot_file, json).context("Failed to write snapshot file")?;
-        
+
         Ok(snapshot_file)
     }
 
@@ -369,14 +364,16 @@ impl SpiralSnapshot {
     /// * `snapshot_id` - UUID of snapshot
     pub fn load_snapshot(&self, snapshot_id: &str) -> Result<Option<Snapshot>> {
         let snapshot_file = self.store_path.join(format!("{}.spiral", snapshot_id));
-        
+
         if !snapshot_file.exists() {
             return Ok(None);
         }
-        
-        let contents = std::fs::read_to_string(&snapshot_file).context("Failed to read snapshot file")?;
-        let snapshot: Snapshot = serde_json::from_str(&contents).context("Failed to deserialize snapshot")?;
-        
+
+        let contents =
+            std::fs::read_to_string(&snapshot_file).context("Failed to read snapshot file")?;
+        let snapshot: Snapshot =
+            serde_json::from_str(&contents).context("Failed to deserialize snapshot")?;
+
         Ok(Some(snapshot))
     }
 
@@ -388,20 +385,20 @@ impl SpiralSnapshot {
     pub fn find_optimal_phase(&self, seed: &str) -> f64 {
         let mut best_phase = 0.0;
         let mut best_resonance = f64::NEG_INFINITY;
-        
+
         // Search over phase space
         for i in 0..100 {
             let test_phase = (i as f64) * 2.0 * PI / 100.0;
             let coords = self.compute_coordinates(test_phase, seed);
             let sigma = self.compute_sigma(&coords, seed);
             let resonance = self.compute_resonance(&coords, &sigma);
-            
+
             if resonance > best_resonance {
                 best_resonance = resonance;
                 best_phase = test_phase;
             }
         }
-        
+
         best_phase
     }
 
@@ -410,8 +407,9 @@ impl SpiralSnapshot {
     /// # Arguments
     /// * `snapshot` - Snapshot data
     pub fn get_snapshot_hash(&self, snapshot: &Snapshot) -> Result<String> {
-        let snapshot_str = serde_json::to_string(snapshot).context("Failed to serialize snapshot for hashing")?;
-        
+        let snapshot_str =
+            serde_json::to_string(snapshot).context("Failed to serialize snapshot for hashing")?;
+
         let mut hasher = Sha256::new();
         hasher.update(snapshot_str.as_bytes());
         Ok(format!("{:x}", hasher.finalize()))
@@ -428,10 +426,10 @@ mod tests {
         let config = SpiralConfig::default();
         let temp_dir = std::env::temp_dir().join("test_spiral");
         let spiral = SpiralSnapshot::new(config, &temp_dir).unwrap();
-        
+
         let coords = spiral.compute_coordinates(0.0, "MEF_SEED_42");
         assert_eq!(coords.len(), 5);
-        
+
         // Determinism test
         let coords2 = spiral.compute_coordinates(0.0, "MEF_SEED_42");
         assert_eq!(coords, coords2);
@@ -442,10 +440,10 @@ mod tests {
         let config = SpiralConfig::default();
         let temp_dir = std::env::temp_dir().join("test_spiral_create");
         let spiral = SpiralSnapshot::new(config, &temp_dir).unwrap();
-        
+
         let data = json!({"test": "data"});
         let snapshot = spiral.create_snapshot(&data, "MEF_SEED_42", None).unwrap();
-        
+
         assert!(!snapshot.id.is_empty());
         assert_eq!(snapshot.seed, "MEF_SEED_42");
         assert_eq!(snapshot.coordinates.len(), 5);
@@ -456,14 +454,18 @@ mod tests {
         let config = SpiralConfig::default();
         let temp_dir = std::env::temp_dir().join("test_spiral_determinism");
         let spiral = SpiralSnapshot::new(config, &temp_dir).unwrap();
-        
+
         let data = json!({"test": "data"});
-        let snapshot1 = spiral.create_snapshot(&data, "MEF_SEED_42", Some(1.0)).unwrap();
-        
+        let snapshot1 = spiral
+            .create_snapshot(&data, "MEF_SEED_42", Some(1.0))
+            .unwrap();
+
         // Reset sequence for second snapshot
         spiral.sequence.set(0);
-        let snapshot2 = spiral.create_snapshot(&data, "MEF_SEED_42", Some(1.0)).unwrap();
-        
+        let snapshot2 = spiral
+            .create_snapshot(&data, "MEF_SEED_42", Some(1.0))
+            .unwrap();
+
         assert_eq!(snapshot1.id, snapshot2.id);
         assert_eq!(snapshot1.coordinates, snapshot2.coordinates);
     }

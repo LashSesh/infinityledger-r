@@ -1,6 +1,6 @@
+use crate::config::CliConfig;
 /// Ledger command - SPEC-002 ledger operations
 use anyhow::{Context, Result};
-use crate::config::CliConfig;
 use serde::{Deserialize, Serialize};
 
 #[derive(Debug, Serialize)]
@@ -23,7 +23,8 @@ pub fn append(config: &CliConfig, tic: &str, snapshot: &str) -> Result<()> {
     let response = client
         .post(format!("{}/ledger", api_url))
         .query(&[("tic_id", tic), ("snapshot_id", snapshot)])
-        .send().context("Failed to send request to API")?;
+        .send()
+        .context("Failed to send request to API")?;
 
     if response.status().is_success() {
         let result: AppendResponse = response.json()?;

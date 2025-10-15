@@ -1,6 +1,6 @@
 /*!
  * MEF-Core Pipeline - Main Interface
- * 
+ *
  * Provides a simplified high-level interface for the complete MEF-Core pipeline,
  * integrating all components: ingestion, spiral, solve-coagula, TIC, ledger, HDAG, and audit.
  */
@@ -47,12 +47,24 @@ pub struct SpiralConfig {
     pub step: f64,
 }
 
-fn default_r() -> f64 { 1.0 }
-fn default_a() -> f64 { 0.05 }
-fn default_b() -> f64 { 0.2 }
-fn default_c() -> f64 { 0.2 }
-fn default_k() -> i32 { 2 }
-fn default_step() -> f64 { 0.01 }
+fn default_r() -> f64 {
+    1.0
+}
+fn default_a() -> f64 {
+    0.05
+}
+fn default_b() -> f64 {
+    0.2
+}
+fn default_c() -> f64 {
+    0.2
+}
+fn default_k() -> i32 {
+    2
+}
+fn default_step() -> f64 {
+    0.01
+}
 
 impl Default for SpiralConfig {
     fn default() -> Self {
@@ -80,9 +92,15 @@ pub struct SolveCoagulaConfig {
     pub operators: OperatorsConfig,
 }
 
-fn default_lambda() -> f64 { 0.8 }
-fn default_eps() -> f64 { 1e-6 }
-fn default_max_iter() -> usize { 1000 }
+fn default_lambda() -> f64 {
+    0.8
+}
+fn default_eps() -> f64 {
+    1e-6
+}
+fn default_max_iter() -> usize {
+    1000
+}
 
 impl Default for SolveCoagulaConfig {
     fn default() -> Self {
@@ -96,7 +114,7 @@ impl Default for SolveCoagulaConfig {
 }
 
 /// Operators configuration
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize, Default)]
 pub struct OperatorsConfig {
     #[serde(default)]
     pub dk: DKConfig,
@@ -108,17 +126,6 @@ pub struct OperatorsConfig {
     pub wt: WTConfig,
 }
 
-impl Default for OperatorsConfig {
-    fn default() -> Self {
-        Self {
-            dk: DKConfig::default(),
-            sw: SWConfig::default(),
-            pi: PIConfig::default(),
-            wt: WTConfig::default(),
-        }
-    }
-}
-
 /// DoubleKick configuration
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct DKConfig {
@@ -128,8 +135,12 @@ pub struct DKConfig {
     pub alpha2: f64,
 }
 
-fn default_alpha1() -> f64 { 0.05 }
-fn default_alpha2() -> f64 { -0.03 }
+fn default_alpha1() -> f64 {
+    0.05
+}
+fn default_alpha2() -> f64 {
+    -0.03
+}
 
 impl Default for DKConfig {
     fn default() -> Self {
@@ -151,9 +162,15 @@ pub struct SWConfig {
     pub schedule: String,
 }
 
-fn default_tau0() -> f64 { 0.5 }
-fn default_beta() -> f64 { 0.1 }
-fn default_schedule() -> String { "cosine".to_string() }
+fn default_tau0() -> f64 {
+    0.5
+}
+fn default_beta() -> f64 {
+    0.1
+}
+fn default_schedule() -> String {
+    "cosine".to_string()
+}
 
 impl Default for SWConfig {
     fn default() -> Self {
@@ -174,8 +191,12 @@ pub struct PIConfig {
     pub tol: f64,
 }
 
-fn default_canon() -> String { "lexicographic".to_string() }
-fn default_tol() -> f64 { 1e-6 }
+fn default_canon() -> String {
+    "lexicographic".to_string()
+}
+fn default_tol() -> f64 {
+    1e-6
+}
 
 impl Default for PIConfig {
     fn default() -> Self {
@@ -195,7 +216,9 @@ pub struct WTConfig {
     pub levels: Vec<String>,
 }
 
-fn default_gamma() -> f64 { 0.1 }
+fn default_gamma() -> f64 {
+    0.1
+}
 fn default_levels() -> Vec<String> {
     vec!["micro".to_string(), "meso".to_string(), "macro".to_string()]
 }
@@ -220,9 +243,15 @@ pub struct GateConfig {
     pub mci_min: f64,
 }
 
-fn default_por_delta() -> f64 { 0.02 }
-fn default_phi_star() -> f64 { 0.6 }
-fn default_mci_min() -> f64 { 0.9 }
+fn default_por_delta() -> f64 {
+    0.02
+}
+fn default_phi_star() -> f64 {
+    0.6
+}
+fn default_mci_min() -> f64 {
+    0.9
+}
 
 impl Default for GateConfig {
     fn default() -> Self {
@@ -270,7 +299,7 @@ impl MEFCore {
     /// Initialize MEF-Core with seed and optional configuration
     pub fn new(seed: &str, config: Option<MEFCoreConfig>) -> Result<Self> {
         let config = config.unwrap_or_else(|| MEFCoreConfig::with_seed(seed));
-        
+
         Ok(Self {
             seed: seed.to_string(),
             config,
@@ -278,16 +307,16 @@ impl MEFCore {
     }
 
     /// Process data through complete MEF-Core pipeline
-    /// 
+    ///
     /// Note: This is a simplified interface. The actual implementation would
     /// require initializing and coordinating all the component modules
     /// (triton, spiral, solve-coagula, TIC, ledger, HDAG, audit).
-    /// 
+    ///
     /// # Arguments
     /// * `data` - Input data as JSON Value
     /// * `data_type` - Type of data (text, json, numeric, binary, raw)
     /// * `auto_commit` - Whether to auto-commit to ledger
-    /// 
+    ///
     /// # Returns
     /// Processing results
     pub fn process(
@@ -302,10 +331,10 @@ impl MEFCore {
         // 3. Apply Solve-Coagula
         // 4. Create TIC
         // 5. Commit to ledger if valid
-        
+
         // For now, return a placeholder result
         // Full implementation would require all modules to be instantiated
-        
+
         Ok(ProcessingResult {
             snapshot_id: "placeholder".to_string(),
             snapshot_phase: 0.0,
@@ -350,7 +379,7 @@ mod tests {
     fn test_custom_config() {
         let mut config = MEFCoreConfig::with_seed("CUSTOM_SEED");
         config.spiral.r = 2.0;
-        
+
         let mef = MEFCore::new("CUSTOM_SEED", Some(config.clone())).unwrap();
         assert_eq!(mef.config.spiral.r, 2.0);
     }
@@ -370,7 +399,7 @@ mod tests {
             "solvecoagula": {"lambda": 0.9, "eps": 1e-7, "max_iter": 500, "operators": {}},
             "gate": {"por_delta": 0.03, "phi_star": 0.7, "mci_min": 0.95}
         }"#;
-        
+
         let config: MEFCoreConfig = serde_json::from_str(json).unwrap();
         assert_eq!(config.seed, "TEST_SEED");
         assert_eq!(config.spiral.r, 1.5);
@@ -382,7 +411,7 @@ mod tests {
         let mef = MEFCore::new("MEF_SEED_42", None).unwrap();
         let data = serde_json::json!({"test": "data"});
         let result = mef.process(data, "json", true).unwrap();
-        
+
         // Placeholder result
         assert_eq!(result.snapshot_id, "placeholder");
         assert!(!result.converged);

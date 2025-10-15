@@ -1,8 +1,8 @@
 /*!
  * Driver for Milvus using HTTP API.
- * 
+ *
  * Migrated from MEF-Core_v1.0/src/bench/drivers/milvus_driver.py
- * 
+ *
  * This implementation uses the Milvus HTTP API directly via reqwest
  * instead of the pymilvus library to minimize dependencies.
  */
@@ -26,7 +26,7 @@ impl MilvusDriver {
         let metric = metric.unwrap_or("cosine").to_lowercase();
         let host = std::env::var("MILVUS_HOST").unwrap_or_default();
         let port = std::env::var("MILVUS_PORT").unwrap_or_else(|_| "19530".to_string());
-        
+
         Self {
             metric,
             host,
@@ -41,7 +41,9 @@ impl MilvusDriver {
     }
 
     fn ensure_collection(&mut self, namespace: &str, dimension: usize) -> Result<()> {
-        let client = self.client.as_ref()
+        let client = self
+            .client
+            .as_ref()
             .ok_or_else(|| anyhow::anyhow!("connect() must be called before upsert()"))?;
 
         // Check if collection exists
@@ -50,7 +52,8 @@ impl MilvusDriver {
             .post(&url)
             .json(&json!({"collectionName": namespace}))
             .timeout(std::time::Duration::from_secs(10))
-            .send().context("Failed to check collection existence")?;
+            .send()
+            .context("Failed to check collection existence")?;
 
         if check_response.status().is_success() {
             return Ok(());
@@ -58,7 +61,7 @@ impl MilvusDriver {
 
         // Collection doesn't exist, create it
         let metric_type = self.milvus_metric();
-        
+
         let create_url = format!("{}/v1/vector/collections/create", self.base_url());
         let payload = json!({
             "collectionName": namespace,
@@ -72,7 +75,8 @@ impl MilvusDriver {
             .post(&create_url)
             .json(&payload)
             .timeout(std::time::Duration::from_secs(30))
-            .send().context("Failed to create collection")?;
+            .send()
+            .context("Failed to create collection")?;
 
         if !response.status().is_success() {
             let text = response.text().unwrap_or_default();
@@ -82,18 +86,16 @@ impl MilvusDriver {
         Ok(())
     }
 
-    fn flush_batch(
-        &self,
-        namespace: &str,
-        ids: Vec<String>,
-        vectors: Vec<Vec<f64>>,
-    ) -> Result<()> {
-        let client = self.client.as_ref()
+    fn flush_batch(&self, namespace: &str, ids: Vec<String>, vectors: Vec<Vec<f64>>) -> Result<()> {
+        let client = self
+            .client
+            .as_ref()
             .ok_or_else(|| anyhow::anyhow!("connect() must be called before upsert()"))?;
 
         let url = format!("{}/v1/vector/insert", self.base_url());
-        
-        let data: Vec<serde_json::Value> = ids.iter()
+
+        let data: Vec<serde_json::Value> = ids
+            .iter()
             .zip(vectors.iter())
             .map(|(id, vec)| {
                 json!({
@@ -112,7 +114,8 @@ impl MilvusDriver {
             .post(&url)
             .json(&payload)
             .timeout(std::time::Duration::from_secs(60))
-            .send().context("Failed to insert vectors")?;
+            .send()
+            .context("Failed to insert vectors")?;
 
         if !response.status().is_success() {
             let text = response.text().unwrap_or_default();
@@ -124,7 +127,7 @@ impl MilvusDriver {
 
     fn prepare_vector(&mut self, vector: &Vector) -> Result<Vec<f64>> {
         let array = vector.clone();
-        
+
         if let Some(dim) = self.dimension {
             if array.len() != dim {
                 return Err(anyhow::anyhow!(
@@ -168,16 +171,13 @@ impl VectorStoreDriver for MilvusDriver {
 
     fn connect(&mut self) -> Result<()> {
         if self.host.is_empty() {
-            return Err(DriverUnavailable::new(
-                "Milvus",
-                "MILVUS_HOST not configured",
-            )
-            .into());
+            return Err(DriverUnavailable::new("Milvus", "MILVUS_HOST not configured").into());
         }
 
         let client = reqwest::blocking::Client::builder()
             .timeout(std::time::Duration::from_secs(30))
-            .build().context("Failed to create HTTP client")?;
+            .build()
+            .context("Failed to create HTTP client")?;
 
         // Health check
         let url = format!("{}/v1/vector/collections/list", self.base_url());
@@ -216,7 +216,9 @@ impl VectorStoreDriver for MilvusDriver {
     }
 
     fn clear(&mut self, namespace: &str) -> Result<()> {
-        let client = self.client.as_ref()
+        let client = self
+            .client
+            .as_ref()
             .ok_or_else(|| anyhow::anyhow!("connect() must be called before clear()"))?;
 
         let url = format!("{}/v1/vector/collections/drop", self.base_url());
@@ -232,12 +234,7 @@ impl VectorStoreDriver for MilvusDriver {
         Ok(())
     }
 
-    fn upsert(
-        &mut self,
-        items: Vec<UpsertItem>,
-        namespace: &str,
-        batch_size: usize,
-    ) -> Result<()> {
+    fn upsert(&mut self, items: Vec<UpsertItem>, namespace: &str, batch_size: usize) -> Result<()> {
         if self.client.is_none() {
             return Err(anyhow::anyhow!("connect() must be called before upsert()"));
         }
@@ -250,7 +247,7 @@ impl VectorStoreDriver for MilvusDriver {
                 self.dimension = Some(vector.len());
                 self.ensure_collection(namespace, vector.len())?;
             }
-            
+
             let prepared = self.prepare_vector(&vector)?;
             pending_ids.push(identifier);
             pending_vectors.push(prepared);
@@ -269,13 +266,10 @@ impl VectorStoreDriver for MilvusDriver {
         Ok(())
     }
 
-    fn search(
-        &self,
-        query: &Vector,
-        k: usize,
-        namespace: &str,
-    ) -> Result<Vec<(String, f64)>> {
-        let client = self.client.as_ref()
+    fn search(&self, query: &Vector, k: usize, namespace: &str) -> Result<Vec<(String, f64)>> {
+        let client = self
+            .client
+            .as_ref()
             .ok_or_else(|| anyhow::anyhow!("connect() must be called before search()"))?;
 
         // Prepare query vector (need to normalize if needed)
@@ -300,23 +294,26 @@ impl VectorStoreDriver for MilvusDriver {
             .post(&url)
             .json(&payload)
             .timeout(std::time::Duration::from_secs(30))
-            .send().context("Failed to search vectors")?;
+            .send()
+            .context("Failed to search vectors")?;
 
         if !response.status().is_success() {
             let text = response.text().unwrap_or_default();
             return Err(anyhow::anyhow!("Search failed: {}", text));
         }
 
-        let result: serde_json::Value = response.json().context("Failed to parse search response")?;
+        let result: serde_json::Value =
+            response.json().context("Failed to parse search response")?;
 
         let mut hits: Vec<(String, f64)> = Vec::new();
-        
+
         if let Some(data) = result.get("data").and_then(|d| d.as_array()) {
             for item in data.iter().take(k) {
                 if let (Some(id), Some(score)) = (
                     item.get("id").and_then(|v| v.as_str()),
-                    item.get("score").and_then(|v| v.as_f64())
-                        .or_else(|| item.get("distance").and_then(|v| v.as_f64()))
+                    item.get("score")
+                        .and_then(|v| v.as_f64())
+                        .or_else(|| item.get("distance").and_then(|v| v.as_f64())),
                 ) {
                     hits.push((id.to_string(), score));
                 }
@@ -379,15 +376,16 @@ mod tests {
         let mut driver = MilvusDriver::new(None);
         let result = driver.connect();
         assert!(result.is_err());
-        assert!(result.unwrap_err().to_string().contains("MILVUS_HOST not configured"));
+        assert!(result
+            .unwrap_err()
+            .to_string()
+            .contains("MILVUS_HOST not configured"));
     }
 
     #[test]
     fn test_upsert_without_connect() {
         let mut driver = MilvusDriver::new(Some("cosine"));
-        let items = vec![
-            ("id1".to_string(), vec![1.0, 2.0, 3.0], None),
-        ];
+        let items = vec![("id1".to_string(), vec![1.0, 2.0, 3.0], None)];
         let result = driver.upsert(items, "test", 1000);
         assert!(result.is_err());
     }

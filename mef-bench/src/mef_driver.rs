@@ -1,6 +1,6 @@
 /*!
  * Driver that exercises the MEF HTTP API for apples-to-apples comparisons.
- * 
+ *
  * Migrated from MEF-Core_v1.0/src/bench/drivers/mef_driver.py
  */
 
@@ -33,8 +33,14 @@ impl MEFDriver {
     }
 
     /// Flush a batch of vectors to the MEF API
-    fn flush_batch(&self, namespace: &str, batch: &[HashMap<String, serde_json::Value>]) -> Result<()> {
-        let client = self.client.as_ref()
+    fn flush_batch(
+        &self,
+        namespace: &str,
+        batch: &[HashMap<String, serde_json::Value>],
+    ) -> Result<()> {
+        let client = self
+            .client
+            .as_ref()
             .ok_or_else(|| anyhow::anyhow!("connect() must be called before upsert()"))?;
 
         let url = format!("{}/collections/{}/upsert", self.base_url, namespace);
@@ -46,10 +52,12 @@ impl MEFDriver {
             .post(&url)
             .json(&payload)
             .timeout(std::time::Duration::from_secs(120))
-            .send().context("Failed to send upsert request")?;
+            .send()
+            .context("Failed to send upsert request")?;
 
         response
-            .error_for_status().context("Upsert request failed")?;
+            .error_for_status()
+            .context("Upsert request failed")?;
 
         Ok(())
     }
@@ -67,7 +75,8 @@ impl VectorStoreDriver for MEFDriver {
     fn connect(&mut self) -> Result<(), anyhow::Error> {
         let client = reqwest::blocking::Client::builder()
             .timeout(std::time::Duration::from_secs(30))
-            .build().context("Failed to build HTTP client")?;
+            .build()
+            .context("Failed to build HTTP client")?;
 
         let health_url = format!("{}/healthz", self.base_url);
         let response = client
@@ -75,10 +84,7 @@ impl VectorStoreDriver for MEFDriver {
             .timeout(std::time::Duration::from_secs(5))
             .send()
             .map_err(|e| {
-                DriverUnavailable::new(
-                    "MEF",
-                    format!("failed to contact {}: {}", health_url, e),
-                )
+                DriverUnavailable::new("MEF", format!("failed to contact {}: {}", health_url, e))
             })?;
 
         if response.status().as_u16() >= 500 {
@@ -94,7 +100,9 @@ impl VectorStoreDriver for MEFDriver {
     }
 
     fn clear(&mut self, namespace: &str) -> Result<(), anyhow::Error> {
-        let client = self.client.as_ref()
+        let client = self
+            .client
+            .as_ref()
             .ok_or_else(|| anyhow::anyhow!("connect() must be called before clear()"))?;
 
         let url = format!("{}/collections/{}/upsert", self.base_url, namespace);
@@ -106,7 +114,8 @@ impl VectorStoreDriver for MEFDriver {
             .post(&url)
             .json(&payload)
             .timeout(std::time::Duration::from_secs(15))
-            .send().context("Failed to send clear request")?;
+            .send()
+            .context("Failed to send clear request")?;
 
         let status = response.status().as_u16();
         if status == 200 || status == 204 || status == 404 {
@@ -122,7 +131,8 @@ impl VectorStoreDriver for MEFDriver {
         }
 
         response
-            .error_for_status().context("Clear namespace failed")?;
+            .error_for_status()
+            .context("Clear namespace failed")?;
 
         Ok(())
     }
@@ -173,7 +183,9 @@ impl VectorStoreDriver for MEFDriver {
         k: usize,
         namespace: &str,
     ) -> Result<Vec<(String, f64)>, anyhow::Error> {
-        let client = self.client.as_ref()
+        let client = self
+            .client
+            .as_ref()
             .ok_or_else(|| anyhow::anyhow!("connect() must be called before search()"))?;
 
         let url = format!("{}/search", self.base_url);
@@ -191,10 +203,12 @@ impl VectorStoreDriver for MEFDriver {
             .post(&url)
             .json(&payload)
             .timeout(std::time::Duration::from_secs(120))
-            .send().context("Failed to send search request")?;
+            .send()
+            .context("Failed to send search request")?;
 
         let response = response
-            .error_for_status().context("Search request failed")?;
+            .error_for_status()
+            .context("Search request failed")?;
 
         let body: serde_json::Value = response.json().context("Failed to parse search response")?;
         let results = body
@@ -253,9 +267,7 @@ mod tests {
     #[test]
     fn test_upsert_without_connect() {
         let mut driver = MEFDriver::new(None);
-        let items = vec![
-            ("id1".to_string(), vec![1.0, 2.0, 3.0], None),
-        ];
+        let items = vec![("id1".to_string(), vec![1.0, 2.0, 3.0], None)];
         let result = driver.upsert(items, "test", 1000);
         assert!(result.is_err());
         assert!(result.unwrap_err().to_string().contains("connect()"));

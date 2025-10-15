@@ -175,7 +175,10 @@ impl HDAG {
             .get("phase")
             .and_then(|v| v.as_f64())
             .ok_or_else(|| anyhow!("Snapshot missing phase"))?;
-        let timestamp = snapshot.get("timestamp").and_then(|v| v.as_str()).map(|s| s.to_string());
+        let timestamp = snapshot
+            .get("timestamp")
+            .and_then(|v| v.as_str())
+            .map(|s| s.to_string());
 
         self.create_node(snapshot_id, phase, timestamp, node_id)
     }
@@ -285,10 +288,7 @@ impl HDAG {
         }
 
         for edge in self.graph.edges.values() {
-            adj_list
-                .get_mut(&edge.from)
-                .unwrap()
-                .push(edge.to.clone());
+            adj_list.get_mut(&edge.from).unwrap().push(edge.to.clone());
             *in_degree.get_mut(&edge.to).unwrap() += 1;
         }
 
@@ -405,11 +405,7 @@ impl HDAG {
     ///
     /// # Returns
     /// Path invariance result
-    pub fn verify_path_invariance(
-        &self,
-        start_node: &str,
-        end_node: &str,
-    ) -> PathInvarianceResult {
+    pub fn verify_path_invariance(&self, start_node: &str, end_node: &str) -> PathInvarianceResult {
         // Find all paths from start to end
         let paths = self.find_all_paths(start_node, end_node, 10);
 
@@ -633,9 +629,7 @@ mod tests {
         let temp_dir = env::temp_dir().join("test_hdag_create_node");
         let mut hdag = HDAG::new(&temp_dir).unwrap();
 
-        let node_id = hdag
-            .create_node("snap-001", 1.5, None, None)
-            .unwrap();
+        let node_id = hdag.create_node("snap-001", 1.5, None, None).unwrap();
         assert!(node_id.starts_with("N-snap-001"));
 
         // Verify node exists
@@ -652,10 +646,20 @@ mod tests {
 
         // Create two nodes with different timestamps
         let node1 = hdag
-            .create_node("snap-001", 1.0, Some("2025-01-01T00:00:00Z".to_string()), None)
+            .create_node(
+                "snap-001",
+                1.0,
+                Some("2025-01-01T00:00:00Z".to_string()),
+                None,
+            )
             .unwrap();
         let node2 = hdag
-            .create_node("snap-002", 2.0, Some("2025-01-01T01:00:00Z".to_string()), None)
+            .create_node(
+                "snap-002",
+                2.0,
+                Some("2025-01-01T01:00:00Z".to_string()),
+                None,
+            )
             .unwrap();
 
         // Create edge
@@ -672,13 +676,28 @@ mod tests {
         let mut hdag = HDAG::new(&temp_dir).unwrap();
 
         let node1 = hdag
-            .create_node("snap-001", 1.0, Some("2025-01-01T00:00:00Z".to_string()), None)
+            .create_node(
+                "snap-001",
+                1.0,
+                Some("2025-01-01T00:00:00Z".to_string()),
+                None,
+            )
             .unwrap();
         let node2 = hdag
-            .create_node("snap-002", 2.0, Some("2025-01-01T01:00:00Z".to_string()), None)
+            .create_node(
+                "snap-002",
+                2.0,
+                Some("2025-01-01T01:00:00Z".to_string()),
+                None,
+            )
             .unwrap();
         let node3 = hdag
-            .create_node("snap-003", 3.0, Some("2025-01-01T02:00:00Z".to_string()), None)
+            .create_node(
+                "snap-003",
+                3.0,
+                Some("2025-01-01T02:00:00Z".to_string()),
+                None,
+            )
             .unwrap();
 
         // Create edges: 1 -> 2 -> 3
@@ -697,13 +716,28 @@ mod tests {
         let mut hdag = HDAG::new(&temp_dir).unwrap();
 
         let node1 = hdag
-            .create_node("snap-001", 1.0, Some("2025-01-01T00:00:00Z".to_string()), None)
+            .create_node(
+                "snap-001",
+                1.0,
+                Some("2025-01-01T00:00:00Z".to_string()),
+                None,
+            )
             .unwrap();
         let node2 = hdag
-            .create_node("snap-002", 2.0, Some("2025-01-01T01:00:00Z".to_string()), None)
+            .create_node(
+                "snap-002",
+                2.0,
+                Some("2025-01-01T01:00:00Z".to_string()),
+                None,
+            )
             .unwrap();
         let node3 = hdag
-            .create_node("snap-003", 3.0, Some("2025-01-01T02:00:00Z".to_string()), None)
+            .create_node(
+                "snap-003",
+                3.0,
+                Some("2025-01-01T02:00:00Z".to_string()),
+                None,
+            )
             .unwrap();
 
         hdag.create_edge(&node1, &node2, 0.5, "transform").unwrap();
@@ -711,7 +745,7 @@ mod tests {
 
         let topo_order = hdag.get_topological_order();
         assert_eq!(topo_order.len(), 3);
-        
+
         // node1 should come before node2, node2 before node3
         let pos1 = topo_order.iter().position(|n| n == &node1).unwrap();
         let pos2 = topo_order.iter().position(|n| n == &node2).unwrap();
@@ -726,10 +760,20 @@ mod tests {
         let mut hdag = HDAG::new(&temp_dir).unwrap();
 
         let node1 = hdag
-            .create_node("snap-001", 0.0, Some("2025-01-01T00:00:00Z".to_string()), None)
+            .create_node(
+                "snap-001",
+                0.0,
+                Some("2025-01-01T00:00:00Z".to_string()),
+                None,
+            )
             .unwrap();
         let node2 = hdag
-            .create_node("snap-002", 1.0, Some("2025-01-01T01:00:00Z".to_string()), None)
+            .create_node(
+                "snap-002",
+                1.0,
+                Some("2025-01-01T01:00:00Z".to_string()),
+                None,
+            )
             .unwrap();
 
         let phi = hdag.compute_phi(&node1, &node2);
@@ -744,10 +788,20 @@ mod tests {
         let mut hdag = HDAG::new(&temp_dir).unwrap();
 
         let node1 = hdag
-            .create_node("snap-001", 1.0, Some("2025-01-01T00:00:00Z".to_string()), None)
+            .create_node(
+                "snap-001",
+                1.0,
+                Some("2025-01-01T00:00:00Z".to_string()),
+                None,
+            )
             .unwrap();
         let node2 = hdag
-            .create_node("snap-002", 2.0, Some("2025-01-01T01:00:00Z".to_string()), None)
+            .create_node(
+                "snap-002",
+                2.0,
+                Some("2025-01-01T01:00:00Z".to_string()),
+                None,
+            )
             .unwrap();
 
         hdag.create_edge(&node1, &node2, 0.5, "transform").unwrap();

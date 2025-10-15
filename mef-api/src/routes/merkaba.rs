@@ -65,13 +65,10 @@ async fn evaluate_merkaba_gate(
     Json(request): Json<MerkabaGateRequest>,
 ) -> Result<Json<MerkabaGateResponse>> {
     // Extract parameters or use defaults
-    let epsilon = request.params.as_ref()
-        .and_then(|p| p.epsilon);
-    let phi_star = request.params.as_ref()
-        .and_then(|p| p.phi_star);
-    let eta = request.params.as_ref()
-        .and_then(|p| p.eta);
-    
+    let epsilon = request.params.as_ref().and_then(|p| p.epsilon);
+    let phi_star = request.params.as_ref().and_then(|p| p.phi_star);
+    let eta = request.params.as_ref().and_then(|p| p.eta);
+
     // Create TIC candidate from request
     // In a real implementation, this would load from storage
     // For now, create a candidate that will pass gate checks
@@ -79,13 +76,17 @@ async fn evaluate_merkaba_gate(
     let tic_candidate = TICCandidate {
         tic_id: request.tic_candidate_id.clone(),
         // Use a stable fixpoint that will pass checks
-        fixpoint: vec![1.0, 0.9, 0.8, 0.7, 0.6, 0.5, 0.4, 0.3, 0.2, 0.1, 0.05, 0.02, 0.01],
+        fixpoint: vec![
+            1.0, 0.9, 0.8, 0.7, 0.6, 0.5, 0.4, 0.3, 0.2, 0.1, 0.05, 0.02, 0.01,
+        ],
         por_status: "valid".to_string(),
         operator_sequence: vec!["DK".to_string(), "SW".to_string()],
         timestamp: chrono::Utc::now().timestamp() as f64,
-        dual_fixpoint: Some(vec![1.0, 0.9, 0.8, 0.7, 0.6, 0.5, 0.4, 0.3, 0.2, 0.1, 0.05, 0.02, 0.01]),
+        dual_fixpoint: Some(vec![
+            1.0, 0.9, 0.8, 0.7, 0.6, 0.5, 0.4, 0.3, 0.2, 0.1, 0.05, 0.02, 0.01,
+        ]),
     };
-    
+
     // Run Merkaba Gate evaluation
     let mut gate = state.merkaba_gate.lock().unwrap();
     let gate_event = gate.run_merkaba(
@@ -95,14 +96,14 @@ async fn evaluate_merkaba_gate(
         phi_star,
         eta,
     );
-    
+
     // Determine ledger block ID if committed
     let ledger_block_id = if gate_event.decision.commit {
         Some(format!("block_{}", uuid::Uuid::new_v4()))
     } else {
         None
     };
-    
+
     Ok(Json(MerkabaGateResponse {
         gate_id: gate_event.gate_id,
         snapshot_id: gate_event.snapshot_id,
@@ -140,12 +141,10 @@ struct ThresholdConfig {
     eta: f64,
 }
 
-async fn get_merkaba_status(
-    State(state): State<AppState>,
-) -> Result<Json<MerkabaStatusResponse>> {
+async fn get_merkaba_status(State(state): State<AppState>) -> Result<Json<MerkabaStatusResponse>> {
     // Get actual gate configuration
     let gate = state.merkaba_gate.lock().unwrap();
-    
+
     Ok(Json(MerkabaStatusResponse {
         status: "operational".to_string(),
         thresholds: ThresholdConfig {
@@ -193,9 +192,9 @@ async fn get_audit_log(
     // Read audit log from file
     let gate = state.merkaba_gate.lock().unwrap();
     let audit_path = &gate.audit_path;
-    
+
     let mut entries = Vec::new();
-    
+
     // Try to read audit log if it exists
     if audit_path.exists() {
         if let Ok(content) = std::fs::read_to_string(audit_path) {
@@ -205,24 +204,35 @@ async fn get_audit_log(
                     // Convert to AuditEntry format
                     if let Some(obj) = event.as_object() {
                         entries.push(AuditEntry {
-                            gate_id: obj.get("gate_id")
+                            gate_id: obj
+                                .get("gate_id")
                                 .and_then(|v| v.as_str())
                                 .unwrap_or("")
                                 .to_string(),
-                            snapshot_id: obj.get("snapshot_id")
+                            snapshot_id: obj
+                                .get("snapshot_id")
                                 .and_then(|v| v.as_str())
                                 .unwrap_or("")
                                 .to_string(),
-                            tic_candidate_id: obj.get("tic_candidate_id")
+                            tic_candidate_id: obj
+                                .get("tic_candidate_id")
                                 .and_then(|v| v.as_str())
                                 .unwrap_or("")
                                 .to_string(),
-                            decision: obj.get("decision")
+                            decision: obj
+                                .get("decision")
                                 .and_then(|d| d.get("commit"))
                                 .and_then(|c| c.as_bool())
-                                .map(|b| if b { "commit".to_string() } else { "reject".to_string() })
+                                .map(|b| {
+                                    if b {
+                                        "commit".to_string()
+                                    } else {
+                                        "reject".to_string()
+                                    }
+                                })
                                 .unwrap_or("unknown".to_string()),
-                            timestamp: obj.get("timestamp")
+                            timestamp: obj
+                                .get("timestamp")
                                 .and_then(|v| v.as_str())
                                 .unwrap_or("")
                                 .to_string(),
@@ -233,13 +243,10 @@ async fn get_audit_log(
             }
         }
     }
-    
+
     let total = entries.len();
-    
-    Ok(Json(AuditLogResponse {
-        entries,
-        total,
-    }))
+
+    Ok(Json(AuditLogResponse { entries, total }))
 }
 
 /// Calibrate Merkaba Gate thresholds
@@ -266,9 +273,9 @@ async fn calibrate_thresholds(
 ) -> Result<Json<CalibrateResponse>> {
     // Update gate thresholds
     let mut gate = state.merkaba_gate.lock().unwrap();
-    
+
     let mut updated = serde_json::Map::new();
-    
+
     if let Some(epsilon) = request.epsilon {
         gate.epsilon = epsilon;
         updated.insert("epsilon".to_string(), serde_json::json!(epsilon));
@@ -281,7 +288,7 @@ async fn calibrate_thresholds(
         gate.eta = eta;
         updated.insert("eta".to_string(), serde_json::json!(eta));
     }
-    
+
     Ok(Json(CalibrateResponse {
         status: "calibrated".to_string(),
         updated: serde_json::json!(updated),

@@ -1,6 +1,6 @@
 /*!
  * Resonit - Elementary information atom with tripolar signature
- * 
+ *
  * Resonits are fundamental units of domain-specific information,
  * characterized by their resonance signature σ = (ψ, ρ, ω).
  */
@@ -61,11 +61,11 @@ impl Resonit {
     pub fn resonance_with(&self, other: &Resonit) -> f64 {
         let v1 = self.to_vector();
         let v2 = other.to_vector();
-        
+
         let dot_product: f64 = v1.iter().zip(v2.iter()).map(|(a, b)| a * b).sum();
         let norm1: f64 = v1.iter().map(|x| x * x).sum::<f64>().sqrt();
         let norm2: f64 = v2.iter().map(|x| x * x).sum::<f64>().sqrt();
-        
+
         dot_product / (norm1 * norm2 + 1e-10)
     }
 }
@@ -85,7 +85,7 @@ mod tests {
     fn test_resonit_creation() {
         let sigma = Sigma::new(0.5, 0.7, 0.3);
         let resonit = Resonit::new(sigma, "test".to_string(), 1234567890);
-        
+
         assert_eq!(resonit.sigma.psi, 0.5);
         assert_eq!(resonit.sigma.rho, 0.7);
         assert_eq!(resonit.sigma.omega, 0.3);
@@ -97,7 +97,7 @@ mod tests {
     fn test_to_vector() {
         let sigma = Sigma::new(0.5, 0.7, 0.3);
         let resonit = Resonit::new(sigma, "test".to_string(), 0);
-        
+
         let vec = resonit.to_vector();
         assert_eq!(vec, vec![0.5, 0.7, 0.3]);
     }
@@ -106,10 +106,10 @@ mod tests {
     fn test_resonance_with() {
         let sigma1 = Sigma::new(0.5, 0.5, 0.5);
         let sigma2 = Sigma::new(0.5, 0.5, 0.5);
-        
+
         let r1 = Resonit::new(sigma1, "test".to_string(), 0);
         let r2 = Resonit::new(sigma2, "test".to_string(), 0);
-        
+
         let resonance = r1.resonance_with(&r2);
         assert!((resonance - 1.0).abs() < 1e-6); // Perfect resonance with identical vectors
     }
@@ -118,10 +118,10 @@ mod tests {
     fn test_resonance_orthogonal() {
         let sigma1 = Sigma::new(1.0, 0.0, 0.0);
         let sigma2 = Sigma::new(0.0, 1.0, 0.0);
-        
+
         let r1 = Resonit::new(sigma1, "test".to_string(), 0);
         let r2 = Resonit::new(sigma2, "test".to_string(), 0);
-        
+
         let resonance = r1.resonance_with(&r2);
         assert!(resonance.abs() < 1e-6); // Zero resonance for orthogonal vectors
     }
@@ -130,10 +130,10 @@ mod tests {
     fn test_serialization() {
         let sigma = Sigma::new(0.5, 0.7, 0.3);
         let resonit = Resonit::new(sigma, "test".to_string(), 1234567890);
-        
+
         let json = serde_json::to_string(&resonit).unwrap();
         let deserialized: Resonit = serde_json::from_str(&json).unwrap();
-        
+
         assert_eq!(resonit.sigma.psi, deserialized.sigma.psi);
         assert_eq!(resonit.src, deserialized.src);
         assert_eq!(resonit.ts, deserialized.ts);

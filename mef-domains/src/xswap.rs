@@ -1,6 +1,6 @@
 /*!
  * Xswap - Cross-domain alignment module
- * 
+ *
  * Implements HDAG-backed manifold alignment for cross-domain similarity
  * verification. The Xswap orchestrator processes source and target payloads
  * through the DomainLayer, aligns the resulting manifolds, obtains a
@@ -12,7 +12,7 @@ use crate::domain_layer::{DomainLayer, DomainProcessingResult};
 use crate::meshholo::MeshHolo;
 use anyhow::{anyhow, Result};
 use chrono::{DateTime, Duration, Utc};
-use mef_core::gates::merkaba_gate::MerkabaGate;
+use mef_core::gates::merkaba_gate::{MerkabaGate, MerkabaDeCisionParams};
 use mef_hdag::HDAG;
 use mef_ledger::mef_block::MEFLedger;
 use nalgebra::{DMatrix, DVector};
@@ -85,7 +85,7 @@ impl Xswap {
         audit_path: impl AsRef<Path>,
     ) -> Result<Self> {
         let audit_path = audit_path.as_ref().to_path_buf();
-        
+
         // Ensure audit path parent exists
         if let Some(parent) = audit_path.parent() {
             std::fs::create_dir_all(parent)?;
@@ -203,7 +203,7 @@ impl Xswap {
     fn get_mesh(&self, result: &DomainProcessingResult) -> Result<MeshHolo> {
         let domain_layer = self.domain_layer.lock().unwrap();
         let meshes = domain_layer.meshes.lock().unwrap();
-        
+
         meshes
             .get(&result.mesh_id)
             .cloned()
@@ -214,7 +214,7 @@ impl Xswap {
     fn mesh_embedding(&self, mesh: &MeshHolo) -> DMatrix<f64> {
         let embedding_array = mesh.to_metatron_embedding();
         let (rows, cols) = embedding_array.dim();
-        
+
         DMatrix::from_fn(rows, cols, |i, j| embedding_array[[i, j]])
     }
 
@@ -238,19 +238,13 @@ impl Xswap {
         let tgt = target_embedding.view((0, 0), (n, m));
 
         // Calculate centroids (column means)
-        let src_centroid = DVector::from_iterator(
-            m,
-            (0..m).map(|col| src.column(col).mean()),
-        );
-        let tgt_centroid = DVector::from_iterator(
-            m,
-            (0..m).map(|col| tgt.column(col).mean()),
-        );
+        let src_centroid = DVector::from_iterator(m, (0..m).map(|col| src.column(col).mean()));
+        let tgt_centroid = DVector::from_iterator(m, (0..m).map(|col| tgt.column(col).mean()));
 
         // Center the data
         let mut src_centered = DMatrix::zeros(n, m);
         let mut tgt_centered = DMatrix::zeros(n, m);
-        
+
         for i in 0..n {
             for j in 0..m {
                 src_centered[(i, j)] = src[(i, j)] - src_centroid[j];
@@ -261,7 +255,7 @@ impl Xswap {
         // Check if data is already aligned (centered data has very small norm)
         let src_norm = src_centered.norm();
         let tgt_norm = tgt_centered.norm();
-        
+
         if src_norm < 1e-10 && tgt_norm < 1e-10 {
             // Data is already centered, perfect alignment
             let identity = DMatrix::identity(m, m);
@@ -295,17 +289,17 @@ impl Xswap {
         }
 
         let mut ortho_columns: Vec<DVector<f64>> = Vec::new();
-        
+
         // Process each column
         for col_idx in 0..matrix.ncols() {
             let mut vec = matrix.column(col_idx).into_owned();
-            
+
             // Subtract projections onto previous orthonormal vectors
             for basis in &ortho_columns {
                 let projection = vec.dot(basis);
                 vec -= projection * basis;
             }
-            
+
             // Normalize
             let norm = vec.norm();
             if norm > 1e-10 {
@@ -372,9 +366,7 @@ impl Xswap {
         // Get thresholds
         let merkaba_gate = self.merkaba_gate.lock().unwrap();
         let eps = *thresholds.get("epsilon").unwrap_or(&merkaba_gate.epsilon);
-        let phi_star = *thresholds
-            .get("phi_star")
-            .unwrap_or(&merkaba_gate.phi_star);
+        let phi_star = *thresholds.get("phi_star").unwrap_or(&merkaba_gate.phi_star);
         let eta = thresholds.get("eta").copied().or(Some(merkaba_gate.eta));
 
         let delta_pi = manifold_gap;
@@ -400,16 +392,13 @@ impl Xswap {
         }
 
         // Make decision
-        let (commit, reason) = merkaba_gate.merkaba_decide(
-            por,
-            delta_pi,
-            phi,
-            delta_v,
-            Some(mci),
+        let params = MerkabaDeCisionParams {
             eps,
             phi_star,
             eta,
-        );
+        };
+        let (commit, reason) =
+            merkaba_gate.merkaba_decide(por, delta_pi, phi, delta_v, Some(mci), &params);
 
         Ok(json!({
             "alignment_id": alignment_id,
@@ -468,14 +457,20 @@ impl Xswap {
             source_snapshot["id"].as_str().unwrap(),
             source_snapshot["phase"].as_f64().unwrap(),
             Some(source_snapshot["timestamp"].as_str().unwrap().to_string()),
-            Some(format!("XSWAP-SRC-{}", source_snapshot["id"].as_str().unwrap())),
+            Some(format!(
+                "XSWAP-SRC-{}",
+                source_snapshot["id"].as_str().unwrap()
+            )),
         )?;
 
         let target_node = hdag.create_node(
             target_snapshot["id"].as_str().unwrap(),
             target_snapshot["phase"].as_f64().unwrap(),
             Some(target_snapshot["timestamp"].as_str().unwrap().to_string()),
-            Some(format!("XSWAP-TGT-{}", target_snapshot["id"].as_str().unwrap())),
+            Some(format!(
+                "XSWAP-TGT-{}",
+                target_snapshot["id"].as_str().unwrap()
+            )),
         )?;
 
         let mut edge_id = None;
@@ -511,7 +506,7 @@ impl Xswap {
         // Get mesh to extract spectral gap
         let domain_layer = self.domain_layer.lock().unwrap();
         let meshes = domain_layer.meshes.lock().unwrap();
-        
+
         let phase = meshes
             .get(&result.mesh_id)
             .map(|mesh| mesh.invariants.lambda_gap)
@@ -572,7 +567,7 @@ impl Xswap {
         // Get mesh info for phase calculation
         let domain_layer = self.domain_layer.lock().unwrap();
         let meshes = domain_layer.meshes.lock().unwrap();
-        
+
         let source_gap = meshes
             .get(&source_result.mesh_id)
             .map(|m| m.invariants.lambda_gap)
@@ -598,7 +593,7 @@ impl Xswap {
 
         let mut ledger = self.ledger.lock().unwrap();
         let block = ledger.append_block(&ledger_tic, &ledger_snapshot)?;
-        
+
         Ok(Some(serde_json::to_value(block)?))
     }
 
@@ -703,14 +698,7 @@ mod tests {
         let hdag = Arc::new(Mutex::new(HDAG::new(&hdag_path).unwrap()));
         let ledger = Arc::new(Mutex::new(MEFLedger::new(&ledger_path).unwrap()));
 
-        let xswap = Xswap::new(
-            domain_layer,
-            merkaba_gate,
-            hdag,
-            ledger,
-            &audit_path,
-        )
-        .unwrap();
+        let xswap = Xswap::new(domain_layer, merkaba_gate, hdag, ledger, &audit_path).unwrap();
 
         let source = vec![1.0, 2.0, 3.0];
         let target = vec![4.0, 5.0, 6.0];
@@ -741,14 +729,7 @@ mod tests {
         let hdag = Arc::new(Mutex::new(HDAG::new(&hdag_path).unwrap()));
         let ledger = Arc::new(Mutex::new(MEFLedger::new(&ledger_path).unwrap()));
 
-        let xswap = Xswap::new(
-            domain_layer,
-            merkaba_gate,
-            hdag,
-            ledger,
-            &audit_path,
-        )
-        .unwrap();
+        let xswap = Xswap::new(domain_layer, merkaba_gate, hdag, ledger, &audit_path).unwrap();
 
         let source = vec![1.0, 2.0, 3.0, 4.0];
         let target = vec![5.0, 6.0];
@@ -778,14 +759,7 @@ mod tests {
         let hdag = Arc::new(Mutex::new(HDAG::new(&hdag_path).unwrap()));
         let ledger = Arc::new(Mutex::new(MEFLedger::new(&ledger_path).unwrap()));
 
-        let xswap = Xswap::new(
-            domain_layer,
-            merkaba_gate,
-            hdag,
-            ledger,
-            &audit_path,
-        )
-        .unwrap();
+        let xswap = Xswap::new(domain_layer, merkaba_gate, hdag, ledger, &audit_path).unwrap();
 
         let identity = DMatrix::identity(3, 3);
         let ortho = xswap.orthonormalize_matrix(&identity).unwrap();
@@ -818,39 +792,17 @@ mod tests {
         let hdag = Arc::new(Mutex::new(HDAG::new(&hdag_path).unwrap()));
         let ledger = Arc::new(Mutex::new(MEFLedger::new(&ledger_path).unwrap()));
 
-        let xswap = Xswap::new(
-            domain_layer,
-            merkaba_gate,
-            hdag,
-            ledger,
-            &audit_path,
-        )
-        .unwrap();
+        let xswap = Xswap::new(domain_layer, merkaba_gate, hdag, ledger, &audit_path).unwrap();
 
         // Test alignment produces valid outputs
-        let embedding1 = DMatrix::from_row_slice(
-            3,
-            3,
-            &[
-                1.0, 0.0, 0.0,
-                0.0, 1.0, 0.0,
-                0.0, 0.0, 1.0,
-            ],
-        );
-        
-        let embedding2 = DMatrix::from_row_slice(
-            3,
-            3,
-            &[
-                1.0, 0.0, 0.0,
-                0.0, 1.0, 0.0,
-                0.0, 0.0, 1.0,
-            ],
-        );
+        let embedding1 =
+            DMatrix::from_row_slice(3, 3, &[1.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 1.0]);
 
-        let (rotation, translation, gap) = xswap
-            .align_embeddings(&embedding1, &embedding2)
-            .unwrap();
+        let embedding2 =
+            DMatrix::from_row_slice(3, 3, &[1.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 1.0]);
+
+        let (rotation, translation, gap) =
+            xswap.align_embeddings(&embedding1, &embedding2).unwrap();
 
         // Check outputs are valid
         assert_eq!(rotation.nrows(), 3);
@@ -878,21 +830,12 @@ mod tests {
         let hdag = Arc::new(Mutex::new(HDAG::new(&hdag_path).unwrap()));
         let ledger = Arc::new(Mutex::new(MEFLedger::new(&ledger_path).unwrap()));
 
-        let xswap = Xswap::new(
-            domain_layer,
-            merkaba_gate,
-            hdag,
-            ledger,
-            &audit_path,
-        )
-        .unwrap();
+        let xswap = Xswap::new(domain_layer, merkaba_gate, hdag, ledger, &audit_path).unwrap();
 
         let empty = DMatrix::from_row_slice(0, 0, &[]);
         let non_empty = DMatrix::from_row_slice(2, 3, &[1.0, 2.0, 3.0, 4.0, 5.0, 6.0]);
 
-        let (rotation, translation, gap) = xswap
-            .align_embeddings(&empty, &non_empty)
-            .unwrap();
+        let (rotation, translation, gap) = xswap.align_embeddings(&empty, &non_empty).unwrap();
 
         assert_eq!(rotation.nrows(), 13);
         assert_eq!(rotation.ncols(), 13);

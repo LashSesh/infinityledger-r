@@ -1,96 +1,78 @@
 /*!
  * MEF-Core Benchmark Drivers
- * 
+ *
  * This crate provides driver implementations for benchmarking vector stores.
  * Migrated from MEF-Core_v1.0/src/bench/drivers/
  */
 
 pub mod base;
-pub mod mef_driver;
-pub mod faiss_baseline;
-pub mod elastic_driver;
-pub mod qdrant_driver;
-pub mod milvus_driver;
-pub mod weaviate_driver;
-pub mod pinecone_driver;
-pub mod datasets;
 pub mod bench_runner;
+pub mod datasets;
+pub mod elastic_driver;
+pub mod faiss_baseline;
+pub mod mef_driver;
+pub mod milvus_driver;
+pub mod pinecone_driver;
+pub mod qdrant_driver;
+pub mod weaviate_driver;
 
 // Re-export commonly used types
 pub use base::{DriverUnavailable, UpsertItem, Vector, VectorStoreDriver};
-pub use mef_driver::MEFDriver;
-pub use faiss_baseline::FaissBaselineDriver;
 pub use elastic_driver::ElasticDriver;
-pub use qdrant_driver::QdrantDriver;
+pub use faiss_baseline::FaissBaselineDriver;
+pub use mef_driver::MEFDriver;
 pub use milvus_driver::MilvusDriver;
-pub use weaviate_driver::WeaviateDriver;
 pub use pinecone_driver::PineconeDriver;
+pub use qdrant_driver::QdrantDriver;
+pub use weaviate_driver::WeaviateDriver;
 
 // Re-export dataset utilities
 pub use datasets::{
-    Record, 
-    generate_spiral_points, 
-    build_spiral_corpus,
-    iter_records,
-    chunked,
-    generate_query_vectors,
-    brute_force_top_k,
-    cosine_similarity,
-    negative_l2_squared,
+    brute_force_top_k, build_spiral_corpus, chunked, cosine_similarity, generate_query_vectors,
+    generate_spiral_points, iter_records, negative_l2_squared, Record,
 };
 
 // Re-export benchmark runner
 pub use bench_runner::{
-    BenchmarkConfig,
-    BenchmarkRunner,
-    BenchmarkReport,
-    TimeoutSettings,
-    RetrySettings,
-    BatchSettings,
-    LatencyMetrics,
+    BatchSettings, BenchmarkConfig, BenchmarkReport, BenchmarkRunner, LatencyMetrics,
+    RetrySettings, TimeoutSettings,
 };
 
 use std::collections::HashMap;
 
 /// Driver registry mapping names to driver constructors
 pub fn get_driver_registry() -> HashMap<String, fn(Option<&str>) -> Box<dyn VectorStoreDriver>> {
-    let mut registry: HashMap<String, fn(Option<&str>) -> Box<dyn VectorStoreDriver>> = HashMap::new();
-    
-    registry.insert(
-        "mef".to_string(),
-        |metric| Box::new(MEFDriver::new(metric)) as Box<dyn VectorStoreDriver>,
-    );
-    
-    registry.insert(
-        "faiss".to_string(),
-        |metric| Box::new(FaissBaselineDriver::new(metric)) as Box<dyn VectorStoreDriver>,
-    );
-    
-    registry.insert(
-        "elastic".to_string(),
-        |metric| Box::new(ElasticDriver::new(metric)) as Box<dyn VectorStoreDriver>,
-    );
-    
-    registry.insert(
-        "qdrant".to_string(),
-        |metric| Box::new(QdrantDriver::new(metric)) as Box<dyn VectorStoreDriver>,
-    );
-    
-    registry.insert(
-        "milvus".to_string(),
-        |metric| Box::new(MilvusDriver::new(metric)) as Box<dyn VectorStoreDriver>,
-    );
-    
-    registry.insert(
-        "weaviate".to_string(),
-        |metric| Box::new(WeaviateDriver::new(metric)) as Box<dyn VectorStoreDriver>,
-    );
-    
-    registry.insert(
-        "pinecone".to_string(),
-        |metric| Box::new(PineconeDriver::new(metric)) as Box<dyn VectorStoreDriver>,
-    );
-    
+    let mut registry: HashMap<String, fn(Option<&str>) -> Box<dyn VectorStoreDriver>> =
+        HashMap::new();
+
+    registry.insert("mef".to_string(), |metric| {
+        Box::new(MEFDriver::new(metric)) as Box<dyn VectorStoreDriver>
+    });
+
+    registry.insert("faiss".to_string(), |metric| {
+        Box::new(FaissBaselineDriver::new(metric)) as Box<dyn VectorStoreDriver>
+    });
+
+    registry.insert("elastic".to_string(), |metric| {
+        Box::new(ElasticDriver::new(metric)) as Box<dyn VectorStoreDriver>
+    });
+
+    registry.insert("qdrant".to_string(), |metric| {
+        Box::new(QdrantDriver::new(metric)) as Box<dyn VectorStoreDriver>
+    });
+
+    registry.insert("milvus".to_string(), |metric| {
+        Box::new(MilvusDriver::new(metric)) as Box<dyn VectorStoreDriver>
+    });
+
+    registry.insert("weaviate".to_string(), |metric| {
+        Box::new(WeaviateDriver::new(metric)) as Box<dyn VectorStoreDriver>
+    });
+
+    registry.insert("pinecone".to_string(), |metric| {
+        Box::new(PineconeDriver::new(metric)) as Box<dyn VectorStoreDriver>
+    });
+
     registry
 }
 

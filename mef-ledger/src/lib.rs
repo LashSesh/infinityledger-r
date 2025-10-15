@@ -7,6 +7,6 @@
 pub mod mef_block;
 
 pub use mef_block::{
-    ChainStatistics, CompactTic, LedgerIndex, LedgerMetadata, 
-    MEFLedger, MefBlock, TimeRange, BlockSummary,
+    BlockSummary, ChainStatistics, CompactTic, LedgerIndex, LedgerMetadata, MEFLedger, MefBlock,
+    TimeRange,
 };

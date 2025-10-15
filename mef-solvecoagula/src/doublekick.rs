@@ -1,6 +1,5 @@
 /// DoubleKick (DK) operator implementation - SPEC-002 konform.
 /// Local unsticking through dual impulse without expansion.
-
 use ndarray::Array1;
 use rand::SeedableRng;
 use rand_distr::{Distribution, StandardNormal};
@@ -83,7 +82,7 @@ impl DoubleKick {
 
         // Gram-Schmidt orthogonalization
         let dot_u2_u1 = u2.dot(&u1);
-        u2 = u2 - &(&u1 * dot_u2_u1);
+        u2 -= &(&u1 * dot_u2_u1);
 
         let u2_norm = u2.dot(&u2).sqrt();
         u2 /= u2_norm;

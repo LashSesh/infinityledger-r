@@ -22,17 +22,43 @@ pub struct Spec {
 impl Spec {
     pub fn from_dict(data: &HashMap<String, Value>) -> Self {
         Self {
-            id: data.get("id").and_then(|v| v.as_str()).unwrap_or("").to_string(),
-            title: data.get("title").and_then(|v| v.as_str()).unwrap_or("").to_string(),
-            version: data.get("version").and_then(|v| v.as_str()).unwrap_or("").to_string(),
-            date: data.get("date").and_then(|v| v.as_str()).unwrap_or("").to_string(),
-            owners: data.get("owners")
+            id: data
+                .get("id")
+                .and_then(|v| v.as_str())
+                .unwrap_or("")
+                .to_string(),
+            title: data
+                .get("title")
+                .and_then(|v| v.as_str())
+                .unwrap_or("")
+                .to_string(),
+            version: data
+                .get("version")
+                .and_then(|v| v.as_str())
+                .unwrap_or("")
+                .to_string(),
+            date: data
+                .get("date")
+                .and_then(|v| v.as_str())
+                .unwrap_or("")
+                .to_string(),
+            owners: data
+                .get("owners")
                 .and_then(|v| v.as_array())
-                .map(|arr| arr.iter().filter_map(|v| v.as_str().map(String::from)).collect())
+                .map(|arr| {
+                    arr.iter()
+                        .filter_map(|v| v.as_str().map(String::from))
+                        .collect()
+                })
                 .unwrap_or_default(),
-            goals: data.get("goals")
+            goals: data
+                .get("goals")
                 .and_then(|v| v.as_array())
-                .map(|arr| arr.iter().filter_map(|v| v.as_str().map(String::from)).collect())
+                .map(|arr| {
+                    arr.iter()
+                        .filter_map(|v| v.as_str().map(String::from))
+                        .collect()
+                })
                 .unwrap_or_default(),
         }
     }
@@ -62,17 +88,32 @@ impl Component {
             }
         }
 
-        let deps = data.get("deps")
-            .and_then(|v| v.as_array())
-            .map(|arr| arr.iter().filter_map(|v| v.as_str().map(String::from)).collect());
+        let deps = data.get("deps").and_then(|v| v.as_array()).map(|arr| {
+            arr.iter()
+                .filter_map(|v| v.as_str().map(String::from))
+                .collect()
+        });
 
-        let responsibilities = data.get("responsibilities")
+        let responsibilities = data
+            .get("responsibilities")
             .and_then(|v| v.as_array())
-            .map(|arr| arr.iter().filter_map(|v| v.as_str().map(String::from)).collect());
+            .map(|arr| {
+                arr.iter()
+                    .filter_map(|v| v.as_str().map(String::from))
+                    .collect()
+            });
 
         Self {
-            name: data.get("name").and_then(|v| v.as_str()).unwrap_or("").to_string(),
-            component_type: data.get("type").and_then(|v| v.as_str()).unwrap_or("").to_string(),
+            name: data
+                .get("name")
+                .and_then(|v| v.as_str())
+                .unwrap_or("")
+                .to_string(),
+            component_type: data
+                .get("type")
+                .and_then(|v| v.as_str())
+                .unwrap_or("")
+                .to_string(),
             deps,
             responsibilities,
             extras,
@@ -89,12 +130,18 @@ pub struct API {
 
 impl API {
     pub fn from_dict(data: &HashMap<String, Value>) -> Self {
-        let rest = data.get("rest")
+        let rest = data
+            .get("rest")
             .and_then(|v| v.as_array())
-            .map(|arr| arr.iter().filter_map(|v| v.as_str().map(String::from)).collect())
+            .map(|arr| {
+                arr.iter()
+                    .filter_map(|v| v.as_str().map(String::from))
+                    .collect()
+            })
             .unwrap_or_default();
 
-        let grpc = data.get("grpc")
+        let grpc = data
+            .get("grpc")
             .and_then(|v| v.as_object())
             .map(|obj| obj.iter().map(|(k, v)| (k.clone(), v.clone())).collect())
             .unwrap_or_default();
@@ -113,19 +160,29 @@ pub struct Storage {
 
 impl Storage {
     pub fn from_dict(data: &HashMap<String, Value>) -> Self {
-        let fs_root = data.get("fs_root").and_then(|v| v.as_str()).unwrap_or("").to_string();
+        let fs_root = data
+            .get("fs_root")
+            .and_then(|v| v.as_str())
+            .unwrap_or("")
+            .to_string();
 
-        let s3 = data.get("s3")
+        let s3 = data
+            .get("s3")
             .and_then(|v| v.as_object())
             .map(|obj| obj.iter().map(|(k, v)| (k.clone(), v.clone())).collect())
             .unwrap_or_default();
 
-        let layout = data.get("layout")
+        let layout = data
+            .get("layout")
             .and_then(|v| v.as_object())
             .map(|obj| obj.iter().map(|(k, v)| (k.clone(), v.clone())).collect())
             .unwrap_or_default();
 
-        Self { fs_root, s3, layout }
+        Self {
+            fs_root,
+            s3,
+            layout,
+        }
     }
 }
 
@@ -153,9 +210,20 @@ pub struct Blueprint {
 impl Blueprint {
     pub fn from_dict(data: &HashMap<String, Value>) -> Self {
         let known_keys = vec![
-            "spec", "priorities", "components", "storage", "distance",
-            "schemas", "api", "index_backends", "consistency", "merkaba_gate",
-            "workflows", "security", "observability", "config",
+            "spec",
+            "priorities",
+            "components",
+            "storage",
+            "distance",
+            "schemas",
+            "api",
+            "index_backends",
+            "consistency",
+            "merkaba_gate",
+            "workflows",
+            "security",
+            "observability",
+            "config",
         ];
 
         let mut extras = HashMap::new();
@@ -165,23 +233,29 @@ impl Blueprint {
             }
         }
 
-        let spec = data.get("spec")
+        let spec = data
+            .get("spec")
             .and_then(|v| v.as_object())
             .map(|obj| {
-                let map: HashMap<String, Value> = obj.iter()
-                    .map(|(k, v)| (k.clone(), v.clone()))
-                    .collect();
+                let map: HashMap<String, Value> =
+                    obj.iter().map(|(k, v)| (k.clone(), v.clone())).collect();
                 Spec::from_dict(&map)
             })
             .unwrap_or_else(|| Spec::from_dict(&HashMap::new()));
 
-        let priorities = data.get("priorities")
+        let priorities = data
+            .get("priorities")
             .and_then(|v| v.as_object())
             .map(|obj| {
                 obj.iter()
                     .map(|(k, v)| {
-                        let vec = v.as_array()
-                            .map(|arr| arr.iter().filter_map(|v| v.as_str().map(String::from)).collect())
+                        let vec = v
+                            .as_array()
+                            .map(|arr| {
+                                arr.iter()
+                                    .filter_map(|v| v.as_str().map(String::from))
+                                    .collect()
+                            })
                             .unwrap_or_default();
                         (k.clone(), vec)
                     })
@@ -189,37 +263,37 @@ impl Blueprint {
             })
             .unwrap_or_default();
 
-        let components = data.get("components")
+        let components = data
+            .get("components")
             .and_then(|v| v.as_array())
             .map(|arr| {
                 arr.iter()
                     .filter_map(|v| v.as_object())
                     .map(|obj| {
-                        let map: HashMap<String, Value> = obj.iter()
-                            .map(|(k, v)| (k.clone(), v.clone()))
-                            .collect();
+                        let map: HashMap<String, Value> =
+                            obj.iter().map(|(k, v)| (k.clone(), v.clone())).collect();
                         Component::from_dict(&map)
                     })
                     .collect()
             })
             .unwrap_or_default();
 
-        let storage = data.get("storage")
+        let storage = data
+            .get("storage")
             .and_then(|v| v.as_object())
             .map(|obj| {
-                let map: HashMap<String, Value> = obj.iter()
-                    .map(|(k, v)| (k.clone(), v.clone()))
-                    .collect();
+                let map: HashMap<String, Value> =
+                    obj.iter().map(|(k, v)| (k.clone(), v.clone())).collect();
                 Storage::from_dict(&map)
             })
             .unwrap_or_else(|| Storage::from_dict(&HashMap::new()));
 
-        let api = data.get("api")
+        let api = data
+            .get("api")
             .and_then(|v| v.as_object())
             .map(|obj| {
-                let map: HashMap<String, Value> = obj.iter()
-                    .map(|(k, v)| (k.clone(), v.clone()))
-                    .collect();
+                let map: HashMap<String, Value> =
+                    obj.iter().map(|(k, v)| (k.clone(), v.clone())).collect();
                 API::from_dict(&map)
             })
             .unwrap_or_else(|| API::from_dict(&HashMap::new()));
@@ -263,7 +337,10 @@ mod tests {
         data.insert("title".to_string(), Value::String("Test Spec".to_string()));
         data.insert("version".to_string(), Value::String("1.0".to_string()));
         data.insert("date".to_string(), Value::String("2025-01-01".to_string()));
-        data.insert("owners".to_string(), serde_json::json!(["owner1", "owner2"]));
+        data.insert(
+            "owners".to_string(),
+            serde_json::json!(["owner1", "owner2"]),
+        );
         data.insert("goals".to_string(), serde_json::json!(["goal1", "goal2"]));
 
         let spec = Spec::from_dict(&data);
@@ -278,23 +355,38 @@ mod tests {
     #[test]
     fn test_component_from_dict() {
         let mut data = HashMap::new();
-        data.insert("name".to_string(), Value::String("test-component".to_string()));
+        data.insert(
+            "name".to_string(),
+            Value::String("test-component".to_string()),
+        );
         data.insert("type".to_string(), Value::String("service".to_string()));
         data.insert("deps".to_string(), serde_json::json!(["dep1", "dep2"]));
-        data.insert("custom_field".to_string(), Value::String("custom_value".to_string()));
+        data.insert(
+            "custom_field".to_string(),
+            Value::String("custom_value".to_string()),
+        );
 
         let component = Component::from_dict(&data);
         assert_eq!(component.name, "test-component");
         assert_eq!(component.component_type, "service");
-        assert_eq!(component.deps, Some(vec!["dep1".to_string(), "dep2".to_string()]));
-        assert_eq!(component.extras.get("custom_field").unwrap(), "custom_value");
+        assert_eq!(
+            component.deps,
+            Some(vec!["dep1".to_string(), "dep2".to_string()])
+        );
+        assert_eq!(
+            component.extras.get("custom_field").unwrap(),
+            "custom_value"
+        );
     }
 
     #[test]
     fn test_api_from_dict() {
         let mut data = HashMap::new();
         data.insert("rest".to_string(), serde_json::json!(["/v1/endpoint"]));
-        data.insert("grpc".to_string(), serde_json::json!({"service": "TestService"}));
+        data.insert(
+            "grpc".to_string(),
+            serde_json::json!({"service": "TestService"}),
+        );
 
         let api = API::from_dict(&data);
         assert_eq!(api.rest, vec!["/v1/endpoint"]);
@@ -306,7 +398,10 @@ mod tests {
         let mut data = HashMap::new();
         data.insert("fs_root".to_string(), Value::String("/data".to_string()));
         data.insert("s3".to_string(), serde_json::json!({"bucket": "my-bucket"}));
-        data.insert("layout".to_string(), serde_json::json!({"type": "versioned"}));
+        data.insert(
+            "layout".to_string(),
+            serde_json::json!({"type": "versioned"}),
+        );
 
         let storage = Storage::from_dict(&data);
         assert_eq!(storage.fs_root, "/data");
@@ -347,7 +442,8 @@ mod tests {
             "security": {},
             "observability": {},
             "config": {}
-        })).unwrap();
+        }))
+        .unwrap();
 
         let blueprint = Blueprint::from_dict(&data);
         assert_eq!(blueprint.spec.id, "SPEC-002");

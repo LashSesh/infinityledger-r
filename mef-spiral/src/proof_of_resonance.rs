@@ -186,11 +186,7 @@ impl ProofOfResonance {
         let n = spectrum.len();
 
         // Define bands
-        let bands = [
-            ("low", 0.0, 0.3),
-            ("mid", 0.3, 0.7),
-            ("high", 0.7, 1.0),
-        ];
+        let bands = [("low", 0.0, 0.3), ("mid", 0.3, 0.7), ("high", 0.7, 1.0)];
 
         let mut energies = HashMap::new();
 
@@ -300,10 +296,7 @@ impl ProofOfResonance {
                 for d in 0..dim {
                     let values: Vec<f64> = hist.iter().map(|h| h[d]).collect();
                     let mean_d = values.iter().sum::<f64>() / values.len() as f64;
-                    let var = values
-                        .iter()
-                        .map(|&v| (v - mean_d).powi(2))
-                        .sum::<f64>()
+                    let var = values.iter().map(|&v| (v - mean_d).powi(2)).sum::<f64>()
                         / values.len() as f64;
                     variances[d] = var;
                 }
@@ -341,16 +334,17 @@ impl ProofOfResonance {
             .collect::<Result<Vec<_>, _>>()?;
 
         let metrics = &snapshot["metrics"];
-        let resonance = metrics["resonance"]
-            .as_f64()
-            .ok_or("Missing resonance")?;
+        let resonance = metrics["resonance"].as_f64().ok_or("Missing resonance")?;
 
         // Validate resonance
         let (resonance_valid, resonance_data) = self.validate_resonance(&coordinates, resonance);
 
         // Compute stability
         let stability = self.compute_stability_metric(&coordinates, None);
-        let claimed_stability = metrics.get("stability").and_then(|v| v.as_f64()).unwrap_or(0.0);
+        let claimed_stability = metrics
+            .get("stability")
+            .and_then(|v| v.as_f64())
+            .unwrap_or(0.0);
         let stability_valid = stability >= claimed_stability * 0.9;
 
         // Check PoR status
@@ -365,10 +359,7 @@ impl ProofOfResonance {
         let is_valid = resonance_valid && stability_valid && por_valid;
 
         let report = ValidationReport {
-            snapshot_id: snapshot["id"]
-                .as_str()
-                .unwrap_or("unknown")
-                .to_string(),
+            snapshot_id: snapshot["id"].as_str().unwrap_or("unknown").to_string(),
             resonance: resonance_data,
             stability: StabilityData {
                 computed: stability,
@@ -377,10 +368,7 @@ impl ProofOfResonance {
             },
             por_status,
             overall_valid: is_valid,
-            timestamp: snapshot["timestamp"]
-                .as_str()
-                .unwrap_or("")
-                .to_string(),
+            timestamp: snapshot["timestamp"].as_str().unwrap_or("").to_string(),
         };
 
         Ok((is_valid, report))
@@ -446,18 +434,13 @@ impl ProofOfResonance {
 
         for snapshot in snapshots {
             if let Some(coords_arr) = snapshot["coordinates"].as_array() {
-                let coords: Vec<f64> = coords_arr
-                    .iter()
-                    .filter_map(|v| v.as_f64())
-                    .collect();
+                let coords: Vec<f64> = coords_arr.iter().filter_map(|v| v.as_f64()).collect();
 
                 if !coords.is_empty() {
                     let (resonance, _) = self.compute_fft_resonance(&coords);
                     resonances.push(resonance);
 
-                    let stability = snapshot["metrics"]["stability"]
-                        .as_f64()
-                        .unwrap_or(0.5);
+                    let stability = snapshot["metrics"]["stability"].as_f64().unwrap_or(0.5);
                     weights.push(stability);
                 }
             }
@@ -584,10 +567,7 @@ mod tests {
     fn test_compute_stability_with_history() {
         let por = ProofOfResonance::new();
         let coords = vec![1.0, 2.0, 3.0, 4.0, 5.0];
-        let history = vec![
-            vec![0.9, 1.9, 2.9, 3.9, 4.9],
-            vec![1.1, 2.1, 3.1, 4.1, 5.1],
-        ];
+        let history = vec![vec![0.9, 1.9, 2.9, 3.9, 4.9], vec![1.1, 2.1, 3.1, 4.1, 5.1]];
         let stability = por.compute_stability_metric(&coords, Some(&history));
 
         assert!(stability >= 0.0 && stability <= 1.0);

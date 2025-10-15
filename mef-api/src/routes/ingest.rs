@@ -1,9 +1,5 @@
 /// Ingestion endpoints
-use axum::{
-    extract::State,
-    routing::post,
-    Json, Router,
-};
+use axum::{extract::State, routing::post, Json, Router};
 use chrono::Utc;
 use serde_json::Value as JsonValue;
 
@@ -25,35 +21,40 @@ async fn ingest(
     // Parse data as JSON
     let data_json: JsonValue = serde_json::from_str(&request.data)
         .unwrap_or_else(|_| JsonValue::String(request.data.clone()));
-    
+
     // Normalize the payload
     let normalized = normalize_payload(&data_json);
-    
+
     // Create spiral snapshot handler
-    let spiral = SpiralSnapshot::new(state.spiral_config.as_ref().clone(), state.store_path.as_ref())
-        .map_err(|e| ApiError::Internal(format!("Failed to create spiral snapshot: {}", e)))?;
-    
+    let spiral = SpiralSnapshot::new(
+        state.spiral_config.as_ref().clone(),
+        state.store_path.as_ref(),
+    )
+    .map_err(|e| ApiError::Internal(format!("Failed to create spiral snapshot: {}", e)))?;
+
     // Create snapshot
-    let snapshot = spiral.create_snapshot(&normalized, &request.seed, None)
+    let snapshot = spiral
+        .create_snapshot(&normalized, &request.seed, None)
         .map_err(|e| ApiError::Processing(format!("Failed to create snapshot: {}", e)))?;
-    
+
     // Save the snapshot
-    let _snapshot_path = spiral.save_snapshot(&snapshot)
+    let _snapshot_path = spiral
+        .save_snapshot(&snapshot)
         .map_err(|e| ApiError::Storage(format!("Failed to save snapshot: {}", e)))?;
-    
+
     // Get snapshot ID
     let snapshot_id = snapshot.id.clone();
-    
+
     // Get metrics
     let phase = snapshot.phase;
     let por_result = snapshot.metrics.por.clone();
-    
+
     // Compute hash from the snapshot ID
     use sha2::{Digest, Sha256};
     let mut hasher = Sha256::new();
     hasher.update(snapshot_id.as_bytes());
     let hash = format!("{:x}", hasher.finalize());
-    
+
     Ok(Json(IngestResponse {
         snapshot_id: snapshot_id.clone(),
         phase,
@@ -70,24 +71,29 @@ async fn acquisition(
 ) -> Result<Json<AcquisitionResponse>> {
     // Use default seed from config
     let seed = &state.config.seed;
-    
+
     // Normalize the payload
     let normalized = normalize_payload(&request.data);
-    
+
     // Create spiral snapshot handler
-    let spiral = SpiralSnapshot::new(state.spiral_config.as_ref().clone(), state.store_path.as_ref())
-        .map_err(|e| ApiError::Internal(format!("Failed to create spiral snapshot: {}", e)))?;
-    
+    let spiral = SpiralSnapshot::new(
+        state.spiral_config.as_ref().clone(),
+        state.store_path.as_ref(),
+    )
+    .map_err(|e| ApiError::Internal(format!("Failed to create spiral snapshot: {}", e)))?;
+
     // Create snapshot
-    let snapshot = spiral.create_snapshot(&normalized, seed, None)
+    let snapshot = spiral
+        .create_snapshot(&normalized, seed, None)
         .map_err(|e| ApiError::Processing(format!("Failed to create snapshot: {}", e)))?;
-    
+
     // Save snapshot
-    let _snapshot_path = spiral.save_snapshot(&snapshot)
+    let _snapshot_path = spiral
+        .save_snapshot(&snapshot)
         .map_err(|e| ApiError::Storage(format!("Failed to save snapshot: {}", e)))?;
-    
+
     let snapshot_id = snapshot.id.clone();
-    
+
     Ok(Json(AcquisitionResponse {
         success: true,
         vector_id: snapshot_id,
@@ -99,18 +105,18 @@ async fn acquisition(
 mod tests {
     use super::*;
     use crate::ApiConfig;
-    
+
     #[tokio::test]
     async fn test_ingest_basic() {
         let config = ApiConfig::default();
         let state = AppState::new(config).await.unwrap();
-        
+
         let request = IngestRequest {
             data: r#"{"test": "data"}"#.to_string(),
             data_type: "json".to_string(),
             seed: "test_seed".to_string(),
         };
-        
+
         let result = ingest(State(state), Json(request)).await;
         assert!(result.is_ok());
     }

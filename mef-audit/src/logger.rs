@@ -335,9 +335,7 @@ impl MEFAuditLogger {
 
         for event in &events {
             *event_counts.entry(event.event_type.clone()).or_insert(0) += 1;
-            *component_counts
-                .entry(event.component.clone())
-                .or_insert(0) += 1;
+            *component_counts.entry(event.component.clone()).or_insert(0) += 1;
             *severity_counts
                 .entry(event.severity.to_string())
                 .or_insert(0) += 1;

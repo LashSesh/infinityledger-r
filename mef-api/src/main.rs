@@ -1,6 +1,5 @@
 /// MEF-Core API Server - Main Entry Point
 /// Migrated from: MEF-Core_v1.0/src/api/server.py
-
 use axum::Router;
 use std::net::SocketAddr;
 use tower_http::trace::TraceLayer;
@@ -49,7 +48,7 @@ async fn main() -> anyhow::Result<()> {
     // Start server
     let addr = SocketAddr::from(([0, 0, 0, 0], config.port));
     tracing::info!("Starting server on {}", addr);
-    
+
     let listener = tokio::net::TcpListener::bind(addr).await?;
     axum::serve(listener, app).await?;
 

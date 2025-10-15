@@ -1,6 +1,6 @@
 /*!
  * Field Vector Module - Universal n-dimensional Vector and Resonance Utilities
- * 
+ *
  * Provides:
  * - Vector arithmetic
  * - Normalization
@@ -90,7 +90,7 @@ impl FieldVector {
     }
 
     /// TRM2 update - multipolar resonance model
-    /// 
+    ///
     /// # Arguments
     /// * `inputs` - Input signals
     /// * `kappas` - Coupling strengths (optional, defaults to ones)
@@ -116,7 +116,7 @@ impl FieldVector {
                 dphi += kappas[i] * inputs[i] * (thetas[i] - self.phi).sin();
             }
         }
-        
+
         self.phi += dphi * dt;
         self.history.push(self.phi);
         self.phi.sin()
@@ -203,7 +203,7 @@ mod tests {
         let mut fv = FieldVector::new(vec![1.0, 0.0, 0.0], 0.5);
         let inputs = vec![0.1, 0.2, 0.3];
         let result = fv.trm2_update(&inputs, None, None, 1.0);
-        
+
         // Check that phase was updated
         assert!(fv.phi != 0.0);
         // Check that history was recorded
@@ -218,9 +218,9 @@ mod tests {
         let inputs = vec![0.1, 0.2];
         let kappas = vec![1.0, 2.0];
         let thetas = vec![0.0, PI / 2.0];
-        
+
         let result = fv.trm2_update(&inputs, Some(kappas), Some(thetas), 0.5);
-        
+
         // Check that phase was updated
         assert!(fv.phi != 0.0);
         // Check that history was recorded

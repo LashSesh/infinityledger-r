@@ -1,14 +1,14 @@
 /*!
  * Resonat - Cluster of Resonits forming topologically stable structure
- * 
+ *
  * Resonats are validated through Betti vectors and persistence metrics,
  * ensuring they represent coherent information gestalts.
  */
 
 use crate::resonit::Resonit;
 use anyhow::Result;
-use petgraph::graph::Graph;
 use petgraph::algo::connected_components;
+use petgraph::graph::Graph;
 use petgraph::Undirected;
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
@@ -88,7 +88,7 @@ impl Resonat {
     }
 
     /// Calculate Betti numbers for the Resonat topology
-    /// 
+    ///
     /// Returns:
     ///     List of Betti numbers [β0, β1, β2, ...]
     pub fn calculate_betti_vectors(resonits: &[Resonit]) -> Vec<usize> {
@@ -137,7 +137,7 @@ impl Resonat {
     }
 
     /// Calculate topological persistence score
-    /// 
+    ///
     /// Returns:
     ///     Persistence score in [0, 1]
     fn calculate_persistence(betti: &[usize]) -> f64 {
@@ -176,9 +176,8 @@ impl Resonat {
 
         // Calculate variance
         let mean: f64 = resonances.iter().sum::<f64>() / resonances.len() as f64;
-        let variance: f64 = resonances.iter()
-            .map(|x| (x - mean).powi(2))
-            .sum::<f64>() / resonances.len() as f64;
+        let variance: f64 =
+            resonances.iter().map(|x| (x - mean).powi(2)).sum::<f64>() / resonances.len() as f64;
 
         // Stability is inverse of variance (low variance = high stability)
         1.0 - variance.sqrt().min(1.0)
@@ -199,12 +198,12 @@ mod tests {
     fn test_resonat_creation() {
         let sigma1 = Sigma::new(0.5, 0.5, 0.5);
         let sigma2 = Sigma::new(0.6, 0.6, 0.6);
-        
+
         let r1 = Resonit::new(sigma1, "test".to_string(), 0);
         let r2 = Resonit::new(sigma2, "test".to_string(), 0);
-        
+
         let resonat = Resonat::new(vec![r1, r2]).unwrap();
-        
+
         assert_eq!(resonat.resonits.len(), 2);
         assert_eq!(resonat.metrics.size, 2);
         assert!(resonat.centroid.is_some());
@@ -220,9 +219,9 @@ mod tests {
     fn test_single_resonit() {
         let sigma = Sigma::new(0.5, 0.5, 0.5);
         let r = Resonit::new(sigma, "test".to_string(), 0);
-        
+
         let resonat = Resonat::new(vec![r]).unwrap();
-        
+
         assert_eq!(resonat.metrics.betti, vec![1, 0, 0]);
         assert_eq!(resonat.metrics.size, 1);
     }
@@ -231,12 +230,12 @@ mod tests {
     fn test_centroid_calculation() {
         let sigma1 = Sigma::new(0.0, 0.0, 0.0);
         let sigma2 = Sigma::new(1.0, 1.0, 1.0);
-        
+
         let r1 = Resonit::new(sigma1, "test".to_string(), 0);
         let r2 = Resonit::new(sigma2, "test".to_string(), 0);
-        
+
         let resonat = Resonat::new(vec![r1, r2]).unwrap();
-        
+
         let centroid = resonat.centroid.unwrap();
         assert!((centroid[0] - 0.5).abs() < 1e-6);
         assert!((centroid[1] - 0.5).abs() < 1e-6);
@@ -250,9 +249,9 @@ mod tests {
         let r1 = Resonit::new(sigma, "test".to_string(), 0);
         let r2 = Resonit::new(sigma, "test".to_string(), 0);
         let r3 = Resonit::new(sigma, "test".to_string(), 0);
-        
+
         let resonat = Resonat::new(vec![r1, r2, r3]).unwrap();
-        
+
         // Should be connected (β0 = 1)
         assert_eq!(resonat.metrics.betti[0], 1);
     }
@@ -262,9 +261,9 @@ mod tests {
         let sigma = Sigma::new(0.5, 0.5, 0.5);
         let r1 = Resonit::new(sigma, "test".to_string(), 0);
         let r2 = Resonit::new(sigma, "test".to_string(), 0);
-        
+
         let resonat = Resonat::new(vec![r1, r2]).unwrap();
-        
+
         let persistence = resonat.persistence_score();
         assert!(persistence >= 0.0 && persistence <= 1.0);
     }
@@ -273,15 +272,15 @@ mod tests {
     fn test_serialization() {
         let sigma1 = Sigma::new(0.5, 0.5, 0.5);
         let sigma2 = Sigma::new(0.6, 0.6, 0.6);
-        
+
         let r1 = Resonit::new(sigma1, "test".to_string(), 0);
         let r2 = Resonit::new(sigma2, "test".to_string(), 0);
-        
+
         let resonat = Resonat::new(vec![r1, r2]).unwrap();
-        
+
         let json = serde_json::to_string(&resonat).unwrap();
         let deserialized: Resonat = serde_json::from_str(&json).unwrap();
-        
+
         assert_eq!(resonat.resonits.len(), deserialized.resonits.len());
         assert_eq!(resonat.metrics.size, deserialized.metrics.size);
     }
