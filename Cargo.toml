@@ -12,7 +12,10 @@ members = [
     "mef-audit",
     "mef-topology",
     "mef-api",
-    "mef-cli", "mef-storage", "mef-domains",
+    "mef-cli",
+    "mef-storage",
+    "mef-domains",
+    "mef-vector-db",
 ]
 
 [workspace.package]
