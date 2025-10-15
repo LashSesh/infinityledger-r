@@ -14,6 +14,7 @@ pub mod infogenome;
 pub mod meshholo;
 pub mod adapter;
 pub mod domain_layer;
+pub mod xswap;
 
 // Re-export main types
 pub use resonit::{Resonit, Sigma};
@@ -25,4 +26,5 @@ pub use domain_layer::{
     DomainLayer, DomainMetrics, DomainProcessingResult, 
     GateValidation, CrossDomainResult
 };
+pub use xswap::{Xswap, AlignmentArtifacts};
 
