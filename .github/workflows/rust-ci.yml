@@ -234,10 +234,10 @@ jobs:
       
       - name: Start benchmark services (Qdrant, Milvus)
         run: |
-          # Start Qdrant and Milvus services from docker-compose
-          docker compose -f docker-compose.bench.yml up -d qdrant milvus-etcd milvus-minio milvus
+          # Start Qdrant service from docker-compose
+          docker compose -f docker-compose.bench.yml up -d qdrant
           
-          # Wait for services to be healthy
+          # Wait for Qdrant to be ready
           echo "Waiting for Qdrant to be ready..."
           for i in {1..30}; do
             if curl -f http://localhost:6333/healthz 2>/dev/null; then
@@ -248,15 +248,8 @@ jobs:
             sleep 2
           done
           
-          echo "Waiting for Milvus to be ready..."
-          for i in {1..60}; do
-            if curl -f http://localhost:9091/healthz 2>/dev/null; then
-              echo "Milvus is ready"
-              break
-            fi
-            echo "Waiting for Milvus... ($i/60)"
-            sleep 3
-          done
+          # Note: Milvus excluded due to API compatibility issues with v1/vector endpoints
+          # Requires further investigation and potential driver updates
       
       - name: Run cross-database benchmarks
         env:
@@ -269,13 +262,12 @@ jobs:
           BENCH_OUTPUT: benchmark-results/cross_db_results.json
           MEF_BASE_URL: http://localhost:8000
           QDRANT_URL: http://localhost:6333
-          MILVUS_HOST: localhost
-          MILVUS_PORT: 19530
         run: |
           mkdir -p benchmark-results
           
-          # Run benchmarks with FAISS, MEF, Qdrant, and Milvus
-          ./target/release/cross-db-bench faiss mef qdrant milvus | tee benchmark-results/cross_db_output.txt
+          # Run benchmarks with FAISS (baseline), MEF (Infinity Ledger), and Qdrant
+          # Note: Milvus excluded due to API compatibility issues requiring investigation
+          ./target/release/cross-db-bench faiss mef qdrant | tee benchmark-results/cross_db_output.txt
       
       - name: Display benchmark results
         if: always()
