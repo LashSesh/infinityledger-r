@@ -78,7 +78,7 @@ impl DoubleKick {
         let u1 = Array1::from(u1_data);
 
         // Generate second vector orthogonal to first
-        let mut u2_data: Vec<f64> = (0..5).map(|_| normal.sample(&mut rng)).collect();
+        let u2_data: Vec<f64> = (0..5).map(|_| normal.sample(&mut rng)).collect();
         let mut u2 = Array1::from(u2_data);
 
         // Gram-Schmidt orthogonalization
