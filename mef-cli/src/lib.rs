@@ -1,14 +1,3 @@
-pub fn add(left: u64, right: u64) -> u64 {
-    left + right
-}
-
-#[cfg(test)]
-mod tests {
-    use super::*;
-
-    #[test]
-    fn it_works() {
-        let result = add(2, 2);
-        assert_eq!(result, 4);
-    }
-}
+// MEF-CLI Library
+// This crate provides a command-line interface for MEF-Core
+// The main binary is in src/main.rs
