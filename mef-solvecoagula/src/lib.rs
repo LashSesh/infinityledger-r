@@ -7,6 +7,7 @@ pub mod operators;
 pub mod doublekick;
 pub mod sweep;
 pub mod pfadinvarianz;
+pub mod weight_transfer;
 
 use anyhow::Result;
 use ndarray::{Array1, Array2};
