@@ -62,31 +62,11 @@ impl Default for LedgerIndex {
 pub struct CompactTic {
     pub tic_id: String,
     pub seed: String,
-    /// Stored as string to ensure deterministic serialization
-    #[serde(serialize_with = "serialize_f64_as_string")]
-    #[serde(deserialize_with = "deserialize_f64_from_string")]
+    /// Stored with deterministic precision to ensure hash consistency
     pub fixpoint_norm: f64,
     pub invariants: JsonValue,
     pub sigma_bar: JsonValue,
     pub window: Vec<String>,
-}
-
-// Helper functions for deterministic f64 serialization
-fn serialize_f64_as_string<S>(value: &f64, serializer: S) -> Result<S::Ok, S::Error>
-where
-    S: serde::Serializer,
-{
-    // Use a fixed precision format to ensure determinism
-    serializer.serialize_str(&format!("{:.16}", value))
-}
-
-fn deserialize_f64_from_string<'de, D>(deserializer: D) -> Result<f64, D::Error>
-where
-    D: serde::Deserializer<'de>,
-{
-    use serde::Deserialize;
-    let s = String::deserialize(deserializer)?;
-    s.parse().map_err(serde::de::Error::custom)
 }
 
 /// MEF Block structure
@@ -197,6 +177,33 @@ impl MEFLedger {
         }
     }
 
+    /// Normalize floating point numbers in JSON for deterministic hashing
+    fn normalize_floats_in_json(value: &mut JsonValue) {
+        match value {
+            JsonValue::Object(map) => {
+                for (_key, val) in map.iter_mut() {
+                    Self::normalize_floats_in_json(val);
+                }
+            }
+            JsonValue::Array(arr) => {
+                for val in arr.iter_mut() {
+                    Self::normalize_floats_in_json(val);
+                }
+            }
+            JsonValue::Number(n) => {
+                // Only normalize if it's a float, not an integer
+                if let Some(f) = n.as_f64() {
+                    if !n.is_i64() && !n.is_u64() {
+                        // It's a float, normalize it
+                        let formatted = format!("{:.16e}", f);
+                        *value = JsonValue::String(formatted);
+                    }
+                }
+            }
+            _ => {}
+        }
+    }
+
     pub fn compute_block_hash(block: &JsonValue) -> String {
         // Remove hash field if present
         let mut block_data = block.clone();
@@ -205,7 +212,10 @@ impl MEFLedger {
         }
 
         // Canonicalize JSON to ensure deterministic serialization
-        let canonical_block = Self::canonicalize_json(&block_data);
+        let mut canonical_block = Self::canonicalize_json(&block_data);
+        
+        // Normalize all floating point numbers to strings for determinism
+        Self::normalize_floats_in_json(&mut canonical_block);
 
         // Create deterministic string representation
         let block_str = serde_json::to_string(&canonical_block).unwrap();
@@ -260,16 +270,19 @@ impl MEFLedger {
             .ok_or_else(|| anyhow::anyhow!("Missing seed"))?
             .to_string();
 
-        // Compute fixpoint norm
+        // Compute fixpoint norm and round to fixed precision for determinism
         let fixpoint = tic["fixpoint"]
             .as_array()
             .ok_or_else(|| anyhow::anyhow!("Missing fixpoint"))?;
-        let fixpoint_norm: f64 = fixpoint
+        let fixpoint_norm_raw: f64 = fixpoint
             .iter()
             .filter_map(|v| v.as_f64())
             .map(|x| x * x)
             .sum::<f64>()
             .sqrt();
+        
+        // Round to 15 significant digits to ensure deterministic serialization
+        let fixpoint_norm = format!("{:.15e}", fixpoint_norm_raw).parse::<f64>().unwrap();
 
         let window = tic["window"]
             .as_array()
@@ -350,7 +363,7 @@ impl MEFLedger {
             anyhow::bail!("Chain integrity check failed");
         }
 
-        // Save block to disk
+        // Save block to disk in standard format (not normalized)
         let block_file = self
             .ledger_path
             .join(format!("block_{:06}.mef", block.index));
@@ -399,12 +412,6 @@ impl MEFLedger {
     pub fn verify_block_hash(&self, block: &MefBlock) -> bool {
         let block_json = serde_json::to_value(block).unwrap();
         let computed_hash = Self::compute_block_hash(&block_json);
-        if block.hash != computed_hash {
-            eprintln!("Block {} hash verification failed:", block.index);
-            eprintln!("  Stored hash: {}", block.hash);
-            eprintln!("  Computed hash: {}", computed_hash);
-            eprintln!("  Block JSON: {}", serde_json::to_string_pretty(&block_json).unwrap());
-        }
         block.hash == computed_hash
     }
 
@@ -585,5 +592,98 @@ mod tests {
         // Verify chain
         assert!(ledger.verify_chain_integrity(0).unwrap());
         assert_eq!(ledger.index.current_index, 9);
+    }
+
+    #[test]
+    fn test_deterministic_hash_golden() {
+        // Golden test: Verify that hash computation is deterministic
+        // Given the same block JSON, we should always get the same hash
+        
+        // Test 1: Verify hash function is deterministic
+        let block_json = json!({
+            "index": 0,
+            "previous_hash": "0".repeat(64),
+            "timestamp": "2025-10-16T00:00:00.000000Z",
+            "tic_id": "golden-tic-001",
+            "snapshot_hash": "abc123",
+            "data": {
+                "tic_id": "golden-tic-001",
+                "seed": "GOLDEN_SEED",
+                "fixpoint_norm": "4.1231056256176610",
+                "invariants": {"variance": 0.1, "alpha": 0.05},
+                "sigma_bar": {"psi": 0.5, "theta": 0.3},
+                "window": ["2025-10-15T00:00:00", "2025-10-15T01:00:00"]
+            },
+            "proof": {"merkle_root": "golden_root", "depth": 5}
+        });
+        
+        // Compute hash multiple times - should be identical
+        let hash1 = MEFLedger::compute_block_hash(&block_json);
+        let hash2 = MEFLedger::compute_block_hash(&block_json);
+        let hash3 = MEFLedger::compute_block_hash(&block_json);
+        
+        assert_eq!(hash1, hash2);
+        assert_eq!(hash2, hash3);
+        
+        // Test 2: Verify JSON canonicalization handles different key orders
+        let block_json_reordered = json!({
+            "proof": {"depth": 5, "merkle_root": "golden_root"},
+            "data": {
+                "window": ["2025-10-15T00:00:00", "2025-10-15T01:00:00"],
+                "sigma_bar": {"theta": 0.3, "psi": 0.5},
+                "invariants": {"alpha": 0.05, "variance": 0.1},
+                "fixpoint_norm": "4.1231056256176610",
+                "seed": "GOLDEN_SEED",
+                "tic_id": "golden-tic-001"
+            },
+            "snapshot_hash": "abc123",
+            "tic_id": "golden-tic-001",
+            "timestamp": "2025-10-16T00:00:00.000000Z",
+            "previous_hash": "0".repeat(64),
+            "index": 0
+        });
+        
+        let hash_reordered = MEFLedger::compute_block_hash(&block_json_reordered);
+        assert_eq!(
+            hash1, hash_reordered,
+            "Hash should be same regardless of JSON key order"
+        );
+        
+        // Test 3: Verify changing data changes hash
+        let mut block_json_modified = block_json.clone();
+        block_json_modified["data"]["seed"] = json!("DIFFERENT_SEED");
+        let hash_modified = MEFLedger::compute_block_hash(&block_json_modified);
+        assert_ne!(hash1, hash_modified, "Hash should change when data changes");
+        
+        // Test 4: Verify loaded blocks maintain their hash
+        let temp_dir = std::env::temp_dir().join("test_golden_hash");
+        let _ = std::fs::remove_dir_all(&temp_dir);
+        let mut ledger = MEFLedger::new(&temp_dir).unwrap();
+
+        let tic = json!({
+            "tic_id": "golden-tic-001",
+            "seed": "GOLDEN_SEED",
+            "fixpoint": [1.234567890123456, 2.345678901234567, 3.456789012345678],
+            "invariants": {"variance": 0.1, "alpha": 0.05},
+            "sigma_bar": {"psi": 0.5, "theta": 0.3},
+            "window": ["2025-10-15T00:00:00", "2025-10-15T01:00:00"],
+            "proof": {"merkle_root": "golden_root", "depth": 5}
+        });
+
+        let snapshot = json!({
+            "id": "golden-snap-001",
+            "coordinates": [1.0, 2.0, 3.0, 4.0, 5.0],
+            "metadata": {"version": "1.0"}
+        });
+
+        let block = ledger.append_block(&tic, &snapshot).unwrap();
+        let original_hash = block.hash.clone();
+        
+        // Load the block back and verify hash is unchanged
+        let loaded_block = ledger.get_block(0).unwrap().unwrap();
+        assert_eq!(original_hash, loaded_block.hash);
+        
+        // Verify the block hash is correct after round-trip
+        assert!(ledger.verify_block_hash(&loaded_block));
     }
 }
