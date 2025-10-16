@@ -152,10 +152,7 @@ impl VectorStoreDriver for MEFDriver {
         for (identifier, vector, metadata) in items {
             let mut payload = HashMap::new();
             payload.insert("id".to_string(), json!(identifier));
-            payload.insert(
-                "vector".to_string(),
-                json!(vector.to_vec()),
-            );
+            payload.insert("vector".to_string(), json!(vector.to_vec()));
             payload.insert("epoch".to_string(), json!(1)); // Default epoch for benchmarking
 
             if let Some(meta) = metadata {
