@@ -3,7 +3,19 @@
 [![CI/CD](https://github.com/LashSesh/infinityledger/workflows/Rust%20CI/CD/badge.svg)](https://github.com/LashSesh/infinityledger/actions)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 
-**Infinity Ledger** is a high-performance, enterprise-grade implementation of the MEF-Core (Mandorla Eigenstate Fractals) system, written entirely in Rust for maximum performance, safety, and reliability.
+**Infinity Ledger** is a high-performance, enterprise-grade **proof-carrying vector ledger engine** built on the MEF-Core (Mandorla Eigenstate Fractals) system. Written entirely in Rust for maximum performance, safety, and reliability.
+
+## 🔬 What is a Proof-Carrying Vector Ledger Engine?
+
+Unlike traditional vector databases, Infinity Ledger is a **proof-carrying vector ledger engine** that combines:
+
+- **Cryptographic Proof-of-Resonance**: Every vector operation includes mathematical proofs of data integrity and topological coherence
+- **Immutable Ledger**: Hash-chained blockchain structure with SHA-256 for audit trails and temporal provenance
+- **Vector Search**: High-performance HNSW and IVF-PQ indexing for approximate nearest neighbor search
+- **Topological Verification**: Metatron Cube-based routing and Merkaba gate validation for data quality
+- **Temporal Information Crystals (TICs)**: Deterministic snapshots with fixpoint convergence proofs
+
+This is not a vector database—it's a **cryptographically-verifiable, audit-ready vector ledger** with proof-carrying capabilities.
 
 ## 🦀 Modern Rust Implementation
 
