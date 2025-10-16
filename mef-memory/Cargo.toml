@@ -1,0 +1,51 @@
+[package]
+name = "mef-memory"
+version.workspace = true
+edition.workspace = true
+authors.workspace = true
+license.workspace = true
+repository.workspace = true
+
+[dependencies]
+# Workspace dependencies
+mef-schemas = { path = "../mef-schemas" }
+mef-knowledge = { path = "../mef-knowledge" }
+
+# Serialization
+serde = { workspace = true }
+serde_json = { workspace = true }
+
+# Numerics
+ndarray = { workspace = true }
+
+# Cryptography
+uuid = { workspace = true }
+
+# Date/Time
+chrono = { workspace = true }
+
+# Error handling
+anyhow = { workspace = true }
+thiserror = { workspace = true }
+
+# Async runtime
+tokio = { workspace = true }
+async-trait = "0.1"
+
+# Logging
+tracing = { workspace = true }
+
+# Optional vector database backends (feature-gated)
+# These are intentionally NOT imported by default to maintain minimal footprint
+# TODO: Add specific vector DB implementations when needed
+# faiss = { version = "0.x", optional = true }
+# hnswlib = { version = "0.x", optional = true }
+
+[dev-dependencies]
+tempfile = { workspace = true }
+
+[features]
+default = []
+# TODO: Add feature flags for specific vector DB backends
+# faiss = ["dep:faiss"]
+# hnswlib = ["dep:hnswlib"]
