@@ -156,12 +156,12 @@ Successfully extended the CI/CD cross-database benchmarking infrastructure to co
 ### Benchmark Configuration
 
 ```bash
-BENCH_NUM_VECTORS: 5000
+BENCH_NUM_VECTORS: 50000
 BENCH_NUM_QUERIES: 50
 BENCH_DIMENSION: 128
 BENCH_K: 10
 BENCH_METRIC: cosine
-BENCH_BATCH_SIZE: 500
+BENCH_BATCH_SIZE: 5000
 MEF_BASE_URL: http://localhost:8000
 QDRANT_URL: http://localhost:6333
 ```

@@ -33,23 +33,23 @@ cargo run --package mef-bench --bin cross-db-bench --release faiss elastic qdran
 cargo run --package mef-bench --bin cross-db-bench --release
 
 # Configure via environment variables
-BENCH_NUM_VECTORS=10000 \
+BENCH_NUM_VECTORS=50000 \
 BENCH_NUM_QUERIES=100 \
 BENCH_K=10 \
 BENCH_METRIC=cosine \
-BENCH_BATCH_SIZE=1000 \
+BENCH_BATCH_SIZE=5000 \
 BENCH_OUTPUT=results.json \
 cargo run --package mef-bench --bin cross-db-bench --release faiss
 ```
 
 **Environment Variables:**
 
-- `BENCH_NUM_VECTORS`: Number of vectors to index (default: 10000)
+- `BENCH_NUM_VECTORS`: Number of vectors to index (default: 10000, CI uses 50000)
 - `BENCH_NUM_QUERIES`: Number of search queries to run (default: 100)
 - `BENCH_DIMENSION`: Vector dimension (default: 128)
 - `BENCH_K`: Number of neighbors to retrieve (default: 10)
 - `BENCH_METRIC`: Distance metric - `cosine`, `l2`, or `ip` (default: cosine)
-- `BENCH_BATCH_SIZE`: Batch size for upserts (default: 1000)
+- `BENCH_BATCH_SIZE`: Batch size for upserts (default: 1000, CI uses 5000)
 - `BENCH_OUTPUT`: Output file path (default: benchmark_results.json)
 
 **Driver-Specific Configuration:**
@@ -302,6 +302,23 @@ Results are uploaded as GitHub Actions artifacts.
 - Increase BENCH_BATCH_SIZE for better throughput
 - Use release build for accurate measurements
 - Ensure adequate system resources
+
+### Scaling to Larger Datasets
+
+For testing with 100K vectors or more:
+
+```bash
+# 100K vectors with 10K batch size
+BENCH_NUM_VECTORS=100000 \
+BENCH_BATCH_SIZE=10000 \
+BENCH_NUM_QUERIES=50 \
+./target/release/cross-db-bench faiss mef qdrant
+
+# For even larger datasets, adjust batch size proportionally
+# Rule of thumb: batch_size = num_vectors / 10 to num_vectors / 20
+```
+
+**Note**: The CI is configured to run with 50K vectors and 5K batch size for comprehensive testing while maintaining reasonable runtime.
 
 ## References
 
