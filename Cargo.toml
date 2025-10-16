@@ -16,6 +16,10 @@ members = [
     "mef-storage",
     "mef-domains",
     "mef-vector-db", "mef-acquisition", "mef-specs", "mef-bench", "mef-benchmarks",
+    "mef-schemas",
+    "mef-knowledge",
+    "mef-memory",
+    "mef-router",
 ]
 
 [workspace.package]
