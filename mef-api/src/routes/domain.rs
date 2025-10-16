@@ -32,6 +32,7 @@ struct DomainProcessRequest {
     data: Vec<f64>,
     domain_type: String,
     #[serde(default)]
+    #[allow(dead_code)]
     params: Option<JsonValue>,
 }
 
@@ -131,6 +132,7 @@ async fn process_domain_data(
 #[derive(Debug, Deserialize)]
 struct CreateResonitRequest {
     data: Vec<f64>,
+    #[allow(dead_code)]
     metadata: Option<JsonValue>,
 }
 
@@ -211,7 +213,9 @@ async fn get_resonit(
 #[derive(Debug, Deserialize)]
 struct ClusterResonatRequest {
     resonit_ids: Vec<String>,
+    #[allow(dead_code)]
     clustering_method: Option<String>,
+    #[allow(dead_code)]
     threshold: Option<f64>,
 }
 
@@ -242,9 +246,9 @@ async fn cluster_resonat(
     }
 
     if resonits.is_empty() {
-        return Err(
-            ApiError::InvalidInput("No valid resonits found for clustering".to_string()).into(),
-        );
+        return Err(ApiError::InvalidInput(
+            "No valid resonits found for clustering".to_string(),
+        ));
     }
 
     // Create Resonat from resonits
@@ -291,6 +295,7 @@ async fn get_resonat(
 #[derive(Debug, Deserialize)]
 struct TriangulateMeshRequest {
     resonat_id: String,
+    #[allow(dead_code)]
     triangulation_method: Option<String>,
 }
 
@@ -354,6 +359,7 @@ async fn triangulate_mesh(
 #[derive(Debug, Deserialize)]
 struct GetMeshQuery {
     #[serde(default)]
+    #[allow(dead_code)]
     format: Option<String>, // json, obj, ply
 }
 
@@ -499,8 +505,6 @@ async fn evolve_infogenome(
     State(state): State<AppState>,
     Json(request): Json<EvolveInfogenomeRequest>,
 ) -> Result<Json<InfogenomeResponse>> {
-    use mef_domains::Infogenome;
-
     let mut domain_layer = state.domain_layer.lock().unwrap();
 
     // Evolve population for requested generations

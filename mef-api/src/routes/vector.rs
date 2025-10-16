@@ -212,7 +212,7 @@ async fn list_collection_vectors(
             let metadata = vec_data
                 .get("metadata")
                 .and_then(|v| v.as_object())
-                .map(|obj| obj.clone());
+                .cloned();
 
             let epoch = vec_data.get("epoch").and_then(|v| v.as_i64());
 

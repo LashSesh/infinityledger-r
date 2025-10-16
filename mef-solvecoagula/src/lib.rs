@@ -12,8 +12,8 @@ pub mod weight_transfer;
 use anyhow::Result;
 use ndarray::{Array1, Array2};
 use operators::{
-    iterate_to_fixpoint, ConvergenceInfo, ConvergenceStep, DKArgs, FixpointParams, PIArgs,
-    SWArgs, WTArgs,
+    iterate_to_fixpoint, ConvergenceInfo, ConvergenceStep, DKArgs, FixpointParams, PIArgs, SWArgs,
+    WTArgs,
 };
 use serde::{Deserialize, Serialize};
 use serde_json::Value;
@@ -292,13 +292,8 @@ impl SolveCoagula {
             pi_args: Some(&pi_args),
             wt_args: Some(&wt_args),
         };
-        let (mut v_star, steps) = iterate_to_fixpoint(
-            v0,
-            &self.w,
-            &self.b,
-            self.lambda_factor,
-            &params,
-        )?;
+        let (mut v_star, steps) =
+            iterate_to_fixpoint(v0, &self.w, &self.b, self.lambda_factor, &params)?;
 
         let mut history = Vec::new();
         if track_convergence && steps > 0 {

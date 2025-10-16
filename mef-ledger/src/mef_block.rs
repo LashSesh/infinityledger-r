@@ -158,6 +158,7 @@ impl MEFLedger {
     ///
     /// # Arguments
     /// * `block` - Block data (without hash field)
+    ///
     /// Canonicalize JSON by recursively sorting all object keys
     fn canonicalize_json(value: &JsonValue) -> JsonValue {
         match value {
@@ -171,7 +172,7 @@ impl MEFLedger {
                 JsonValue::Object(sorted_map)
             }
             JsonValue::Array(arr) => {
-                JsonValue::Array(arr.iter().map(|v| Self::canonicalize_json(v)).collect())
+                JsonValue::Array(arr.iter().map(Self::canonicalize_json).collect())
             }
             _ => value.clone(),
         }
@@ -213,7 +214,7 @@ impl MEFLedger {
 
         // Canonicalize JSON to ensure deterministic serialization
         let mut canonical_block = Self::canonicalize_json(&block_data);
-        
+
         // Normalize all floating point numbers to strings for determinism
         Self::normalize_floats_in_json(&mut canonical_block);
 
@@ -280,9 +281,11 @@ impl MEFLedger {
             .map(|x| x * x)
             .sum::<f64>()
             .sqrt();
-        
+
         // Round to 15 significant digits to ensure deterministic serialization
-        let fixpoint_norm = format!("{:.15e}", fixpoint_norm_raw).parse::<f64>().unwrap();
+        let fixpoint_norm = format!("{:.15e}", fixpoint_norm_raw)
+            .parse::<f64>()
+            .unwrap();
 
         let window = tic["window"]
             .as_array()
@@ -598,7 +601,7 @@ mod tests {
     fn test_deterministic_hash_golden() {
         // Golden test: Verify that hash computation is deterministic
         // Given the same block JSON, we should always get the same hash
-        
+
         // Test 1: Verify hash function is deterministic
         let block_json = json!({
             "index": 0,
@@ -616,15 +619,15 @@ mod tests {
             },
             "proof": {"merkle_root": "golden_root", "depth": 5}
         });
-        
+
         // Compute hash multiple times - should be identical
         let hash1 = MEFLedger::compute_block_hash(&block_json);
         let hash2 = MEFLedger::compute_block_hash(&block_json);
         let hash3 = MEFLedger::compute_block_hash(&block_json);
-        
+
         assert_eq!(hash1, hash2);
         assert_eq!(hash2, hash3);
-        
+
         // Test 2: Verify JSON canonicalization handles different key orders
         let block_json_reordered = json!({
             "proof": {"depth": 5, "merkle_root": "golden_root"},
@@ -642,19 +645,19 @@ mod tests {
             "previous_hash": "0".repeat(64),
             "index": 0
         });
-        
+
         let hash_reordered = MEFLedger::compute_block_hash(&block_json_reordered);
         assert_eq!(
             hash1, hash_reordered,
             "Hash should be same regardless of JSON key order"
         );
-        
+
         // Test 3: Verify changing data changes hash
         let mut block_json_modified = block_json.clone();
         block_json_modified["data"]["seed"] = json!("DIFFERENT_SEED");
         let hash_modified = MEFLedger::compute_block_hash(&block_json_modified);
         assert_ne!(hash1, hash_modified, "Hash should change when data changes");
-        
+
         // Test 4: Verify loaded blocks maintain their hash
         let temp_dir = std::env::temp_dir().join("test_golden_hash");
         let _ = std::fs::remove_dir_all(&temp_dir);
@@ -678,11 +681,11 @@ mod tests {
 
         let block = ledger.append_block(&tic, &snapshot).unwrap();
         let original_hash = block.hash.clone();
-        
+
         // Load the block back and verify hash is unchanged
         let loaded_block = ledger.get_block(0).unwrap().unwrap();
         assert_eq!(original_hash, loaded_block.hash);
-        
+
         // Verify the block hash is correct after round-trip
         assert!(ledger.verify_block_hash(&loaded_block));
     }

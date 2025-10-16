@@ -40,10 +40,12 @@ pub use bench_runner::{
 
 use std::collections::HashMap;
 
+/// Type alias for driver constructor function
+type DriverConstructor = fn(Option<&str>) -> Box<dyn VectorStoreDriver>;
+
 /// Driver registry mapping names to driver constructors
-pub fn get_driver_registry() -> HashMap<String, fn(Option<&str>) -> Box<dyn VectorStoreDriver>> {
-    let mut registry: HashMap<String, fn(Option<&str>) -> Box<dyn VectorStoreDriver>> =
-        HashMap::new();
+pub fn get_driver_registry() -> HashMap<String, DriverConstructor> {
+    let mut registry: HashMap<String, DriverConstructor> = HashMap::new();
 
     registry.insert("mef".to_string(), |metric| {
         Box::new(MEFDriver::new(metric)) as Box<dyn VectorStoreDriver>

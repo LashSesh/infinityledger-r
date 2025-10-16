@@ -100,7 +100,7 @@ mod base64 {
             }
         }
         // Pad with '='
-        while result.len() % 4 != 0 {
+        while !result.len().is_multiple_of(4) {
             result.push('=');
         }
         result

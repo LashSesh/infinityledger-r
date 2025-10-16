@@ -197,10 +197,7 @@ impl MetatronCube {
         for (solid_name, subsets) in solid_sets() {
             for subset in subsets {
                 for idx in subset {
-                    membership
-                        .entry(idx)
-                        .or_default()
-                        .push(solid_name.clone());
+                    membership.entry(idx).or_default().push(solid_name.clone());
                 }
             }
         }
@@ -415,10 +412,7 @@ impl MetatronCube {
 
         let n1_membership = self.node_membership.get(&i).cloned().unwrap_or_default();
         let n2_membership = self.node_membership.get(&j).cloned().unwrap_or_default();
-        let mut solids: Vec<String> = n1_membership
-            .into_iter()
-            .chain(n2_membership)
-            .collect();
+        let mut solids: Vec<String> = n1_membership.into_iter().chain(n2_membership).collect();
         solids.sort();
         solids.dedup();
 

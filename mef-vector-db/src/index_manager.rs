@@ -265,10 +265,7 @@ impl IndexManager {
         }
 
         // Now apply updates
-        let state = self
-            .collections
-            .entry(collection.to_string())
-            .or_default();
+        let state = self.collections.entry(collection.to_string()).or_default();
 
         for (id, payload) in &updates {
             state.vectors.insert(id.clone(), payload.clone());
@@ -324,10 +321,7 @@ impl IndexManager {
         vector_ids: &[String],
         epoch: Option<i64>,
     ) -> Result<CollectionState> {
-        let state = self
-            .collections
-            .entry(collection.to_string())
-            .or_default();
+        let state = self.collections.entry(collection.to_string()).or_default();
 
         let mut removed = false;
         for vector_id in vector_ids {
@@ -727,10 +721,7 @@ impl IndexManager {
 
         if !self.provider_instances.contains_key(collection) {
             let mut provider = get_provider(Some(&provider_name));
-            let state = self
-                .collections
-                .entry(collection.to_string())
-                .or_default();
+            let state = self.collections.entry(collection.to_string()).or_default();
             provider.build(&state.vectors);
             self.provider_instances
                 .insert(collection.to_string(), provider);

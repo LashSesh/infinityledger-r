@@ -21,7 +21,7 @@ fn get_client() -> Client {
 fn test_health_endpoint() {
     let client = get_client();
     let response = client
-        .get(&format!("{}/healthz", API_BASE_URL))
+        .get(format!("{}/healthz", API_BASE_URL))
         .send()
         .expect("Failed to send request");
 
@@ -36,7 +36,7 @@ fn test_health_endpoint() {
 fn test_metrics_endpoint() {
     let client = get_client();
     let response = client
-        .get(&format!("{}/metrics", API_BASE_URL))
+        .get(format!("{}/metrics", API_BASE_URL))
         .send()
         .expect("Failed to send request");
 
@@ -61,7 +61,7 @@ fn test_search_endpoint() {
     });
 
     let response = client
-        .post(&format!("{}/search", API_BASE_URL))
+        .post(format!("{}/search", API_BASE_URL))
         .json(&search_request)
         .send()
         .expect("Failed to send request");
@@ -88,7 +88,7 @@ fn test_spiral_snapshot_endpoint() {
     });
 
     let response = client
-        .post(&format!("{}/spiral/snapshot", API_BASE_URL))
+        .post(format!("{}/spiral/snapshot", API_BASE_URL))
         .json(&snapshot_request)
         .send()
         .expect("Failed to send request");
@@ -123,7 +123,7 @@ fn test_ledger_block_endpoint() {
     });
 
     let response = client
-        .post(&format!("{}/ledger/block", API_BASE_URL))
+        .post(format!("{}/ledger/block", API_BASE_URL))
         .json(&block_request)
         .send()
         .expect("Failed to send request");
@@ -146,7 +146,7 @@ fn test_api_error_handling() {
     });
 
     let response = client
-        .post(&format!("{}/search", API_BASE_URL))
+        .post(format!("{}/search", API_BASE_URL))
         .json(&invalid_request)
         .send()
         .expect("Failed to send request");
@@ -165,7 +165,7 @@ fn test_concurrent_requests() {
             thread::spawn(move || {
                 let client = get_client();
                 let response = client
-                    .get(&format!("{}/healthz", API_BASE_URL))
+                    .get(format!("{}/healthz", API_BASE_URL))
                     .send()
                     .expect("Failed to send request");
 

@@ -2,7 +2,7 @@
 //!
 //! Establishes performance baseline and tracks metrics over time.
 
-use criterion::{black_box, criterion_group, criterion_main, BenchmarkId, Criterion};
+use criterion::{black_box, criterion_group, criterion_main, Criterion};
 use mef_ledger::MEFLedger;
 use mef_spiral::{SpiralConfig, SpiralSnapshot};
 use serde_json::json;

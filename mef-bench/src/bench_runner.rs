@@ -5,14 +5,14 @@
  */
 
 use anyhow::{Context, Result};
-use reqwest::blocking::{Client, Response};
+use reqwest::blocking::Client;
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 use std::fs;
 use std::path::{Path, PathBuf};
-use std::time::{Duration, Instant};
+use std::time::Duration;
 
-use crate::datasets::{build_spiral_corpus, generate_query_vectors, iter_records, Record};
+use crate::datasets::{build_spiral_corpus, Record};
 
 /// Timeout configuration for benchmark HTTP requests
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -145,7 +145,9 @@ impl Default for LatencyMetrics {
 /// Benchmark runner
 pub struct BenchmarkRunner {
     config: BenchmarkConfig,
+    #[allow(dead_code)]
     base_url: String,
+    #[allow(dead_code)]
     client: Client,
     progress_log: PathBuf,
     report_path: PathBuf,
@@ -220,6 +222,7 @@ impl BenchmarkRunner {
     }
 
     /// Calculate percentiles from samples
+    #[allow(dead_code)]
     fn percentiles(values: &[f64]) -> LatencyMetrics {
         if values.is_empty() {
             return LatencyMetrics::default();
@@ -235,6 +238,7 @@ impl BenchmarkRunner {
         }
     }
 
+    #[allow(dead_code)]
     fn percentile(values: &[f64], percent: f64) -> f64 {
         if values.is_empty() {
             return 0.0;
@@ -280,7 +284,7 @@ impl BenchmarkRunner {
 
         // Generate dataset
         let (ids, vectors) = build_spiral_corpus(self.config.points, 123);
-        let records: Vec<Record> = crate::iter_records(&ids, &vectors).collect();
+        let _records: Vec<Record> = crate::iter_records(&ids, &vectors).collect();
 
         // TODO: Implement ingestion, indexing, and query phases
         // This is a minimal stub for now

@@ -590,9 +590,7 @@ impl S3StorageAdapter {
                     .send()
                     .await?;
 
-                let metadata = head_response
-                    .metadata().cloned()
-                    .unwrap_or_default();
+                let metadata = head_response.metadata().cloned().unwrap_or_default();
 
                 artifacts.push(ArtifactMetadata {
                     key: key.to_string(),

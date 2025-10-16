@@ -265,7 +265,7 @@ mod tests {
         let resonat = Resonat::new(vec![r1, r2]).unwrap();
 
         let persistence = resonat.persistence_score();
-        assert!(persistence >= 0.0 && persistence <= 1.0);
+        assert!((0.0..=1.0).contains(&persistence));
     }
 
     #[test]

@@ -152,10 +152,7 @@ impl VectorStoreDriver for MEFDriver {
         for (identifier, vector, metadata) in items {
             let mut payload = HashMap::new();
             payload.insert("id".to_string(), json!(identifier));
-            payload.insert(
-                "vector".to_string(),
-                json!(vector.iter().map(|&v| v as f64).collect::<Vec<_>>()),
-            );
+            payload.insert("vector".to_string(), json!(vector.to_vec()));
             payload.insert("epoch".to_string(), json!(1)); // Default epoch for benchmarking
 
             if let Some(meta) = metadata {
@@ -191,7 +188,7 @@ impl VectorStoreDriver for MEFDriver {
         let url = format!("{}/search", self.base_url);
         let payload = json!({
             "collection": namespace,
-            "query_vector": query.iter().map(|&v| v as f64).collect::<Vec<_>>(),
+            "query_vector": query.to_vec(),
             "top_k": k as i32,
             "mode": "ann",
             "solve": false,

@@ -31,10 +31,12 @@ pub fn router() -> Router<AppState> {
 struct ProcessRequest {
     raw_input: JsonValue,
     #[serde(default = "default_input_type")]
+    #[allow(dead_code)]
     input_type: String,
     #[serde(default)]
     target_properties: Option<JsonValue>,
     #[serde(default = "default_use_cached_route")]
+    #[allow(dead_code)]
     use_cached_route: bool,
 }
 
@@ -472,7 +474,7 @@ struct TopologyNodesResponse {
 }
 
 async fn get_topology_nodes(
-    State(state): State<AppState>,
+    State(_state): State<AppState>,
     Query(query): Query<TopologyNodesQuery>,
 ) -> Result<Json<TopologyNodesResponse>> {
     // Get canonical nodes from Metatron Cube
@@ -672,7 +674,7 @@ struct ResonanceResponse {
 }
 
 async fn calculate_resonance(
-    State(state): State<AppState>,
+    State(_state): State<AppState>,
     Json(request): Json<ResonanceRequest>,
 ) -> Result<Json<ResonanceResponse>> {
     // Calculate resonance using basic metrics since calculate_resonance is private
