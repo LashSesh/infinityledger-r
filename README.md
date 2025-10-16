@@ -1,426 +1,274 @@
-# Infinity Ledger - Enterprise-Ready Infrastructure
+# Infinity Ledger (MEF-Core)
 
-[![CI/CD](https://github.com/LashSesh/infinity-ledger/workflows/CI/badge.svg)](https://github.com/LashSesh/infinity-ledger/actions)
+[![CI/CD](https://github.com/LashSesh/infinityledger/workflows/Rust%20CI/CD/badge.svg)](https://github.com/LashSesh/infinityledger/actions)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 
-Enterprise-grade infrastructure and CI/CD pipeline for Infinity Ledger, featuring MEF-Core (Mandorla Eigenstate Fractals) with robust deployment, monitoring, and security capabilities.
+**Infinity Ledger** is a high-performance, enterprise-grade implementation of the MEF-Core (Mandorla Eigenstate Fractals) system, written entirely in Rust for maximum performance, safety, and reliability.
 
-## 🦀 Rust Migration In Progress
+## 🦀 Modern Rust Implementation
 
-The MEF-Core system is being migrated from Python to Rust for improved performance, safety, and concurrency. See [RUST_BUILD_GUIDE.md](./RUST_BUILD_GUIDE.md) for details.
+This project represents a complete Rust reimplementation of the MEF-Core system, featuring:
 
-**Migration Status**: 2 of 76 core modules completed (2.6%)
-- ✅ `mef-spiral` - Spiral snapshot system
-- ✅ `mef-ledger` - Hash-chained ledger
-- 🚧 Remaining modules in progress
-
-[Migration Documentation](./MIGRATION.md) | [Rust Build Guide](./RUST_BUILD_GUIDE.md)
-
-## 🚀 Quick Start
-
-### Local Development
-
-```bash
-# Clone repository
-git clone https://github.com/LashSesh/infinity-ledger.git
-cd infinity-ledger
-
-# Set up environment
-cp .env.development .env
-
-# Start services
-docker compose -f docker-compose.ci.yml --profile compare up -d
-
-# Run tests
-docker compose -f docker-compose.ci.yml --profile compare up qa
-```
-
-### Production Deployment
-
-```bash
-# Configure environment
-cp .env.production .env
-# Edit .env with your credentials
-
-# Set up secrets
-echo "your-api-token" | docker secret create mef_api_token -
-echo "your-quality-token" | docker secret create quality_token -
-
-# Deploy with monitoring
-docker compose -f docker-compose.production.yml \
-  --profile production \
-  --profile monitoring \
-  up -d
-
-# Verify deployment
-docker compose -f docker-compose.production.yml ps
-curl http://localhost:8080/healthz
-```
-
-## 📋 Features
-
-### Enterprise Infrastructure
-
-✅ **Network Segmentation**
-- Isolated networks for test, database, and monitoring
-- Enhanced security through network-level isolation
-- Custom subnet configuration for each network
-
-✅ **Resource Management**
-- CPU and memory limits for all services
-- Resource reservations for guaranteed baseline performance
-- Configurable via environment variables for different environments
-
-✅ **High Availability**
-- Comprehensive health checks for all services
-- Automatic restart policies (on-failure with retry limits)
-- Service dependency management with health-based startup
-
-✅ **Centralized Logging**
-- JSON-structured logs for all containers
-- Automatic log rotation and retention policies
-- Labeled logs for easy filtering and analysis
-
-✅ **Monitoring & Observability**
-- Prometheus metrics collection
-- Grafana dashboards for visualization
-- Service health and performance monitoring
-- Resource utilization tracking
-
-✅ **Security & Secrets Management**
-- Support for Docker Secrets
-- HashiCorp Vault integration
-- AWS Secrets Manager compatibility
-- Environment-specific authentication
-
-✅ **CI/CD Pipeline**
-- Retry logic with exponential backoff
-- Comprehensive error handling and diagnostics
-- Artifact collection and validation
-- Multi-environment support (dev, staging, production)
-
-## 📚 Documentation
-
-- **[INFRASTRUCTURE.md](INFRASTRUCTURE.md)**: Complete infrastructure documentation
-  - Architecture overview
-  - Network segmentation
-  - Service configuration
-  - Resource management
-  - Monitoring setup
-  - Deployment procedures
-  - Troubleshooting guide
-
-- **[SECRETS_MANAGEMENT.md](SECRETS_MANAGEMENT.md)**: Secrets and credentials management
-  - Development environment setup
-  - CI/CD secrets (GitHub Actions)
-  - Staging deployment (Docker Secrets)
-  - Production deployment (Vault, AWS Secrets Manager)
-  - Secret rotation procedures
-  - Auditing and compliance
-
-- **[MEF-Core_v1.0/README.md](MEF-Core_v1.0/README.md)**: MEF-Core system documentation
-  - System overview and architecture
-  - Installation and quick start
-  - API documentation
-  - Development guide
-
-- **[MEF-Core_v1.0/README_bench.md](MEF-Core_v1.0/README_bench.md)**: Benchmark documentation
-  - Benchmark suite overview
-  - Cross-database comparisons
-  - Configuration options
-  - CI/CD integration
+- **🔒 Type-Safe**: Leveraging Rust's type system for compile-time guarantees
+- **⚡ High Performance**: Zero-cost abstractions and efficient memory management
+- **🔐 Secure**: Memory-safe and thread-safe by default
+- **🌐 Concurrent**: Built on Tokio for async I/O and parallel processing
+- **📊 Production-Ready**: Comprehensive testing, benchmarking, and monitoring
 
 ## 🏗️ Architecture
 
-### Service Components
+### Core Modules
 
-```
-┌─────────────────────────────────────────────────────────────────┐
-│                         Test Network                            │
-│  ┌──────────┐      ┌──────────┐      ┌──────────────┐         │
-│  │    QA    │─────▶│   API    │─────▶│  FAISS-API   │         │
-│  │Container │      │ Service  │      │   Service    │         │
-│  └──────────┘      └────┬─────┘      └──────────────┘         │
-└──────────────────────────┼──────────────────────────────────────┘
-                           │
-┌──────────────────────────┼──────────────────────────────────────┐
-│                    DB Network                                   │
-│  ┌──────────┐      ┌─────▼─────┐      ┌──────────────┐        │
-│  │  Qdrant  │◀─────│    API    │─────▶│   Milvus     │        │
-│  │  Vector  │      │  Service  │      │   Vector     │        │
-│  │    DB    │      └───────────┘      │     DB       │        │
-│  └──────────┘                         └──────────────┘        │
-└─────────────────────────────────────────────────────────────────┘
-                           │
-┌──────────────────────────┼──────────────────────────────────────┐
-│                  Monitoring Network                             │
-│  ┌──────────┐      ┌─────▼─────┐      ┌──────────────┐        │
-│  │Prometheus│◀─────│    API    │      │   Grafana    │        │
-│  │ Metrics  │      │  Service  │─────▶│  Dashboards  │        │
-│  └──────────┘      └───────────┘      └──────────────┘        │
-└─────────────────────────────────────────────────────────────────┘
-```
+| Module | Description | Status |
+|--------|-------------|--------|
+| **mef-core** | Core MEF pipeline and fractal processing | ✅ |
+| **mef-spiral** | Spiral snapshot system with deterministic hashing | ✅ |
+| **mef-ledger** | Hash-chained immutable ledger for TICs | ✅ |
+| **mef-hdag** | Hierarchical Directed Acyclic Graph | ✅ |
+| **mef-tic** | Temporal Information Crystals (TIC) processing | ✅ |
+| **mef-coupling** | Spiral coupling engine | ✅ |
+| **mef-topology** | Metatron router and topological operations | ✅ |
+| **mef-domains** | Domain-specific processing and resonance analysis | ✅ |
+| **mef-vector-db** | Vector database abstraction (HNSW, IVF-PQ) | ✅ |
+| **mef-storage** | Persistent storage with S3 support | ✅ |
+| **mef-solvecoagula** | XSwap and quantum processing | ✅ |
+| **mef-audit** | Merkaba gate and audit logging | ✅ |
+| **mef-ingestion** | Data ingestion pipeline | ✅ |
+| **mef-specs** | Acquisition specifications | ✅ |
+| **mef-acquisition** | Data acquisition layer | ✅ |
 
-### Service Descriptions
+### Applications
 
-| Service | Purpose | Networks | Ports |
-|---------|---------|----------|-------|
-| **API** | MEF-Core API server | test, db, monitoring | 8080 |
-| **Qdrant** | Vector similarity search | db | 6333 |
-| **Milvus** | Vector database | db | 19530, 9091 |
-| **FAISS-API** | FAISS HTTP wrapper | test | 8090 |
-| **QA** | Test and benchmark execution | test, db | - |
-| **Prometheus** | Metrics collection | monitoring, test | 9090 |
-| **Grafana** | Metrics visualization | monitoring | 3000 |
+| Application | Description |
+|-------------|-------------|
+| **mef-api** | HTTP REST API server (Axum) |
+| **mef-cli** | Command-line interface |
+| **mef-bench** | Cross-database benchmarking tool |
+| **mef-benchmarks** | Performance benchmarks (Criterion) |
 
-## 🔧 Configuration
+## 🚀 Quick Start
 
-### Environment Files
+### Prerequisites
 
-Four environment templates are provided for different deployment scenarios:
+- Rust 1.70+ (install from [rustup.rs](https://rustup.rs))
+- Cargo (comes with Rust)
 
-1. **`.env.example`**: Complete template with all configuration options
-2. **`.env.development`**: Lightweight configuration for local development
-3. **`.env.staging`**: Production-like configuration for staging
-4. **`.env.production`**: Full production configuration with all features
-
-### Key Configuration Variables
+### Building
 
 ```bash
-# Environment
-ENVIRONMENT=production              # development, staging, production
+# Clone the repository
+git clone https://github.com/LashSesh/infinityledger.git
+cd infinityledger
 
-# Authentication
-AUTH_TOKEN_REQUIRED=true           # Enable/disable authentication
-MEF_API_TOKEN=<your-token>         # API authentication token
-
-# Service Endpoints
-QUALITY_BASE_URL=http://api:8080   # API endpoint
-QDRANT_URL=http://qdrant:6333      # Qdrant connection
-MILVUS_HOST=milvus                 # Milvus host
-MILVUS_PORT=19530                  # Milvus port
-
-# Benchmarks
-BENCH_COMPARE=1                     # Enable cross-DB comparison
-BENCH_TARGETS=mef,faiss,qdrant,milvus  # Comparison targets
-COMPARE_LIMIT=500                   # Dataset size limit
-
-# Resources
-API_CPU_LIMIT=4.0                   # API CPU limit (cores)
-API_MEMORY_LIMIT=4G                 # API memory limit
-MILVUS_CPU_LIMIT=8.0               # Milvus CPU limit (cores)
-MILVUS_MEMORY_LIMIT=8G             # Milvus memory limit
-
-# Monitoring
-LOG_LEVEL=info                      # Logging level
-ENABLE_METRICS=true                 # Enable Prometheus metrics
-```
-
-See `.env.example` for complete configuration options.
-
-## 🐳 Docker Compose Files
-
-### docker-compose.ci.yml
-
-CI/CD and testing configuration with:
-- All core services (API, Qdrant, Milvus, QA)
-- Network segmentation (test, db)
-- Resource limits
-- Health checks
-- Centralized logging
-- Restart policies
-
-**Usage**:
-```bash
-# Start with compare profile
-docker compose -f docker-compose.ci.yml --profile compare up -d
+# Build all packages
+cargo build --release
 
 # Run tests
-docker compose -f docker-compose.ci.yml --profile compare up qa
+cargo test --workspace
 ```
 
-### docker-compose.production.yml
+### Running the API Server
 
-Production deployment with:
-- All CI features plus:
-- Monitoring stack (Prometheus, Grafana)
-- Docker Secrets support
-- Data persistence volumes
-- Production resource limits
-- Monitoring network
-
-**Usage**:
 ```bash
-# Deploy with monitoring
-docker compose -f docker-compose.production.yml \
-  --profile production \
-  --profile monitoring \
-  up -d
+# Start the API server
+cargo run --release --package mef-api --bin mef-api
+
+# In another terminal, test the health endpoint
+curl http://localhost:8000/healthz
+```
+
+### Using the CLI
+
+```bash
+# Build the CLI
+cargo build --release --package mef-cli
+
+# Run CLI commands
+./target/release/mef --help
+```
+
+### Running Cross-Database Benchmarks
+
+```bash
+# Build the benchmark tool
+cargo build --release --package mef-bench
+
+# Run benchmarks (requires services to be running)
+./target/release/cross-db-bench faiss mef qdrant
+
+# With custom configuration
+BENCH_NUM_VECTORS=5000 \
+BENCH_NUM_QUERIES=100 \
+BENCH_DIMENSION=128 \
+./target/release/cross-db-bench faiss mef
 ```
 
 ## 🧪 Testing
 
-### Run All Tests
+### Unit Tests
 
 ```bash
-cd MEF-Core_v1.0
-pip install -r requirements.txt
-pytest tests/bench/ -v
-```
+# Run all unit tests
+cargo test --workspace --lib
 
-### Enterprise Infrastructure Tests
-
-```bash
-# Test infrastructure configuration
-pytest tests/bench/test_enterprise_infrastructure.py -v
-
-# Test service health checks
-pytest tests/bench/test_ci_service_health.py -v
-
-# Test cross-DB integration
-pytest tests/bench/test_cross_db_integration.py -v
+# Run specific package tests
+cargo test --package mef-ledger
+cargo test --package mef-spiral
 ```
 
 ### Integration Tests
 
 ```bash
-# Start services
-docker compose -f docker-compose.ci.yml --profile compare up -d
-
 # Run integration tests
-docker compose -f docker-compose.ci.yml --profile compare up qa
+cargo test --workspace --test '*'
 
-# Check results
-ls -la MEF-Core_v1.0/assets/bench/
+# Run with output
+cargo test --workspace --test '*' -- --nocapture
 ```
 
-## 🔒 Security
+### Benchmarks
 
-### Best Practices
-
-1. **Never commit secrets** to version control
-2. **Use Docker Secrets or Vault** in production
-3. **Enable authentication** (AUTH_TOKEN_REQUIRED=true)
-4. **Rotate secrets regularly** (every 30-90 days)
-5. **Use network segmentation** to isolate services
-6. **Enable audit logging** for compliance
-7. **Keep images updated** with security patches
-
-### Secrets Management
-
-See [SECRETS_MANAGEMENT.md](SECRETS_MANAGEMENT.md) for comprehensive guide on:
-- Development environment setup
-- CI/CD secrets (GitHub Actions)
-- Staging deployment (Docker Secrets)
-- Production deployment (Vault, AWS Secrets Manager)
-- Secret rotation procedures
-
-## 📊 Monitoring
-
-### Prometheus
-
-Access Prometheus at `http://localhost:9090`
-
-**Key Metrics**:
-- Service health status
-- Request rate and latency
-- Resource utilization (CPU, memory)
-- Error rates
-
-### Grafana
-
-Access Grafana at `http://localhost:3000` (default: admin/admin)
-
-**Dashboards**:
-- Service Health Overview
-- Request Latency and Throughput
-- Resource Utilization
-- Database Performance
-
-### Logs
-
-View centralized logs:
 ```bash
-# All services
-docker compose -f docker-compose.ci.yml logs -f
+# Run criterion benchmarks
+cargo bench --package mef-benchmarks
 
-# Specific service
-docker compose -f docker-compose.ci.yml logs -f api
-
-# Last 100 lines
-docker compose -f docker-compose.ci.yml logs --tail=100 api
+# View results
+open target/criterion/report/index.html
 ```
 
-## 🚢 CI/CD Pipeline
+## 📊 Key Features
 
-### GitHub Actions
+### Deterministic Hashing
 
-The CI pipeline (`.github/workflows/ci.yml`) includes:
+The ledger implements deterministic hash computation with:
+- Canonical JSON serialization (sorted keys)
+- Normalized floating-point representation
+- Round-trip safe f64 handling
+- Golden tests for hash consistency
 
-1. **Pre-flight Validation**: Environment and dependency checks
-2. **Service Startup**: Health-checked service initialization with retry logic
-3. **Benchmark Execution**: Comprehensive benchmark suite
-4. **Output Validation**: Verify all artifacts are generated correctly
-5. **Artifact Upload**: Store results for analysis
+### Hash-Chained Ledger
 
-### Key Features
+- Immutable append-only blockchain
+- SHA-256 hash chaining
+- Integrity verification at any point
+- Compact TIC representation
 
-- **Retry Logic**: Automatic retries with exponential backoff
-- **Error Handling**: Comprehensive logging and diagnostics
-- **Health Verification**: All services must be healthy before tests
-- **Resource Limits**: Prevent resource exhaustion
-- **Timeout Management**: Explicit timeouts for all steps
+### Spiral Snapshots
 
-### Artifacts
+- Deterministic snapshot creation
+- Configurable parameters (N, phi, rotation)
+- Persistent storage and retrieval
+- Coordinates in 5D fractal space
 
-The pipeline generates and uploads:
-- `bench_report.json`: Benchmark results
-- `recall_report.json`: Recall evaluation
-- `compare.json` / `compare.md`: Cross-DB comparison
-- `server.log` / `bench.log`: Service logs
-- Golden test results
+### Vector Database Abstraction
+
+- Multiple provider support (FAISS, Qdrant, Milvus, etc.)
+- HNSW and IVF-PQ indexing
+- Cosine similarity search
+- Batch operations
+
+### Cross-Database Benchmarking
+
+- Automated performance comparison
+- Multiple vector databases
+- Configurable workloads
+- Detailed metrics (latency, recall, QPS)
+
+## 🐳 Docker Support
+
+```bash
+# Build Docker image
+docker build -t infinityledger .
+
+# Run with docker-compose
+docker-compose -f docker-compose.rust.yml up
+
+# Run benchmarks
+docker-compose -f docker-compose.bench.yml up
+```
+
+## 📚 Documentation
+
+- [Rust Build Guide](./RUST_BUILD_GUIDE.md) - Detailed build instructions
+- [Cross-DB Benchmark Guide](./CROSS_DB_BENCHMARK_GUIDE.md) - Benchmarking documentation
+- [Deployment Guide](./DEPLOYMENT.md) - Production deployment
+- [Migration History](./MIGRATION.md) - Python to Rust migration notes
+
+### API Documentation
+
+Generate and view API documentation:
+
+```bash
+cargo doc --workspace --no-deps --open
+```
+
+## 🔧 Development
+
+### Project Structure
+
+```
+infinityledger/
+├── mef-core/          # Core MEF pipeline
+├── mef-spiral/        # Spiral snapshots
+├── mef-ledger/        # Hash-chained ledger
+├── mef-api/           # HTTP API server
+├── mef-cli/           # CLI application
+├── mef-bench/         # Benchmarking tools
+├── mef-benchmarks/    # Performance benchmarks
+└── [other modules]/   # Additional MEF components
+```
+
+### Code Quality
+
+```bash
+# Format code
+cargo fmt --all
+
+# Run clippy
+cargo clippy --all-targets --all-features -- -D warnings
+
+# Security audit
+cargo audit
+```
 
 ## 🤝 Contributing
 
-### Python Development
-
 1. Fork the repository
-2. Create a feature branch
+2. Create a feature branch (`git checkout -b feature/amazing-feature`)
 3. Make your changes
-4. Run tests: `pytest tests/bench/ -v`
-5. Validate configuration: `docker compose -f docker-compose.ci.yml --profile compare config`
-6. Submit a pull request
+4. Run tests (`cargo test --workspace`)
+5. Format code (`cargo fmt --all`)
+6. Run clippy (`cargo clippy --all-targets`)
+7. Commit changes (`git commit -m 'Add amazing feature'`)
+8. Push to branch (`git push origin feature/amazing-feature`)
+9. Open a Pull Request
 
-### Rust Development
+## 📄 License
 
-1. Fork the repository
-2. Create a feature branch
-3. Make your changes to Rust modules
-4. Run tests: `cargo test`
-5. Format code: `cargo fmt`
-6. Check with clippy: `cargo clippy`
-7. Submit a pull request
+This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
 
-See [RUST_BUILD_GUIDE.md](./RUST_BUILD_GUIDE.md) for detailed Rust development instructions.
+## 🔗 Links
 
-## 📝 License
+- [GitHub Repository](https://github.com/LashSesh/infinityledger)
+- [CI/CD Pipeline](https://github.com/LashSesh/infinityledger/actions)
+- [Issue Tracker](https://github.com/LashSesh/infinityledger/issues)
 
-This project is licensed under the MIT License - see the LICENSE file for details.
+## 📊 CI/CD Status
+
+The project uses GitHub Actions for continuous integration:
+
+- ✅ **Lint and Format**: Code quality checks with rustfmt and clippy
+- ✅ **Build and Test**: Comprehensive test suite across all modules  
+- ✅ **Integration Tests**: End-to-end testing with services
+- ✅ **Benchmarks**: Performance regression testing
+- ✅ **Cross-DB Benchmarks**: Multi-database performance comparison
+- ✅ **Security Audit**: Dependency vulnerability scanning
+- ✅ **Docker Build**: Container image creation
 
 ## 🆘 Support
 
-- **Issues**: [GitHub Issues](https://github.com/LashSesh/infinity-ledger/issues)
-- **Documentation**: See docs/ directory
-- **CI/CD Logs**: Check GitHub Actions tab
-
-## 🔗 Related Projects
-
-- **MEF-Core**: Mandorla Eigenstate Fractals core system
-- **Qdrant**: Vector similarity search engine
-- **Milvus**: Open-source vector database
-- **FAISS**: Facebook AI Similarity Search
+For questions, issues, or feature requests, please [open an issue](https://github.com/LashSesh/infinityledger/issues) on GitHub.
 
 ---
 
-**Last Updated**: 2025-10-13  
-**Version**: 1.0.0 (Enterprise-Ready Infrastructure)
+**Built with ❤️ in Rust** | **Last Updated**: October 2025 | **Version**: 1.0.0
