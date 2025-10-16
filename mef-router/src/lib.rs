@@ -1,40 +1,31 @@
-//! # MEF Router Module
-//!
-//! This module provides Metatron S7 routing for the MEF Knowledge Engine extension (SPEC-006).
-//!
-//! ## Architecture
-//!
-//! This is an ADD-ONLY extension that provides deterministic route selection without
-//! modifying core solve-coagula logic. It includes:
-//!
-//! - **S7 permutation space**: Generate all 7! = 5040 possible routes
-//! - **Mesh scoring**: Compute J(m) = 0.10*b + 0.70*λ + 0.20*p
-//! - **Deterministic selection**: Hash-based route selection from seed and metrics
-//! - **Adapter pattern**: Integrate with core topology without changes
-//!
-//! ## Integration Points
-//!
-//! - Reads mesh metrics from `mef-topology` (Metatron adapter)
-//! - Provides route to `mef-solvecoagula` via configuration
-//! - Does NOT modify core operator implementations (DK, SW, PI, WT)
-//!
-//! ## Mode
-//!
-//! Supports two modes via `router.mode` config:
-//! - `inproc`: In-process adapter (default)
-//! - `service`: External service call (future extension point)
+//! MEF Router - Metatron S7 route selection
+//! 
+//! This module provides:
+//! - Complete S7 permutation space (7! = 5040 routes)
+//! - Deterministic route selection via hash + mesh scoring
+//! - Mesh metric computation: J(m) = 0.10·betti + 0.70·λ_gap + 0.20·persistence
+//! - MetatronAdapter with in-process and service modes
 
-pub mod s7;
+pub mod s7_space;
+pub mod route_selection;
+pub mod mesh_metrics;
 pub mod adapter;
-pub mod scoring;
 
-// Re-exports for convenience
-pub use s7::{generate_permutations, select_route};
-pub use adapter::MetatronAdapter;
-pub use scoring::mesh_score;
+pub use s7_space::generate_s7_permutations;
+pub use route_selection::select_route;
+pub use mesh_metrics::compute_mesh_score;
+pub use adapter::{MetatronAdapter, AdapterMode};
 
-/// Module version
-pub const VERSION: &str = "1.0.0";
+#[derive(Debug, thiserror::Error)]
+pub enum RouterError {
+    #[error("Invalid metrics: {0}")]
+    InvalidMetrics(String),
+    
+    #[error("Route selection error: {0}")]
+    Selection(String),
+    
+    #[error("Adapter error: {0}")]
+    Adapter(String),
+}
 
-/// Operator slot identifiers
-pub const SLOTS: [&str; 7] = ["DK", "SW", "PI", "WT", "RES1", "ADAPTER", "RES2"];
+pub type Result<T> = std::result::Result<T, RouterError>;

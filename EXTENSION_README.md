@@ -1,164 +1,149 @@
-# MEF Knowledge Engine Extension - README
-
-**Version:** 1.0.0 (Scaffold)  
-**Blueprint:** SPEC-006 (Infinity-Ledger_Expansion_1-4.pdf)  
-**Status:** Phase 1 Complete - Ready for Integration
+# MEF Knowledge Engine Extension - Quick Start Guide
 
 ## Overview
 
-This is a Rust-based extension scaffold for the MEF Knowledge Engine, implementing SPEC-006 from the Infinity Ledger expansion blueprint. The extension adds knowledge derivation, vector memory, and deterministic routing capabilities **without modifying the existing core system**.
+The MEF Knowledge Engine extension adds knowledge derivation, vector memory indexing, and deterministic routing capabilities to the MEF-Core system. This guide provides quick-start instructions and usage examples.
 
-## What's Included
+## Features
 
-### ✅ Complete Implementations
+🔹 **Knowledge Processing**
+- Canonical JSON serialization (deterministic, stable)
+- Content-addressed knowledge IDs via SHA256
+- HD-style seed derivation (BIP-39 compliant)
+- 8D vector construction from 5D spiral + 3D spectral features
 
-1. **mef-schemas** - Schema definitions for extension types
-   - RouteSpec, MemoryItem, KnowledgeObject, MerkabaGateEvent
-   - Full JSON serialization support
-   - Comprehensive validation
+🔹 **Vector Memory**
+- Pluggable backend system
+- In-memory backend (included)
+- Support for FAISS/HNSW (future)
+- L2 distance search
 
-2. **mef-knowledge** - Knowledge processing and derivation
-   - Canonical JSON serialization (deterministic)
-   - Content hashing (SHA256)
-   - HD seed derivation (HMAC-SHA256)
-   - 8D vector construction from 5D + 3D
-   - Knowledge inference and projection
-   - Pipeline orchestration (scaffold)
+🔹 **S7 Routing**
+- 5040 route permutation space
+- Deterministic route selection
+- Mesh metric computation
+- In-process and service modes
 
-3. **mef-memory** - Vector memory indexing
-   - Pluggable backend system
-   - In-memory implementation (complete)
-   - Feature-gated for zero overhead when disabled
-   - FAISS/HNSW backend stubs (future work)
+🔹 **Gate Evaluation**
+- FIRE/HOLD decision logic
+- Path invariance, alignment, Lyapunov metrics
+- PoR validation
 
-4. **mef-router** - Metatron S7 routing
-   - S7 permutation space (7! = 5040 routes)
-   - Deterministic route selection
-   - Mesh scoring (Betti, lambda_gap, persistence)
-   - MetatronAdapter (in-process mode)
+## Installation
 
-### 📊 Test Coverage
+Add the extension modules to your `Cargo.toml`:
 
-```
-51 tests total - ALL PASSING
-- mef-schemas:   9 tests
-- mef-knowledge: 20 tests  
-- mef-router:    15 tests
-- mef-memory:    7 tests
+```toml
+[dependencies]
+mef-schemas = { path = "../mef-schemas" }
+mef-knowledge = { path = "../mef-knowledge" }
+mef-memory = { path = "../mef-memory" }
+mef-router = { path = "../mef-router" }
 ```
 
 ## Quick Start
 
-### Build
+### 1. Canonical JSON Serialization
 
-```bash
-# Build extension modules only
-cargo build --package mef-schemas \
-            --package mef-knowledge \
-            --package mef-router \
-            --package mef-memory
-
-# Build entire workspace (includes extension + core)
-cargo build --workspace
-```
-
-### Test
-
-```bash
-# Test extension modules
-cargo test --package mef-schemas \
-           --package mef-knowledge \
-           --package mef-router \
-           --package mef-memory
-
-# Test entire workspace
-cargo test --workspace
-```
-
-### Verify No Core Impact
-
-```bash
-# The following should show NO modifications to core files
-git diff --name-only | grep -v "^mef-\(schemas\|knowledge\|memory\|router\)"
-
-# Expected: Empty output (or only workspace Cargo.toml and docs)
-```
-
-## Architecture
-
-### Design Principles
-
-1. **ADD-ONLY**: No modifications to core system
-2. **Feature-Gated**: All functionality disabled by default
-3. **Deterministic**: Reproducible results from same inputs
-4. **Modular**: Clean separation of concerns
-
-### Module Dependencies
-
-```
-┌─────────────┐
-│ mef-schemas │  (independent, no core deps)
-└─────────────┘
-       ▲
-       │
-┌──────┴──────────────────┐
-│                         │
-┌────────────────┐  ┌─────────────┐
-│ mef-knowledge  │  │ mef-memory  │
-│   (pipeline)   │  │   (index)   │
-└────────────────┘  └─────────────┘
-       ▲                  ▲
-       │                  │
-       │            ┌─────┴─────┐
-       │            │ mef-router│
-       │            │    (S7)   │
-       │            └───────────┘
-       │                  │
-       └──────────────────┘
-```
-
-### Integration with Core
-
-The extension reads from (but never modifies) these core modules:
-
-- `mef-spiral` - 5D coordinates, spectral signatures
-- `mef-ledger` - TIC blocks, chain state  
-- `mef-hdag` - Graph structure
-- `mef-topology` - Mesh metrics (via adapter)
-- `mef-audit` - Gate decisions
-- `mef-tic` - TIC crystallization
-
-## Key Features
-
-### Deterministic Primitives
+Create deterministic JSON representations:
 
 ```rust
-use mef_knowledge::{canonical_json, compute_mef_id, derive_seed};
+use mef_knowledge::canonical_json;
+use serde_json::json;
 
-// Canonical JSON (stable key order, fixed precision)
-let json = canonical_json(&data)?;
+let data = json!({
+    "zebra": 1.123456789,
+    "apple": 2.0,
+    "monkey": 3.333333333
+});
 
-// Content addressing
-let mef_id = compute_mef_id(&tic, &route_id, &seed_path)?;
-
-// HD seed derivation
-let sub_seed = derive_seed(&root_seed, "MEF/domain/stage/0001");
+let canonical = canonical_json(&data)?;
+// Keys sorted: apple, monkey, zebra
+// Floats rounded to 6 decimals
+// Same input always produces same output
 ```
 
-### Vector Construction
+### 2. Content-Addressed Knowledge IDs
+
+Generate content-addressed IDs:
 
 ```rust
-use mef_knowledge::Vector8Builder;
+use mef_knowledge::compute_mef_id;
+
+let mef_id = compute_mef_id("tic_001", "route_001", "MEF/domain/stage/0001")?;
+// Returns: "mef_a1b2c3d4e5f6..."
+// SHA256-based, deterministic
+```
+
+### 3. Seed Derivation
+
+Derive child seeds using HD-style derivation:
+
+```rust
+use mef_knowledge::derive_seed;
+
+let root_seed = b"your_secure_root_seed_here";
+let path = "MEF/domain/stage/0001";
+
+let derived = derive_seed(root_seed, path)?;
+// HMAC-SHA256(root_seed, path)
+// Root seed never persisted!
+```
+
+### 4. 8D Vector Construction
+
+Build normalized 8D vectors:
+
+```rust
+use mef_knowledge::{Vector8Builder, Vector8Config};
 
 let builder = Vector8Builder::default();
-let x5 = vec![0.1, 0.2, 0.3, 0.4, 0.5];  // 5D spiral coords
-let sigma = (0.3, 0.3, 0.4);              // (psi, rho, omega)
+let x5 = vec![0.1, 0.2, 0.3, 0.4, 0.5];  // 5D spiral
+let sigma = (0.3, 0.3, 0.4);              // (ψ, ρ, ω)
 
-let z_hat = builder.build(&x5, sigma)?;   // Normalized 8D vector
+let z_hat = builder.build(&x5, sigma)?;
 assert_eq!(z_hat.len(), 8);
+// z_hat is normalized: ||z_hat||₂ = 1
 ```
 
-### Route Selection
+### 5. Memory Storage and Search
+
+Store and search vectors:
+
+```rust
+use mef_memory::{MemoryStore, MemoryItem, SpectralSignature};
+
+let mut store = MemoryStore::in_memory();
+
+// Create a normalized 8D vector
+let val = 1.0 / (8.0_f64).sqrt();
+let vector = vec![val; 8];
+let spectral = SpectralSignature {
+    psi: 0.3,
+    rho: 0.3,
+    omega: 0.4,
+};
+
+let item = MemoryItem::new(
+    "mem_001".to_string(),
+    vector.clone(),
+    spectral,
+    None,
+)?;
+
+// Store
+store.store(item)?;
+
+// Search for similar vectors (k=5)
+let results = store.search(&vector, 5)?;
+for result in results {
+    println!("ID: {}, Distance: {}", result.item.id, result.distance);
+}
+```
+
+### 6. Route Selection
+
+Select routes deterministically:
 
 ```rust
 use mef_router::select_route;
@@ -169,268 +154,288 @@ metrics.insert("betti".to_string(), 2.0);
 metrics.insert("lambda_gap".to_string(), 0.5);
 metrics.insert("persistence".to_string(), 0.3);
 
-let route = select_route("seed123", &metrics);
-assert_eq!(route.sigma.len(), 7);  // S7 permutation
+let route = select_route("seed123", &metrics)?;
+println!("Route ID: {}", route.route_id);
+println!("Permutation: {:?}", route.permutation);
+println!("Mesh Score: {}", route.mesh_score);
+
+// Same seed + metrics → same route (deterministic)
 ```
 
-### Memory Index
+### 7. Gate Evaluation
+
+Evaluate gate conditions:
 
 ```rust
-use mef_memory::{MemoryIndex, MemoryConfig};
-use mef_schemas::{MemoryItem, SpectralSignature, PorStatus};
+use mef_schemas::MerkabaGateEvent;
 
-let config = MemoryConfig {
-    enabled: true,
-    path: Some("/path/to/index".into()),
-    dimension: 8,
-    ..Default::default()
-};
-
-let mut index = MemoryIndex::new(config)?;
-
-// Upsert item
-let item = MemoryItem::new(
-    "item-1".to_string(),
-    vec![0.1; 8],  // 8D normalized vector
-    SpectralSignature { psi: 0.3, rho: 0.3, omega: 0.4 },
-    PorStatus::Valid,
-    "TIC-123".to_string(),
+let event = MerkabaGateEvent::new(
+    "event_001".to_string(),
+    "mef_001".to_string(),
+    0.01,  // path_invariance (ΔPI)
+    0.8,   // alignment (Φ)
+    -0.1,  // lyapunov_delta (ΔV)
+    true,  // por_valid
+    0.05,  // epsilon threshold
+    0.7,   // phi threshold
 );
-index.upsert(item).await?;
 
-// Search
-let query = vec![0.1; 8];
-let results = index.search(&query, 10, None).await?;
+if event.decision == GateDecision::FIRE {
+    println!("Gate FIRED - knowledge propagates");
+} else {
+    println!("Gate HELD - knowledge blocked");
+}
 ```
 
-## Configuration
+## Complete Example
 
-### Feature Flags (Safe Defaults)
+Here's a complete example combining all components:
+
+```rust
+use mef_schemas::{RouteSpec, MemoryItem, KnowledgeObject, MerkabaGateEvent, SpectralSignature};
+use mef_knowledge::{canonical_json, compute_mef_id, derive_seed, Vector8Builder};
+use mef_memory::MemoryStore;
+use mef_router::select_route;
+use std::collections::HashMap;
+
+fn main() -> anyhow::Result<()> {
+    // 1. Derive seed
+    let root_seed = b"secure_root_seed";
+    let seed_path = "MEF/domain/stage/0001";
+    let derived = derive_seed(root_seed, seed_path)?;
+    
+    // 2. Build 8D vector
+    let builder = Vector8Builder::default();
+    let x5 = vec![0.1, 0.2, 0.3, 0.4, 0.5];
+    let sigma = (0.3, 0.3, 0.4);
+    let z_hat = builder.build(&x5, sigma)?;
+    
+    // 3. Select route
+    let mut metrics = HashMap::new();
+    metrics.insert("betti".to_string(), 2.0);
+    metrics.insert("lambda_gap".to_string(), 0.5);
+    metrics.insert("persistence".to_string(), 0.3);
+    let route = select_route("seed123", &metrics)?;
+    
+    // 4. Compute knowledge ID
+    let mef_id = compute_mef_id("tic_001", &route.route_id, seed_path)?;
+    
+    // 5. Create knowledge object
+    let knowledge = KnowledgeObject::new(
+        mef_id.clone(),
+        "tic_001".to_string(),
+        route.route_id.clone(),
+        seed_path.to_string(),
+        derived,
+        None,
+    );
+    
+    // 6. Store in memory
+    let mut store = MemoryStore::in_memory();
+    let spectral = SpectralSignature {
+        psi: sigma.0,
+        rho: sigma.1,
+        omega: sigma.2,
+    };
+    let mem_item = MemoryItem::new(
+        mef_id.clone(),
+        z_hat,
+        spectral,
+        None,
+    )?;
+    store.store(mem_item)?;
+    
+    // 7. Evaluate gate
+    let gate_event = MerkabaGateEvent::new(
+        "event_001".to_string(),
+        mef_id,
+        0.01,  // path_invariance
+        0.8,   // alignment
+        -0.1,  // lyapunov_delta
+        true,  // por_valid
+        0.05,  // epsilon
+        0.7,   // phi
+    );
+    
+    println!("Knowledge ID: {}", knowledge.mef_id);
+    println!("Route: {:?}", route.permutation);
+    println!("Gate Decision: {:?}", gate_event.decision);
+    
+    Ok(())
+}
+```
+
+## Configuration (Phase 2)
+
+Configuration will be loaded from YAML:
 
 ```yaml
-knowledge:
-  enabled: false  # Master switch
-
-memory:
-  enabled: false  # Master switch
-  path: null      # Index storage path
-  dimension: 8
-  metric: cosine
-  backend: in-memory
-
-router:
-  mode: inproc    # inproc | service
-  service_url: null
+mef:
+  extension:
+    knowledge:
+      enabled: true
+      inference:
+        threshold: 0.5
+    memory:
+      enabled: true
+      backend: inmemory
+    router:
+      mode: inproc
 ```
 
-### Behavior Guarantee
+## Testing
 
-With all flags set to `false` (default), the system behaves **identically** to the pre-extension state. Zero overhead, zero side effects.
+Run tests for all extension modules:
+
+```bash
+# Test all extension modules
+cargo test -p mef-schemas -p mef-knowledge -p mef-memory -p mef-router
+
+# Test specific module
+cargo test -p mef-knowledge
+
+# Test with output
+cargo test -p mef-router -- --nocapture
+```
+
+## Benchmarking (Phase 2)
+
+Performance benchmarks will be available:
+
+```bash
+cargo bench -p mef-benchmarks -- extension
+```
+
+## Feature Flags
+
+Control which backends are compiled:
+
+```toml
+[features]
+default = ["inmemory"]
+inmemory = []
+faiss = []
+hnsw = []
+```
+
+Build with FAISS support (future):
+
+```bash
+cargo build --features faiss
+```
+
+## API Integration (Phase 2)
+
+REST API endpoints will be available:
+
+```bash
+# Derive knowledge
+POST /api/v1/knowledge/derive
+{
+  "tic_id": "tic_001",
+  "route_id": "route_001",
+  "seed_path": "MEF/domain/stage/0001"
+}
+
+# Search memory
+POST /api/v1/memory/search
+{
+  "query": [0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8],
+  "k": 5
+}
+
+# Select route
+POST /api/v1/router/select
+{
+  "seed": "seed123",
+  "metrics": {
+    "betti": 2.0,
+    "lambda_gap": 0.5,
+    "persistence": 0.3
+  }
+}
+```
+
+## Error Handling
+
+All modules use Result types for error handling:
+
+```rust
+use mef_knowledge::KnowledgeError;
+
+match derive_seed(root_seed, path) {
+    Ok(derived) => println!("Success: {} bytes", derived.len()),
+    Err(KnowledgeError::SeedDerivation(msg)) => eprintln!("Error: {}", msg),
+    Err(e) => eprintln!("Unexpected error: {}", e),
+}
+```
+
+## Security Best Practices
+
+1. **Never log root seeds**: Only log derived seeds and paths
+2. **Use secure storage**: Store root seeds in secure enclaves
+3. **Validate inputs**: All schemas validate inputs on construction
+4. **Content addressing**: Verify knowledge objects via their content-addressed IDs
+
+## Performance Tips
+
+1. **Cache S7 permutations**: Generate once, reuse for all selections
+2. **Use batch operations**: Store multiple memory items in batches
+3. **Tune vector backends**: Choose appropriate backend for dataset size
+4. **Monitor memory usage**: In-memory backend scales linearly with dataset
+
+## Troubleshooting
+
+### Vector not normalized
+
+```rust
+// Error: Vector not normalized: ||z|| = 2.828427
+// Solution: Ensure input vectors are normalized
+let norm: f64 = vec.iter().map(|x| x * x).sum::<f64>().sqrt();
+let normalized: Vec<f64> = vec.iter().map(|x| x / norm).collect();
+```
+
+### Invalid permutation
+
+```rust
+// Error: Invalid permutation index: 7
+// Solution: Permutation indices must be in range [0..7)
+let valid = vec![0, 1, 2, 3, 4, 5, 6];
+```
+
+### Missing metrics
+
+```rust
+// Error: Missing 'lambda_gap' metric
+// Solution: Provide all required metrics
+metrics.insert("betti".to_string(), 2.0);
+metrics.insert("lambda_gap".to_string(), 0.5);  // Required
+metrics.insert("persistence".to_string(), 0.3);
+```
 
 ## Next Steps
 
-### Phase 2: Configuration System
+1. **Phase 2 Integration**: Wire scaffold to core modules
+2. **API Routes**: Add HTTP endpoints for extension functionality
+3. **Vector Backends**: Implement FAISS and HNSW backends
+4. **Configuration**: Implement YAML config loading
+5. **Monitoring**: Add metrics and observability
 
-- [ ] Implement config file loading
-- [ ] Add validation
-- [ ] Integrate with existing config
+## Resources
 
-See [EXTENSION_INTEGRATION.md](./EXTENSION_INTEGRATION.md) for details.
-
-### Phase 3: Pipeline Integration
-
-- [ ] Wire up full derivation pipeline
-- [ ] Call into core modules (read-only)
-- [ ] Add end-to-end tests
-
-See [EXTENSION_INTEGRATION.md](./EXTENSION_INTEGRATION.md) for step-by-step guide.
-
-### Phase 4: API Routes (Optional)
-
-- [ ] Add `/knowledge/*` endpoints
-- [ ] Add `/memory/*` endpoints
-- [ ] Add `/router/*` endpoints
-
-### Phase 5: Vector Backends (Optional)
-
-- [ ] Implement FAISS backend
-- [ ] Implement HNSW backend
-- [ ] Add benchmarks
-
-## Documentation
-
-- **[ARCHITECTURE_EXTENSION.md](./ARCHITECTURE_EXTENSION.md)** - Comprehensive architecture guide
-- **[EXTENSION_INTEGRATION.md](./EXTENSION_INTEGRATION.md)** - Step-by-step integration instructions
-- **[SPEC-006 PDF](./Infinity-Ledger_Expansion_1-4.pdf)** - Original blueprint
-
-## Code Organization
-
-```
-mef-schemas/
-├── Cargo.toml
-└── src/
-    ├── lib.rs              # Module exports
-    ├── route_spec.rs       # S7 route specification
-    ├── memory_item.rs      # 8D vector item
-    ├── knowledge.rs        # Knowledge object
-    └── gate.rs             # Gate event
-
-mef-knowledge/
-├── Cargo.toml
-└── src/
-    ├── lib.rs              # Module exports
-    ├── primitives.rs       # Canonical JSON, hashing, seeds
-    ├── metric.rs           # Vector8Builder
-    ├── inference.rs        # Projection, validation
-    └── derivation.rs       # Pipeline orchestration
-
-mef-memory/
-├── Cargo.toml
-└── src/
-    ├── lib.rs              # Module exports
-    ├── index.rs            # MemoryIndex abstraction
-    ├── operations.rs       # Request/response types
-    └── backends.rs         # VectorBackend trait
-
-mef-router/
-├── Cargo.toml
-└── src/
-    ├── lib.rs              # Module exports
-    ├── s7.rs               # Permutation generation
-    ├── scoring.rs          # Mesh metric J(m)
-    └── adapter.rs          # MetatronAdapter
-```
-
-## Mathematical Foundations
-
-### 8D Vector Construction
-
-```
-Input: x ∈ ℝ⁵ (spiral coords), σ = (ψ, ρ, ω) ∈ ℝ³ (spectral)
-Weights: w = (w₁..w₅, wψ, wρ, wω)
-
-z' = [w₁·x₁, w₂·x₂, w₃·x₃, w₄·x₄, w₅·x₅, wψ·ψ, wρ·ρ, wω·ω]
-ẑ = z' / ||z'||₂
-
-Property: ||ẑ||₂ = 1 (normalized)
-Property: cos(ẑ, ŷ) = 1 - ||ẑ - ŷ||²/2 (L2 equivalence)
-```
-
-### Route Selection (S7)
-
-```
-Space: S₇ = all permutations of [1,2,3,4,5,6,7] (5040 routes)
-
-Mesh Score: J(m) = 0.10·b + 0.70·λ + 0.20·p
-  where b = Betti numbers
-        λ = spectral gap
-        p = persistence
-
-Selection:
-  h = SHA256(seed || metrics)
-  k = (|J(m)| · 1000) mod 5040
-  idx = (h + k) mod 5040
-  route = S₇[idx]
-
-Property: Deterministic (same seed + metrics → same route)
-```
-
-### Gate Conditions
-
-```
-FIRE ⟺ (PoR = valid) ∧ (ΔPI ≤ ε) ∧ (Φ ≥ φ) ∧ (ΔV < 0)
-
-where:
-  ΔPI = ||Π(vₜ₊₁) - Π(vₜ)||₂  (path invariance)
-  Φ   = ⟨vₜ₊₁, T(vₜ)⟩ / ||·|| (alignment)
-  ΔV  = V(vₜ₊₁) - V(vₜ)       (Lyapunov)
-
-Default thresholds:
-  ε = 0.01
-  φ = 0.85
-```
-
-## Security
-
-### ⚠️ CRITICAL: BIP-39 Seed Management
-
-**NEVER log or persist root seeds!**
-
-```rust
-// ✓ CORRECT
-let derived = derive_seed(&root_seed, path);
-// Use derived seed, root_seed is dropped
-
-// ✗ FORBIDDEN
-tracing::info!("Root: {:?}", root_seed);  // NEVER
-database.store(root_seed);                 // NEVER
-```
-
-### Content Addressing
-
-All knowledge objects are content-addressed:
-
-```
-mef_id = HASH(canonical(TIC) || route_id || seed_path)[:32]
-```
-
-This ensures:
-- Immutability (changing content changes ID)
-- Verifiability (recompute to verify)
-- Uniqueness (hash collisions negligible)
-
-## Performance
-
-### Extension Overhead (with features disabled)
-
-- **Build time:** +15s (workspace)
-- **Binary size:** +0 bytes (not linked when disabled)
-- **Runtime:** 0 overhead (feature-gated)
-
-### Extension Performance (with features enabled)
-
-- **Route selection:** < 1ms (5040 permutations)
-- **8D vector build:** < 1μs
-- **Canonical JSON:** ~50μs per object
-- **Memory search (in-memory):** O(n) linear scan
-
-### Optimization Opportunities
-
-- Cache S7 permutations (currently regenerated)
-- Batch vector operations
-- Use SIMD for similarity computation
-- Add FAISS/HNSW backends for large-scale search
-
-## Contributing
-
-### Before Making Changes
-
-1. Ensure all tests pass: `cargo test --workspace`
-2. Verify no core modifications: `git diff core-modules`
-3. Follow ADD-ONLY principle
-4. Update documentation
-
-### After Making Changes
-
-1. Run tests: `cargo test --workspace`
-2. Run clippy: `cargo clippy --all-targets`
-3. Format code: `cargo fmt --all`
-4. Update CHANGELOG (if applicable)
-
-## License
-
-Same as MEF-Core: MIT License
+- [ARCHITECTURE_EXTENSION.md](ARCHITECTURE_EXTENSION.md) - Detailed architecture guide
+- [EXTENSION_INTEGRATION.md](EXTENSION_INTEGRATION.md) - Integration instructions
+- [IMPLEMENTATION_SUMMARY.md](IMPLEMENTATION_SUMMARY.md) - Implementation summary
+- [SPEC-006](Infinity-Ledger_Expansion_1-4.pdf) - Original specification
 
 ## Support
 
-For questions or issues:
-1. Check [ARCHITECTURE_EXTENSION.md](./ARCHITECTURE_EXTENSION.md)
-2. Check [EXTENSION_INTEGRATION.md](./EXTENSION_INTEGRATION.md)
-3. Review code comments and TODOs
-4. Open GitHub issue
+For issues or questions:
+1. Check the troubleshooting section
+2. Review the architecture documentation
+3. Examine test cases for usage examples
+4. Open an issue on GitHub
 
----
+## License
 
-**Built with ❤️ in Rust**  
-**Status:** Scaffold Complete - Ready for Integration  
-**Last Updated:** October 2025
+MIT License - See LICENSE file for details

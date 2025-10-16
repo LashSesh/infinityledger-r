@@ -7,30 +7,11 @@ license.workspace = true
 repository.workspace = true
 
 [dependencies]
-# Workspace dependencies
 mef-schemas = { path = "../mef-schemas" }
-mef-topology = { path = "../mef-topology" }
-mef-solvecoagula = { path = "../mef-solvecoagula" }
-
-# Serialization
+sha2 = { workspace = true }
 serde = { workspace = true }
 serde_json = { workspace = true }
-
-# Numerics
-ndarray = { workspace = true }
-
-# Cryptography
-sha2 = { workspace = true }
-
-# Error handling
 anyhow = { workspace = true }
 thiserror = { workspace = true }
 
-# Async runtime
-tokio = { workspace = true }
-
-# Logging
-tracing = { workspace = true }
-
 [dev-dependencies]
-tempfile = { workspace = true }

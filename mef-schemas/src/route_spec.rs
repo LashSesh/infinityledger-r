@@ -1,103 +1,52 @@
-//! # Route Specification Schema
-//!
-//! Defines the structure for Metatron S7 routing specifications.
-//!
-//! ## SPEC-006 Reference
-//!
-//! From Part 3, Section 1.5:
-//! - 7-slot permutation over {DK, SW, PI, WT, RES1, ADAPTER, RES2}
-//! - Sigma: permutation indices [1..7]
-//! - Score: mesh metric J(m) = 0.10*b + 0.70*λ + 0.20*p
+//! RouteSpec - S7 route specification with 7-slot permutation
 
 use serde::{Deserialize, Serialize};
 
-/// Operator slot types in the Solve-Coagula route
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Serialize, Deserialize)]
-pub enum OperatorSlot {
-    /// DoubleKick operator (mandatory)
-    DK,
-    /// Soft-Threshold Sweep operator (mandatory)
-    SW,
-    /// Path Invariance projection (mandatory)
-    PI,
-    /// Weight Transfer operator (mandatory)
-    WT,
-    /// Reserved slot 1 (optional/no-op by default)
-    RES1,
-    /// Adapter slot (optional/no-op by default)
-    ADAPTER,
-    /// Reserved slot 2 (optional/no-op by default)
-    RES2,
-}
-
-/// Route specification for Metatron S7 router
-///
-/// Defines a 7-slot permutation of operators for the Solve-Coagula iteration.
-/// The route is deterministically selected based on seed and mesh metrics.
-///
-/// ## JSON Schema
-///
-/// ```json
-/// {
-///   "route_id": "a1b2c3d4e5f6g7h8",
-///   "sigma": [3, 1, 4, 2, 5, 7, 6],
-///   "permutation": ["PI", "DK", "WT", "SW", "RES1", "RES2", "ADAPTER"],
-///   "score": 0.842
-/// }
-/// ```
+/// RouteSpec represents a permutation of the 7 operators in S7 space
+/// The permutation space has 7! = 5040 possible routes
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub struct RouteSpec {
-    /// Unique route identifier (deterministic hash)
+    /// The route identifier (content-addressed)
     pub route_id: String,
     
-    /// Permutation indices [1..7] for the 7 slots
-    pub sigma: Vec<u8>,
+    /// The 7-slot permutation of operators [0..7)
+    pub permutation: Vec<usize>,
     
-    /// Ordered list of operator slots
-    pub permutation: Vec<OperatorSlot>,
-    
-    /// Mesh metric score J(m) used for route selection
-    pub score: f64,
+    /// Mesh metrics: betti number, spectral gap, persistence
+    pub mesh_score: f64,
 }
 
 impl RouteSpec {
-    /// Create a new route specification
-    ///
-    /// # Arguments
-    ///
-    /// * `route_id` - Unique identifier (typically a hash)
-    /// * `sigma` - Permutation indices [1..7]
-    /// * `permutation` - Ordered operator slots
-    /// * `score` - Mesh metric score
-    ///
-    /// # Panics
-    ///
-    /// Panics if sigma or permutation length is not exactly 7
-    pub fn new(route_id: String, sigma: Vec<u8>, permutation: Vec<OperatorSlot>, score: f64) -> Self {
-        assert_eq!(sigma.len(), 7, "Sigma must have exactly 7 elements");
-        assert_eq!(permutation.len(), 7, "Permutation must have exactly 7 elements");
-        assert!(sigma.iter().all(|&x| x >= 1 && x <= 7), "Sigma values must be in [1..7]");
+    /// Create a new RouteSpec with validation
+    pub fn new(route_id: String, permutation: Vec<usize>, mesh_score: f64) -> crate::Result<Self> {
+        // Validate permutation is a valid 7-element permutation
+        if permutation.len() != 7 {
+            return Err(crate::SchemaError::InvalidRoute(
+                format!("Permutation must have exactly 7 elements, got {}", permutation.len())
+            ));
+        }
         
-        Self {
+        // Check all elements are unique and in range [0..7)
+        let mut seen = vec![false; 7];
+        for &idx in &permutation {
+            if idx >= 7 {
+                return Err(crate::SchemaError::InvalidRoute(
+                    format!("Invalid permutation index: {}", idx)
+                ));
+            }
+            if seen[idx] {
+                return Err(crate::SchemaError::InvalidRoute(
+                    format!("Duplicate permutation index: {}", idx)
+                ));
+            }
+            seen[idx] = true;
+        }
+        
+        Ok(Self {
             route_id,
-            sigma,
             permutation,
-            score,
-        }
-    }
-    
-    /// Validate the route specification
-    pub fn validate(&self) -> Result<(), String> {
-        if self.sigma.len() != 7 {
-            return Err("Sigma must have exactly 7 elements".to_string());
-        }
-        if self.permutation.len() != 7 {
-            return Err("Permutation must have exactly 7 elements".to_string());
-        }
-        if !self.sigma.iter().all(|&x| x >= 1 && x <= 7) {
-            return Err("Sigma values must be in [1..7]".to_string());
-        }
-        Ok(())
+            mesh_score,
+        })
     }
 }
 
@@ -106,48 +55,32 @@ mod tests {
     use super::*;
 
     #[test]
-    fn test_route_spec_creation() {
+    fn test_valid_route_spec() {
         let route = RouteSpec::new(
-            "test_route_123".to_string(),
-            vec![3, 1, 4, 2, 5, 7, 6],
-            vec![
-                OperatorSlot::PI,
-                OperatorSlot::DK,
-                OperatorSlot::WT,
-                OperatorSlot::SW,
-                OperatorSlot::RES1,
-                OperatorSlot::RES2,
-                OperatorSlot::ADAPTER,
-            ],
-            0.842,
+            "route_001".to_string(),
+            vec![0, 1, 2, 3, 4, 5, 6],
+            0.75,
         );
-        
-        assert_eq!(route.route_id, "test_route_123");
-        assert_eq!(route.sigma.len(), 7);
-        assert_eq!(route.permutation.len(), 7);
-        assert!(route.validate().is_ok());
+        assert!(route.is_ok());
     }
 
     #[test]
-    fn test_route_spec_serialization() {
+    fn test_invalid_permutation_length() {
         let route = RouteSpec::new(
-            "test".to_string(),
-            vec![1, 2, 3, 4, 5, 6, 7],
-            vec![
-                OperatorSlot::DK,
-                OperatorSlot::SW,
-                OperatorSlot::PI,
-                OperatorSlot::WT,
-                OperatorSlot::RES1,
-                OperatorSlot::ADAPTER,
-                OperatorSlot::RES2,
-            ],
+            "route_002".to_string(),
+            vec![0, 1, 2],
             0.5,
         );
-        
-        let json = serde_json::to_string(&route).unwrap();
-        let deserialized: RouteSpec = serde_json::from_str(&json).unwrap();
-        
-        assert_eq!(route, deserialized);
+        assert!(route.is_err());
+    }
+
+    #[test]
+    fn test_duplicate_index() {
+        let route = RouteSpec::new(
+            "route_003".to_string(),
+            vec![0, 1, 2, 2, 4, 5, 6],
+            0.5,
+        );
+        assert!(route.is_err());
     }
 }

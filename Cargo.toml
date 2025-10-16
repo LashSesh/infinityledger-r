@@ -16,7 +16,6 @@ members = [
     "mef-storage",
     "mef-domains",
     "mef-vector-db", "mef-acquisition", "mef-specs", "mef-bench", "mef-benchmarks",
-    # Extension modules (MEF Knowledge Engine - SPEC-006)
     "mef-schemas",
     "mef-knowledge",
     "mef-memory",
