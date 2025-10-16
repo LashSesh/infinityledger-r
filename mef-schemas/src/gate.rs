@@ -112,16 +112,16 @@ impl MerkabaGateEvent {
         } else {
             let mut reasons = Vec::new();
             if !por_valid {
-                reasons.push("PoR invalid");
+                reasons.push("PoR invalid".to_string());
             }
             if !delta_pi_ok {
-                reasons.push(format!("ΔPI = {:.6} > {:.6}", checks.delta_pi, epsilon_pi).as_str());
+                reasons.push(format!("ΔPI = {:.6} > {:.6}", checks.delta_pi, epsilon_pi));
             }
             if !phi_ok {
-                reasons.push(format!("Φ = {:.6} < {:.6}", checks.phi, phi_threshold).as_str());
+                reasons.push(format!("Φ = {:.6} < {:.6}", checks.phi, phi_threshold));
             }
             if !delta_v_ok {
-                reasons.push(format!("ΔV = {:.6} ≥ 0", checks.delta_v).as_str());
+                reasons.push(format!("ΔV = {:.6} ≥ 0", checks.delta_v));
             }
             format!("HOLD: {}", reasons.join(", "))
         };

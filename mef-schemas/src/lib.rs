@@ -28,10 +28,10 @@ pub mod knowledge;
 pub mod gate;
 
 // Re-exports for convenience
-pub use route_spec::RouteSpec;
-pub use memory_item::MemoryItem;
-pub use knowledge::KnowledgeObject;
-pub use gate::MerkabaGateEvent;
+pub use route_spec::{RouteSpec, OperatorSlot};
+pub use memory_item::{MemoryItem, SpectralSignature, PorStatus};
+pub use knowledge::{KnowledgeObject, TicReference, RouteReference, KnowledgeContext};
+pub use gate::{MerkabaGateEvent, GateChecks, GateDecision};
 
 /// Extension version following SPEC-006
 pub const EXTENSION_VERSION: &str = "1.0.0-expansion-1.4";

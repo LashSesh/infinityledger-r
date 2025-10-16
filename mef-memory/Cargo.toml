@@ -30,6 +30,7 @@ thiserror = { workspace = true }
 
 # Async runtime
 tokio = { workspace = true }
+async-trait = "0.1"
 
 # Logging
 tracing = { workspace = true }
