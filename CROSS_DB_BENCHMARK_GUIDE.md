@@ -33,23 +33,23 @@ cargo run --package mef-bench --bin cross-db-bench --release faiss elastic qdran
 cargo run --package mef-bench --bin cross-db-bench --release
 
 # Configure via environment variables
-BENCH_NUM_VECTORS=10000 \
+BENCH_NUM_VECTORS=50000 \
 BENCH_NUM_QUERIES=100 \
 BENCH_K=10 \
 BENCH_METRIC=cosine \
-BENCH_BATCH_SIZE=1000 \
+BENCH_BATCH_SIZE=5000 \
 BENCH_OUTPUT=results.json \
 cargo run --package mef-bench --bin cross-db-bench --release faiss
 ```
 
 **Environment Variables:**
 
-- `BENCH_NUM_VECTORS`: Number of vectors to index (default: 10000)
+- `BENCH_NUM_VECTORS`: Number of vectors to index (default: 10000, CI uses 50000)
 - `BENCH_NUM_QUERIES`: Number of search queries to run (default: 100)
 - `BENCH_DIMENSION`: Vector dimension (default: 128)
 - `BENCH_K`: Number of neighbors to retrieve (default: 10)
 - `BENCH_METRIC`: Distance metric - `cosine`, `l2`, or `ip` (default: cosine)
-- `BENCH_BATCH_SIZE`: Batch size for upserts (default: 1000)
+- `BENCH_BATCH_SIZE`: Batch size for upserts (default: 1000, CI uses 5000)
 - `BENCH_OUTPUT`: Output file path (default: benchmark_results.json)
 
 **Driver-Specific Configuration:**

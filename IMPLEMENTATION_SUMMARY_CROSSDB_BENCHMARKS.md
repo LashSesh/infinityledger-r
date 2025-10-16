@@ -30,9 +30,10 @@ Successfully implemented a comprehensive enterprise-ready CI/CD infrastructure f
 
 **Usage Example**:
 ```bash
-BENCH_NUM_VECTORS=5000 \
+BENCH_NUM_VECTORS=50000 \
 BENCH_NUM_QUERIES=50 \
 BENCH_K=10 \
+BENCH_BATCH_SIZE=5000 \
 cargo run --package mef-bench --bin cross-db-bench --release faiss
 ```
 
@@ -71,11 +72,12 @@ cargo run --package mef-bench --bin cross-db-bench --release faiss
 - 30-minute timeout for long-running benchmarks
 
 **Current Configuration**:
-- 5,000 vectors
+- 50,000 vectors (increased from 5,000 for more comprehensive testing)
 - 50 queries
 - 128 dimensions
 - k=10 nearest neighbors
 - Cosine similarity metric
+- Batch size: 5,000 (optimized for larger datasets)
 - FAISS baseline (no external services required)
 
 ### 4. Driver Improvements ✅

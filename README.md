@@ -97,9 +97,10 @@ cargo build --release --package mef-bench
 ./target/release/cross-db-bench faiss mef qdrant
 
 # With custom configuration
-BENCH_NUM_VECTORS=5000 \
+BENCH_NUM_VECTORS=50000 \
 BENCH_NUM_QUERIES=100 \
 BENCH_DIMENSION=128 \
+BENCH_BATCH_SIZE=5000 \
 ./target/release/cross-db-bench faiss mef
 ```
 
