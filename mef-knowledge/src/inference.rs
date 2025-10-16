@@ -145,6 +145,7 @@ impl KnowledgeInference {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use mef_schemas::{TicReference, RouteReference};
 
     fn make_test_knowledge() -> KnowledgeObject {
         KnowledgeObject::new(

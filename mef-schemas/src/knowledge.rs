@@ -10,7 +10,6 @@
 //! - mef_id = HASH(canonical(TIC) || route_id || seed_path)
 
 use serde::{Deserialize, Serialize};
-use std::collections::HashMap;
 
 /// Context information for knowledge derivation
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
