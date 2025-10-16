@@ -54,7 +54,8 @@ impl MemoryBackend for InMemoryBackend {
             .collect();
         
         // Sort by distance (ascending)
-        results.sort_by(|a, b| a.distance.partial_cmp(&b.distance).unwrap());
+        // Use total_cmp to handle NaN and infinity gracefully
+        results.sort_by(|a, b| a.distance.total_cmp(&b.distance));
         
         // Take top k
         results.truncate(k);
@@ -151,5 +152,145 @@ mod tests {
         let b = vec![1.0, 0.0, 0.0];
         let dist = l2_distance(&a, &b);
         assert!((dist - 1.0).abs() < 1e-6);
+    }
+
+    #[test]
+    fn test_search_with_nan_query() {
+        let mut backend = InMemoryBackend::new();
+        
+        // Store a valid item
+        let val = 1.0 / (8.0_f64).sqrt();
+        let vector = vec![val; 8];
+        let spectral = SpectralSignature {
+            psi: 0.3,
+            rho: 0.3,
+            omega: 0.4,
+        };
+        
+        let item = MemoryItem::new(
+            "mem_001".to_string(),
+            vector,
+            spectral,
+            None,
+        ).unwrap();
+        
+        backend.store(item).unwrap();
+        
+        // Search with NaN in query vector
+        let nan_query = vec![f64::NAN, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0];
+        let results = backend.search(&nan_query, 1);
+        // Should not panic, should handle gracefully
+        assert!(results.is_ok());
+    }
+
+    #[test]
+    fn test_search_with_infinite_query() {
+        let mut backend = InMemoryBackend::new();
+        
+        // Store a valid item
+        let val = 1.0 / (8.0_f64).sqrt();
+        let vector = vec![val; 8];
+        let spectral = SpectralSignature {
+            psi: 0.3,
+            rho: 0.3,
+            omega: 0.4,
+        };
+        
+        let item = MemoryItem::new(
+            "mem_001".to_string(),
+            vector,
+            spectral,
+            None,
+        ).unwrap();
+        
+        backend.store(item).unwrap();
+        
+        // Search with infinity in query vector
+        let inf_query = vec![f64::INFINITY, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0];
+        let results = backend.search(&inf_query, 1);
+        // Should not panic, should handle gracefully
+        assert!(results.is_ok());
+    }
+
+    #[test]
+    fn test_search_with_mixed_nan_distances() {
+        let mut backend = InMemoryBackend::new();
+        
+        // Store multiple valid items
+        let val1 = 1.0 / (8.0_f64).sqrt();
+        let vector1 = vec![val1; 8];
+        let spectral = SpectralSignature {
+            psi: 0.3,
+            rho: 0.3,
+            omega: 0.4,
+        };
+        
+        let item1 = MemoryItem::new(
+            "mem_001".to_string(),
+            vector1,
+            spectral,
+            None,
+        ).unwrap();
+        
+        backend.store(item1).unwrap();
+        
+        let val2 = 1.0 / (8.0_f64).sqrt();
+        let mut vector2 = vec![val2; 8];
+        vector2[0] = -val2; // Different vector
+        let norm = vector2.iter().map(|x| x * x).sum::<f64>().sqrt();
+        vector2.iter_mut().for_each(|x| *x /= norm);
+        
+        let item2 = MemoryItem::new(
+            "mem_002".to_string(),
+            vector2,
+            spectral,
+            None,
+        ).unwrap();
+        
+        backend.store(item2).unwrap();
+        
+        // Query with NaN - should produce NaN distances and not panic during sort
+        let nan_query = vec![f64::NAN, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0];
+        let results = backend.search(&nan_query, 2);
+        assert!(results.is_ok());
+    }
+
+    #[test]
+    fn test_search_nan_ordering() {
+        let mut backend = InMemoryBackend::new();
+        
+        // Store three items
+        let val = 1.0 / (8.0_f64).sqrt();
+        let spectral = SpectralSignature {
+            psi: 0.3,
+            rho: 0.3,
+            omega: 0.4,
+        };
+        
+        // Item at origin
+        let vector1 = vec![0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 1.0];
+        let item1 = MemoryItem::new("mem_001".to_string(), vector1, spectral, None).unwrap();
+        backend.store(item1).unwrap();
+        
+        // Item at different position
+        let vector2 = vec![val, val, val, val, val, val, val, val];
+        let item2 = MemoryItem::new("mem_002".to_string(), vector2, spectral, None).unwrap();
+        backend.store(item2).unwrap();
+        
+        // Another item
+        let vector3 = vec![1.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0];
+        let item3 = MemoryItem::new("mem_003".to_string(), vector3, spectral, None).unwrap();
+        backend.store(item3).unwrap();
+        
+        // Query with NaN - should still work and return results
+        let nan_query = vec![f64::NAN, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0];
+        let results = backend.search(&nan_query, 3).unwrap();
+        
+        // All items should be returned (NaN distances sort to the end with total_cmp)
+        assert_eq!(results.len(), 3);
+        // All distances should be NaN
+        assert!(results[0].distance.is_nan());
+        assert!(results[1].distance.is_nan());
+        assert!(results[2].distance.is_nan());
     }
 }
