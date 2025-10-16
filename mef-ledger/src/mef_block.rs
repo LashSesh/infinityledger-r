@@ -62,10 +62,31 @@ impl Default for LedgerIndex {
 pub struct CompactTic {
     pub tic_id: String,
     pub seed: String,
+    /// Stored as string to ensure deterministic serialization
+    #[serde(serialize_with = "serialize_f64_as_string")]
+    #[serde(deserialize_with = "deserialize_f64_from_string")]
     pub fixpoint_norm: f64,
     pub invariants: JsonValue,
     pub sigma_bar: JsonValue,
     pub window: Vec<String>,
+}
+
+// Helper functions for deterministic f64 serialization
+fn serialize_f64_as_string<S>(value: &f64, serializer: S) -> Result<S::Ok, S::Error>
+where
+    S: serde::Serializer,
+{
+    // Use a fixed precision format to ensure determinism
+    serializer.serialize_str(&format!("{:.16}", value))
+}
+
+fn deserialize_f64_from_string<'de, D>(deserializer: D) -> Result<f64, D::Error>
+where
+    D: serde::Deserializer<'de>,
+{
+    use serde::Deserialize;
+    let s = String::deserialize(deserializer)?;
+    s.parse().map_err(serde::de::Error::custom)
 }
 
 /// MEF Block structure
@@ -157,6 +178,25 @@ impl MEFLedger {
     ///
     /// # Arguments
     /// * `block` - Block data (without hash field)
+    /// Canonicalize JSON by recursively sorting all object keys
+    fn canonicalize_json(value: &JsonValue) -> JsonValue {
+        match value {
+            JsonValue::Object(map) => {
+                let mut sorted_map = serde_json::Map::new();
+                let mut keys: Vec<_> = map.keys().collect();
+                keys.sort();
+                for key in keys {
+                    sorted_map.insert(key.clone(), Self::canonicalize_json(&map[key]));
+                }
+                JsonValue::Object(sorted_map)
+            }
+            JsonValue::Array(arr) => {
+                JsonValue::Array(arr.iter().map(|v| Self::canonicalize_json(v)).collect())
+            }
+            _ => value.clone(),
+        }
+    }
+
     pub fn compute_block_hash(block: &JsonValue) -> String {
         // Remove hash field if present
         let mut block_data = block.clone();
@@ -164,8 +204,11 @@ impl MEFLedger {
             obj.remove("hash");
         }
 
+        // Canonicalize JSON to ensure deterministic serialization
+        let canonical_block = Self::canonicalize_json(&block_data);
+
         // Create deterministic string representation
-        let block_str = serde_json::to_string(&block_data).unwrap();
+        let block_str = serde_json::to_string(&canonical_block).unwrap();
 
         // Compute SHA256
         let mut hasher = Sha256::new();
@@ -240,8 +283,8 @@ impl MEFLedger {
             tic_id,
             seed,
             fixpoint_norm,
-            invariants: tic["invariants"].clone(),
-            sigma_bar: tic["sigma_bar"].clone(),
+            invariants: Self::canonicalize_json(&tic["invariants"]),
+            sigma_bar: Self::canonicalize_json(&tic["sigma_bar"]),
             window,
         })
     }
@@ -258,9 +301,10 @@ impl MEFLedger {
         // Get previous hash
         let previous_hash = self.get_last_hash()?;
 
-        // Compute snapshot hash
+        // Compute snapshot hash with canonical JSON
+        let canonical_snapshot = Self::canonicalize_json(snapshot);
         let snapshot_str =
-            serde_json::to_string(snapshot).context("Failed to serialize snapshot")?;
+            serde_json::to_string(&canonical_snapshot).context("Failed to serialize snapshot")?;
         let mut hasher = Sha256::new();
         hasher.update(snapshot_str.as_bytes());
         let snapshot_hash = format!("{:x}", hasher.finalize());
@@ -270,7 +314,7 @@ impl MEFLedger {
             .ok_or_else(|| anyhow::anyhow!("Missing tic_id"))?
             .to_string();
 
-        // Create block structure
+        // Create block structure with canonicalized proof
         let mut block_json = serde_json::json!({
             "index": next_index,
             "previous_hash": previous_hash,
@@ -278,7 +322,7 @@ impl MEFLedger {
             "tic_id": tic_id,
             "snapshot_hash": snapshot_hash,
             "data": Self::compact_tic_data(tic)?,
-            "proof": tic["proof"].clone(),
+            "proof": Self::canonicalize_json(&tic["proof"]),
         });
 
         // Compute block hash
@@ -355,6 +399,12 @@ impl MEFLedger {
     pub fn verify_block_hash(&self, block: &MefBlock) -> bool {
         let block_json = serde_json::to_value(block).unwrap();
         let computed_hash = Self::compute_block_hash(&block_json);
+        if block.hash != computed_hash {
+            eprintln!("Block {} hash verification failed:", block.index);
+            eprintln!("  Stored hash: {}", block.hash);
+            eprintln!("  Computed hash: {}", computed_hash);
+            eprintln!("  Block JSON: {}", serde_json::to_string_pretty(&block_json).unwrap());
+        }
         block.hash == computed_hash
     }
 
@@ -512,21 +562,21 @@ mod tests {
         let _ = std::fs::remove_dir_all(&temp_dir);
         let mut ledger = MEFLedger::new(&temp_dir).unwrap();
 
-        // Add multiple blocks
-        for i in 0..3 {
+        // Add multiple blocks (testing with 10 like the failing integration test)
+        for i in 0..10 {
             let tic = json!({
-                "tic_id": format!("tic-{:03}", i),
-                "seed": "MEF_SEED_42",
-                "fixpoint": [0.1 * i as f64, 0.2, 0.3],
+                "tic_id": format!("tic-{}", i),
+                "seed": format!("SEED_{}", i),
+                "fixpoint": [0.1 * i as f64, 0.2 * i as f64, 0.3 * i as f64],
                 "invariants": {"variance": 0.1},
                 "sigma_bar": {"psi": 0.5},
-                "window": ["2025-01-01T00:00:00", "2025-01-01T01:00:00"],
-                "proof": {"merkle_root": "abc123"}
+                "window": ["2025-10-15T00:00:00", "2025-10-15T01:00:00"],
+                "proof": {"merkle_root": format!("root_{}", i)}
             });
 
             let snapshot = json!({
-                "id": format!("snap-{:03}", i),
-                "coordinates": [0.1, 0.2, 0.3, 0.4, 0.5]
+                "id": format!("snap-{}", i),
+                "coordinates": [0.1 * i as f64, 0.2 * i as f64, 0.3 * i as f64, 0.4 * i as f64, 0.5 * i as f64]
             });
 
             ledger.append_block(&tic, &snapshot).unwrap();
@@ -534,6 +584,6 @@ mod tests {
 
         // Verify chain
         assert!(ledger.verify_chain_integrity(0).unwrap());
-        assert_eq!(ledger.index.current_index, 2);
+        assert_eq!(ledger.index.current_index, 9);
     }
 }
