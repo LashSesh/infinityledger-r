@@ -9,7 +9,7 @@
 //! - /knowledge/project: Transform knowledge for specific use cases
 //! - /knowledge/validate: Verify knowledge integrity
 
-use mef_schemas::{KnowledgeObject, RouteReference, TicReference};
+use mef_schemas::KnowledgeObject;
 use serde::{Deserialize, Serialize};
 use thiserror::Error;
 
