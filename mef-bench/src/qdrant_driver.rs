@@ -259,7 +259,7 @@ impl VectorStoreDriver for QdrantDriver {
         let search_body = json!({
             "vector": query,
             "limit": k,
-            "with_payload": false,
+            "with_payload": true,
             "with_vector": false
         });
 
@@ -289,16 +289,25 @@ impl VectorStoreDriver for QdrantDriver {
 
         let mut hits: Vec<(String, f64)> = Vec::new();
         for entry in results {
-            if let (Some(id), Some(score)) = (
-                entry.get("id").and_then(|v| {
-                    v.as_str().or_else(|| {
-                        v.as_u64()
-                            .map(|n| Box::leak(n.to_string().into_boxed_str()) as &str)
-                    })
-                }),
-                entry.get("score").and_then(|v| v.as_f64()),
-            ) {
-                hits.push((id.to_string(), score));
+            if let Some(score) = entry.get("score").and_then(|v| v.as_f64()) {
+                // Try to get original_id from payload first
+                let id = entry
+                    .get("payload")
+                    .and_then(|p| p.get("original_id"))
+                    .and_then(|v| v.as_str())
+                    .map(|s| s.to_string())
+                    .or_else(|| {
+                        // Fallback to numeric ID if original_id not found
+                        entry.get("id").and_then(|v| {
+                            v.as_str()
+                                .map(|s| s.to_string())
+                                .or_else(|| v.as_u64().map(|n| n.to_string()))
+                        })
+                    });
+
+                if let Some(id) = id {
+                    hits.push((id, score));
+                }
             }
         }
 
