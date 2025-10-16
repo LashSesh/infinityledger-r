@@ -1,6 +1,6 @@
 /*!
  * Benchmark runner that measures search latency with progress reporting.
- * 
+ *
  * Migrated from MEF-Core_v1.0/tests/bench/bench_runner.py
  */
 
@@ -157,7 +157,8 @@ impl BenchmarkRunner {
         let client = Client::builder()
             .timeout(Duration::from_secs_f64(config.timeouts.read))
             .connect_timeout(Duration::from_secs_f64(config.timeouts.connect))
-            .build().context("Failed to build HTTP client")?;
+            .build()
+            .context("Failed to build HTTP client")?;
 
         let progress_log = assets_dir.join("progress.log");
         let report_path = assets_dir.join("bench_report.json");
@@ -178,7 +179,8 @@ impl BenchmarkRunner {
         }
 
         let content = fs::read_to_string(path).context("Failed to read benchmark config")?;
-        let config: BenchmarkConfig = serde_json::from_str(&content).context("Failed to parse benchmark config")?;
+        let config: BenchmarkConfig =
+            serde_json::from_str(&content).context("Failed to parse benchmark config")?;
 
         Ok(config)
     }
@@ -187,21 +189,21 @@ impl BenchmarkRunner {
     fn log_progress(&self, message: &str) -> Result<()> {
         let timestamp = chrono::Utc::now().to_rfc3339();
         let line = format!("[{}] {}", timestamp, message);
-        
+
         println!("{}", line);
-        
+
         if let Some(parent) = self.progress_log.parent() {
             fs::create_dir_all(parent)?;
         }
-        
+
         let mut file = fs::OpenOptions::new()
             .create(true)
             .append(true)
             .open(&self.progress_log)?;
-        
+
         use std::io::Write;
         writeln!(file, "{}", line)?;
-        
+
         Ok(())
     }
 
@@ -332,7 +334,7 @@ mod tests {
     fn test_percentile_calculation() {
         let values = vec![1.0, 2.0, 3.0, 4.0, 5.0];
         assert_eq!(BenchmarkRunner::percentile(&values, 0.5), 3.0);
-        
+
         let values = vec![1.0, 2.0];
         assert!((BenchmarkRunner::percentile(&values, 0.5) - 1.5).abs() < 1e-6);
     }
@@ -341,7 +343,7 @@ mod tests {
     fn test_percentiles() {
         let values = vec![1.0, 2.0, 3.0, 4.0, 5.0, 6.0, 7.0, 8.0, 9.0, 10.0];
         let metrics = BenchmarkRunner::percentiles(&values);
-        
+
         assert!((metrics.p50 - 5.5).abs() < 1e-6);
         assert!(metrics.p95 > 9.0);
         assert!(metrics.p99 > 9.5);
@@ -351,7 +353,7 @@ mod tests {
     fn test_percentiles_empty() {
         let values: Vec<f64> = vec![];
         let metrics = BenchmarkRunner::percentiles(&values);
-        
+
         assert_eq!(metrics.p50, 0.0);
         assert_eq!(metrics.p95, 0.0);
         assert_eq!(metrics.p99, 0.0);
@@ -362,7 +364,7 @@ mod tests {
         let temp_dir = TempDir::new().unwrap();
         let config = BenchmarkConfig::default();
         let base_url = "http://localhost:8080".to_string();
-        
+
         let runner = BenchmarkRunner::new(config, base_url, temp_dir.path());
         assert!(runner.is_ok());
     }
@@ -371,7 +373,7 @@ mod tests {
     fn test_load_config_default() {
         let temp_dir = TempDir::new().unwrap();
         let config_path = temp_dir.path().join("nonexistent.json");
-        
+
         let config = BenchmarkRunner::load_config(&config_path).unwrap();
         assert_eq!(config.collection, "spiral");
     }
@@ -380,7 +382,7 @@ mod tests {
     fn test_load_config_from_file() {
         let temp_dir = TempDir::new().unwrap();
         let config_path = temp_dir.path().join("config.json");
-        
+
         let custom_config = BenchmarkConfig {
             collection: "test".to_string(),
             points: 1000,
@@ -391,10 +393,10 @@ mod tests {
             retry: RetrySettings::default(),
             batch: BatchSettings::default(),
         };
-        
+
         let json = serde_json::to_string_pretty(&custom_config).unwrap();
         fs::write(&config_path, json).unwrap();
-        
+
         let loaded = BenchmarkRunner::load_config(&config_path).unwrap();
         assert_eq!(loaded.collection, "test");
         assert_eq!(loaded.points, 1000);

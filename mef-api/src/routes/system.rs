@@ -1,9 +1,5 @@
 /// System metrics, gate FSM, and mode endpoints
-use axum::{
-    extract::State,
-    routing::get,
-    Json, Router,
-};
+use axum::{extract::State, routing::get, Json, Router};
 use serde::Serialize;
 use serde_json::Value as JsonValue;
 use std::collections::HashMap;
@@ -35,7 +31,7 @@ async fn get_gate_fsm() -> Result<Json<GateFsmResponse>> {
     reasons.insert("deltaV".to_string(), JsonValue::Null);
     reasons.insert("t".to_string(), JsonValue::Null);
     reasons.insert("t'".to_string(), JsonValue::Null);
-    
+
     Ok(Json(GateFsmResponse {
         state: "idle".to_string(),
         reasons,
@@ -57,9 +53,7 @@ async fn get_mode() -> Result<Json<ModeResponse>> {
 }
 
 /// Prometheus metrics
-async fn get_metrics(
-    State(_state): State<AppState>,
-) -> Result<String> {
+async fn get_metrics(State(_state): State<AppState>) -> Result<String> {
     // Return Prometheus-formatted metrics
     // In a real implementation, this would collect actual metrics
     let metrics = r#"# HELP mef_api_requests_total Total number of API requests
@@ -82,7 +76,7 @@ mef_api_request_duration_seconds_bucket{endpoint="/search",le="+Inf"} 0
 mef_api_request_duration_seconds_sum{endpoint="/search"} 0
 mef_api_request_duration_seconds_count{endpoint="/search"} 0
 "#;
-    
+
     Ok(metrics.to_string())
 }
 
@@ -96,27 +90,32 @@ struct StatsResponse {
     uptime_seconds: f64,
 }
 
-async fn get_stats(
-    State(state): State<AppState>,
-) -> Result<Json<StatsResponse>> {
+async fn get_stats(State(state): State<AppState>) -> Result<Json<StatsResponse>> {
     // Get ledger stats
-    let ledger = state.ledger.lock()
+    let ledger = state
+        .ledger
+        .lock()
         .map_err(|e| ApiError::Internal(format!("Failed to lock ledger: {}", e)))?;
-    
-    let chain_stats = ledger.get_chain_statistics()
+
+    let chain_stats = ledger
+        .get_chain_statistics()
         .map_err(|e| ApiError::Ledger(format!("Failed to get chain statistics: {}", e)))?;
-    
+
     // Get vector DB stats
-    let index_manager = state.index_manager.lock()
+    let index_manager = state
+        .index_manager
+        .lock()
         .map_err(|e| ApiError::Internal(format!("Failed to lock index manager: {}", e)))?;
-    
-    let total_vectors: usize = index_manager.collections.values()
+
+    let total_vectors: usize = index_manager
+        .collections
+        .values()
         .map(|c| c.vectors.len())
         .sum();
-    
+
     Ok(Json(StatsResponse {
         total_snapshots: 0, // Would need to track this
-        total_tics: 0, // Would need to track this
+        total_tics: 0,      // Would need to track this
         total_blocks: chain_stats.total_blocks as usize,
         total_vectors,
         uptime_seconds: 0.0, // Would need to track this
@@ -127,24 +126,24 @@ async fn get_stats(
 mod tests {
     use super::*;
     use crate::ApiConfig;
-    
+
     #[tokio::test]
     async fn test_get_gate_fsm() {
         let result = get_gate_fsm().await;
         assert!(result.is_ok());
     }
-    
+
     #[tokio::test]
     async fn test_get_mode() {
         let result = get_mode().await;
         assert!(result.is_ok());
     }
-    
+
     #[tokio::test]
     async fn test_get_stats() {
         let config = ApiConfig::default();
         let state = AppState::new(config).await.unwrap();
-        
+
         let result = get_stats(State(state)).await;
         assert!(result.is_ok());
     }

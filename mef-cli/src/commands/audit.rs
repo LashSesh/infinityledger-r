@@ -1,6 +1,6 @@
+use crate::config::CliConfig;
 /// Audit command - audit ledger integrity
 use anyhow::{Context, Result};
-use crate::config::CliConfig;
 use serde::{Deserialize, Serialize};
 
 #[derive(Debug, Serialize)]
@@ -22,12 +22,7 @@ struct ChainStatistics {
     total_size_mb: f64,
 }
 
-pub fn execute(
-    config: &CliConfig,
-    start: usize,
-    export: bool,
-    local: bool,
-) -> Result<()> {
+pub fn execute(config: &CliConfig, start: usize, export: bool, local: bool) -> Result<()> {
     if local {
         println!("Local audit not yet fully implemented");
         println!("Start: {}", start);
@@ -47,7 +42,8 @@ pub fn execute(
         let response = client
             .post(format!("{}/audit", api_url))
             .json(&request)
-            .send().context("Failed to send request to API")?;
+            .send()
+            .context("Failed to send request to API")?;
 
         if response.status().is_success() {
             let result: AuditResponse = response.json()?;

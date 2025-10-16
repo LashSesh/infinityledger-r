@@ -1,8 +1,8 @@
 /*!
  * FAISS-backed brute force baseline driver for recall ground truth.
- * 
+ *
  * Migrated from MEF-Core_v1.0/src/bench/drivers/faiss_baseline.py
- * 
+ *
  * This implementation uses ndarray for brute-force exact nearest-neighbor search.
  */
 
@@ -112,7 +112,9 @@ impl VectorStoreDriver for FaissBaselineDriver {
         _batch_size: usize,
     ) -> Result<(), anyhow::Error> {
         for (identifier, vector, _metadata) in items {
-            let prepared = self.prepare_vector(&vector).context("Failed to prepare vector")?;
+            let prepared = self
+                .prepare_vector(&vector)
+                .context("Failed to prepare vector")?;
             self.ids.push(identifier);
             self.vectors.push(prepared);
         }
@@ -137,7 +139,9 @@ impl VectorStoreDriver for FaissBaselineDriver {
             dimension: self.dimension,
         };
 
-        let vector = driver_copy.prepare_query(query).context("Failed to prepare query vector")?;
+        let vector = driver_copy
+            .prepare_query(query)
+            .context("Failed to prepare query vector")?;
 
         // Build matrix from all vectors
         let n_vectors = self.vectors.len();
@@ -158,11 +162,8 @@ impl VectorStoreDriver for FaissBaselineDriver {
         };
 
         // Get top-k indices
-        let mut indexed_scores: Vec<(usize, f32)> = scores
-            .iter()
-            .enumerate()
-            .map(|(i, &s)| (i, s))
-            .collect();
+        let mut indexed_scores: Vec<(usize, f32)> =
+            scores.iter().enumerate().map(|(i, &s)| (i, s)).collect();
 
         // Sort by score descending
         indexed_scores.sort_by(|a, b| b.1.partial_cmp(&a.1).unwrap_or(std::cmp::Ordering::Equal));
@@ -206,7 +207,7 @@ mod tests {
     #[test]
     fn test_faiss_driver_clear() {
         let mut driver = FaissBaselineDriver::new(None);
-        
+
         // Add some data
         let items = vec![
             ("id1".to_string(), vec![1.0, 2.0, 3.0], None),
@@ -214,7 +215,7 @@ mod tests {
         ];
         driver.upsert(items, "test", 1000).unwrap();
         assert_eq!(driver.ids.len(), 2);
-        
+
         // Clear
         driver.clear("test").unwrap();
         assert_eq!(driver.ids.len(), 0);
@@ -225,12 +226,12 @@ mod tests {
     #[test]
     fn test_faiss_driver_upsert() {
         let mut driver = FaissBaselineDriver::new(None);
-        
+
         let items = vec![
             ("id1".to_string(), vec![1.0, 2.0, 3.0], None),
             ("id2".to_string(), vec![4.0, 5.0, 6.0], None),
         ];
-        
+
         let result = driver.upsert(items, "test", 1000);
         assert!(result.is_ok());
         assert_eq!(driver.ids.len(), 2);
@@ -241,16 +242,12 @@ mod tests {
     #[test]
     fn test_faiss_driver_dimension_mismatch() {
         let mut driver = FaissBaselineDriver::new(None);
-        
-        let items = vec![
-            ("id1".to_string(), vec![1.0, 2.0, 3.0], None),
-        ];
+
+        let items = vec![("id1".to_string(), vec![1.0, 2.0, 3.0], None)];
         driver.upsert(items, "test", 1000).unwrap();
-        
+
         // Try to insert vector with different dimension
-        let items2 = vec![
-            ("id2".to_string(), vec![1.0, 2.0], None),
-        ];
+        let items2 = vec![("id2".to_string(), vec![1.0, 2.0], None)];
         let result = driver.upsert(items2, "test", 1000);
         assert!(result.is_err());
     }
@@ -258,17 +255,17 @@ mod tests {
     #[test]
     fn test_faiss_driver_search_cosine() {
         let mut driver = FaissBaselineDriver::new(Some("cosine"));
-        
+
         let items = vec![
             ("id1".to_string(), vec![1.0, 0.0, 0.0], None),
             ("id2".to_string(), vec![0.0, 1.0, 0.0], None),
             ("id3".to_string(), vec![1.0, 1.0, 0.0], None),
         ];
         driver.upsert(items, "test", 1000).unwrap();
-        
+
         let query = vec![1.0, 0.5, 0.0];
         let results = driver.search(&query, 2, "test").unwrap();
-        
+
         assert_eq!(results.len(), 2);
         // First result should be id3 (closest to query)
         assert_eq!(results[0].0, "id3");
@@ -285,17 +282,17 @@ mod tests {
     #[test]
     fn test_faiss_driver_search_l2() {
         let mut driver = FaissBaselineDriver::new(Some("l2"));
-        
+
         let items = vec![
             ("id1".to_string(), vec![1.0, 0.0, 0.0], None),
             ("id2".to_string(), vec![0.0, 1.0, 0.0], None),
             ("id3".to_string(), vec![0.0, 0.0, 1.0], None),
         ];
         driver.upsert(items, "test", 1000).unwrap();
-        
+
         let query = vec![1.0, 0.0, 0.0];
         let results = driver.search(&query, 3, "test").unwrap();
-        
+
         assert_eq!(results.len(), 3);
         // First result should be id1 (exact match)
         assert_eq!(results[0].0, "id1");

@@ -1,6 +1,6 @@
-/*! 
+/*!
  * MEF Vector DB - Vector database abstraction and proof registry
- * 
+ *
  * This module provides:
  * - Index management and persistence
  * - Merkle-tree based proof registry
@@ -8,15 +8,19 @@
  * - S3-backed manifest storage
  */
 
+mod index_manager;
 mod manifest_store;
 mod proof_registry;
 mod providers;
-mod index_manager;
 
-pub use manifest_store::{ManifestStore, Manifest, PersistenceConfig, CollectionState as ManifestCollectionState};
-pub use proof_registry::{ProofRegistry, MembershipProof, ProofError, CollectionState};
-pub use providers::{IndexProvider, HNSWProvider, IVFPQProvider, get_provider, get_providers, ProviderRegistry};
-pub use index_manager::{IndexManager, VectorRecord, CollectionState as IndexCollectionState};
+pub use index_manager::{CollectionState as IndexCollectionState, IndexManager, VectorRecord};
+pub use manifest_store::{
+    CollectionState as ManifestCollectionState, Manifest, ManifestStore, PersistenceConfig,
+};
+pub use proof_registry::{CollectionState, MembershipProof, ProofError, ProofRegistry};
+pub use providers::{
+    get_provider, get_providers, HNSWProvider, IVFPQProvider, IndexProvider, ProviderRegistry,
+};
 
 // Type aliases for NumPy compatibility
 /// Float32 type (equivalent to np.float32)

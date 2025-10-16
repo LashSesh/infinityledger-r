@@ -1,6 +1,6 @@
+use crate::config::CliConfig;
 /// Process command - process snapshots through Solve-Coagula
 use anyhow::{Context, Result};
-use crate::config::CliConfig;
 use serde::{Deserialize, Serialize};
 
 #[derive(Debug, Serialize)]
@@ -19,12 +19,7 @@ struct ProcessResponse {
     block_index: Option<usize>,
 }
 
-pub fn execute(
-    config: &CliConfig,
-    snapshot_id: &str,
-    commit: bool,
-    local: bool,
-) -> Result<()> {
+pub fn execute(config: &CliConfig, snapshot_id: &str, commit: bool, local: bool) -> Result<()> {
     if local {
         println!("Local processing not yet fully implemented");
         println!("Snapshot: {}", snapshot_id);
@@ -44,7 +39,8 @@ pub fn execute(
         let response = client
             .post(format!("{}/process", api_url))
             .json(&request)
-            .send().context("Failed to send request to API")?;
+            .send()
+            .context("Failed to send request to API")?;
 
         if response.status().is_success() {
             let result: ProcessResponse = response.json()?;

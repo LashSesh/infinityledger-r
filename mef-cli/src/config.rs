@@ -102,7 +102,10 @@ impl CliConfig {
                     .unwrap_or(default_ledger),
             })
         } else {
-            eprintln!("Warning: Config file {:?} not found, using defaults", config_path);
+            eprintln!(
+                "Warning: Config file {:?} not found, using defaults",
+                config_path
+            );
 
             Ok(Self {
                 api_url: api_url.to_string(),

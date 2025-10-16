@@ -78,7 +78,11 @@ impl ResonanceMetric {
     /// Score the resonance between two vectors
     pub fn score(&self, x: &[f64], y: &[f64]) -> f64 {
         if self.metric == "l2sq" {
-            let sum: f64 = x.iter().zip(y.iter()).map(|(xi, yi)| (xi - yi).powi(2)).sum();
+            let sum: f64 = x
+                .iter()
+                .zip(y.iter())
+                .map(|(xi, yi)| (xi - yi).powi(2))
+                .sum();
             return -sum;
         }
 
@@ -214,7 +218,7 @@ impl SpiralCouplingEngine {
 
         fs::create_dir_all(&base_path)?;
         let state_path = base_path.join("coupling_state.json");
-        
+
         let state = Self::load_state(&state_path)?;
         let params = params.unwrap_or_default();
         let resonance = resonance.unwrap_or_default();
@@ -240,9 +244,15 @@ impl SpiralCouplingEngine {
         let coords = self.params.coordinates(theta);
         self.state.event_counter += 1;
 
-        let seed_id = uuid5(&Uuid::NAMESPACE_URL, &format!("seed:{}:{:.12}", event_hash, theta));
-        let hdag_node_id = uuid5(&Uuid::NAMESPACE_URL, &format!("hdag:{}:{:.12}", event_hash, theta));
-        
+        let seed_id = uuid5(
+            &Uuid::NAMESPACE_URL,
+            &format!("seed:{}:{:.12}", event_hash, theta),
+        );
+        let hdag_node_id = uuid5(
+            &Uuid::NAMESPACE_URL,
+            &format!("hdag:{}:{:.12}", event_hash, theta),
+        );
+
         let epoch = ISO_EPOCH.parse::<DateTime<Utc>>().unwrap();
         let timestamp = (epoch + Duration::milliseconds(counter as i64)).to_rfc3339();
 
@@ -267,7 +277,10 @@ impl SpiralCouplingEngine {
             "timestamp": timestamp
         });
 
-        self.state.hdag.nodes.insert(hdag_node_id.clone(), node_data);
+        self.state
+            .hdag
+            .nodes
+            .insert(hdag_node_id.clone(), node_data);
 
         let step_hash = self.register_step(
             "SPIRAL_WRITE",
@@ -314,11 +327,7 @@ impl SpiralCouplingEngine {
             let source_tensor = source_val
                 .get("tensor")
                 .and_then(|t| t.as_array())
-                .map(|arr| {
-                    arr.iter()
-                        .filter_map(|v| v.as_f64())
-                        .collect::<Vec<f64>>()
-                })
+                .map(|arr| arr.iter().filter_map(|v| v.as_f64()).collect::<Vec<f64>>())
                 .unwrap_or_default();
 
             for (target_id, target_val) in ordered_nodes.iter().skip(i + 1) {
@@ -331,11 +340,7 @@ impl SpiralCouplingEngine {
                 let target_tensor = target_val
                     .get("tensor")
                     .and_then(|t| t.as_array())
-                    .map(|arr| {
-                        arr.iter()
-                            .filter_map(|v| v.as_f64())
-                            .collect::<Vec<f64>>()
-                    })
+                    .map(|arr| arr.iter().filter_map(|v| v.as_f64()).collect::<Vec<f64>>())
                     .unwrap_or_default();
 
                 let score = self.resonance.score(&source_tensor, &target_tensor);
@@ -395,7 +400,8 @@ impl SpiralCouplingEngine {
             let score = self.resonance.score(&current_coords, &coords);
 
             if score > best_score
-                || (score == best_score && (best_theta.is_none() || candidate < best_theta.unwrap()))
+                || (score == best_score
+                    && (best_theta.is_none() || candidate < best_theta.unwrap()))
             {
                 best_score = score;
                 best_theta = Some(candidate);
@@ -464,11 +470,8 @@ impl SpiralCouplingEngine {
                 .fold(0.0f64, f64::max);
 
             let mean = scores.iter().sum::<f64>() / scores.len() as f64;
-            let variance = scores
-                .iter()
-                .map(|s| (s - mean).powi(2))
-                .sum::<f64>()
-                / scores.len() as f64;
+            let variance =
+                scores.iter().map(|s| (s - mean).powi(2)).sum::<f64>() / scores.len() as f64;
 
             let stability = (1.0 - variance.min(1.0)).max(0.0);
             (delta_pi, variance, stability)
@@ -486,7 +489,7 @@ impl SpiralCouplingEngine {
         let seed_steps = self.seed_step_hashes(histories);
         let mut combined_steps: Vec<String> = seed_steps
             .into_iter()
-            .chain(pending_steps.into_iter())
+            .chain(pending_steps)
             .collect::<HashSet<_>>()
             .into_iter()
             .collect();
@@ -561,17 +564,17 @@ impl SpiralCouplingEngine {
             .ok_or_else(|| anyhow!("tic must include tic_id"))?
             .to_string();
 
-        let invariants = tic.get("invariants").cloned().unwrap_or(serde_json::json!({}));
-
-        let meta = tic
-            .get("meta")
+        let invariants = tic
+            .get("invariants")
             .cloned()
-            .unwrap_or_else(|| {
-                serde_json::json!({
-                    "source_snapshot": tic.get("source_snapshot"),
-                    "seed": tic.get("seed")
-                })
-            });
+            .unwrap_or(serde_json::json!({}));
+
+        let meta = tic.get("meta").cloned().unwrap_or_else(|| {
+            serde_json::json!({
+                "source_snapshot": tic.get("source_snapshot"),
+                "seed": tic.get("seed")
+            })
+        });
 
         let proof = tic.get("proof").cloned().unwrap_or(serde_json::json!({}));
 
@@ -616,11 +619,7 @@ impl SpiralCouplingEngine {
                 let item_vector = item
                     .get("vector")
                     .and_then(|v| v.as_array())
-                    .map(|arr| {
-                        arr.iter()
-                            .filter_map(|v| v.as_f64())
-                            .collect::<Vec<f64>>()
-                    })?;
+                    .map(|arr| arr.iter().filter_map(|v| v.as_f64()).collect::<Vec<f64>>())?;
 
                 let score = self.resonance.score(vector, &item_vector);
 
@@ -653,7 +652,7 @@ impl SpiralCouplingEngine {
     pub fn zk_infer(&mut self, x: &Value) -> Result<Value> {
         let input_hash = sha256_bytes(&stable_json(x));
         let offset_ms = u64::from_str_radix(&input_hash[..12], 16)? % 86400000;
-        
+
         let epoch = ISO_EPOCH.parse::<DateTime<Utc>>().unwrap();
         let timestamp = (epoch + Duration::milliseconds(offset_ms as i64)).to_rfc3339();
 
@@ -849,7 +848,7 @@ impl SpiralCouplingEngine {
     fn deterministic_timestamp(seed: &str) -> String {
         let digest = sha256_bytes(seed.as_bytes());
         let offset_ms = u64::from_str_radix(&digest[..12], 16).unwrap_or(0) % 86400000;
-        
+
         let epoch = ISO_EPOCH.parse::<DateTime<Utc>>().unwrap();
         (epoch + Duration::milliseconds(offset_ms as i64)).to_rfc3339()
     }
@@ -864,7 +863,7 @@ mod tests {
     fn test_spiral_parameters_coordinates() {
         let params = SpiralParameters::default();
         let coords = params.coordinates(0.0);
-        
+
         assert_eq!(coords.len(), 5);
         assert_eq!(coords[0], 1.0); // a * cos(0) = 1.0
         assert_eq!(coords[1], 0.0); // a * sin(0) = 0.0
@@ -875,7 +874,7 @@ mod tests {
         let metric = ResonanceMetric::default();
         let x = vec![1.0, 0.0, 0.0];
         let y = vec![1.0, 0.0, 0.0];
-        
+
         let score = metric.score(&x, &y);
         assert_eq!(score, 1.0); // Perfect match
     }
@@ -887,7 +886,7 @@ mod tests {
         };
         let x = vec![1.0, 2.0, 3.0];
         let y = vec![1.0, 2.0, 3.0];
-        
+
         let score = metric.score(&x, &y);
         assert_eq!(score, 0.0); // Perfect match (negative squared distance)
     }
@@ -901,7 +900,7 @@ mod tests {
             0.001,
             0.5,
         );
-        
+
         assert!(result.is_ok());
     }
 
@@ -918,7 +917,7 @@ mod tests {
 
         let event = json!({"test": "data", "value": 123});
         let result = engine.inject_seed(&event);
-        
+
         assert!(result.is_ok());
         let seed_result = result.unwrap();
         assert!(seed_result.get("seed_id").is_some());
@@ -945,7 +944,7 @@ mod tests {
 
         // Sync with threshold
         let result = engine.sync_hdag(0.5);
-        
+
         assert!(result.is_ok());
         let sync_result = result.unwrap();
         assert!(sync_result.get("edges_added").is_some());
@@ -965,7 +964,7 @@ mod tests {
 
         let candidates = vec![0.1, 0.2, 0.3, 0.4];
         let result = engine.navigate_spiral(0.0, &candidates, None);
-        
+
         assert!(result.is_ok());
         let nav_result = result.unwrap();
         assert!(nav_result.get("theta_next").is_some());
@@ -990,7 +989,7 @@ mod tests {
         ];
 
         let result = engine.condense_histories(&histories, "argmax_sumF");
-        
+
         assert!(result.is_ok());
         let tic = result.unwrap();
         assert!(tic.get("tic_id").is_some());
@@ -1012,12 +1011,14 @@ mod tests {
 
         // Condense some histories to create TICs
         let histories = vec![vec![1.0, 2.0, 3.0, 4.0, 5.0]];
-        engine.condense_histories(&histories, "argmax_sumF").unwrap();
+        engine
+            .condense_histories(&histories, "argmax_sumF")
+            .unwrap();
 
         // Query
         let query_vector = vec![1.0, 2.0, 3.0, 4.0, 5.0];
         let result = engine.query_tics(&query_vector, 1);
-        
+
         assert!(result.is_ok());
         let results = result.unwrap();
         assert!(!results.is_empty());

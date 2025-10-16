@@ -1,3 +1,3 @@
 mod graph;
 
-pub use graph::{HDAG, HDAGNode, HDAGEdge, HDAGMetadata, PathInvarianceResult};
+pub use graph::{HDAGEdge, HDAGMetadata, HDAGNode, PathInvarianceResult, HDAG};

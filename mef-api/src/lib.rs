@@ -2,7 +2,6 @@
 /// Migrated from: MEF-Core_v1.0/src/api/server.py
 ///
 /// FastAPI → Axum migration with identical API contract
-
 pub mod config;
 pub mod error;
 pub mod models;

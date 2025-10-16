@@ -1,6 +1,6 @@
 /*!
  * Driver for Elasticsearch/OpenSearch dense vector kNN APIs.
- * 
+ *
  * Migrated from MEF-Core_v1.0/src/bench/drivers/elastic_driver.py
  */
 
@@ -24,7 +24,7 @@ impl ElasticDriver {
             .unwrap_or_default()
             .trim_end_matches('/')
             .to_string();
-        
+
         Self {
             metric,
             base_url,
@@ -34,7 +34,9 @@ impl ElasticDriver {
     }
 
     fn ensure_index(&mut self, namespace: &str, dimension: usize) -> Result<()> {
-        let client = self.client.as_ref()
+        let client = self
+            .client
+            .as_ref()
             .ok_or_else(|| anyhow::anyhow!("connect() must be called before upsert()"))?;
 
         let similarity = match self.metric.as_str() {
@@ -67,7 +69,8 @@ impl ElasticDriver {
             .put(&url)
             .json(&payload)
             .timeout(std::time::Duration::from_secs(15))
-            .send().context("Failed to create index")?;
+            .send()
+            .context("Failed to create index")?;
 
         let status = response.status().as_u16();
         if status == 200 || status == 201 {
@@ -94,24 +97,32 @@ impl ElasticDriver {
     }
 
     fn flush_bulk(&self, lines: Vec<String>) -> Result<()> {
-        let client = self.client.as_ref()
+        let client = self
+            .client
+            .as_ref()
             .ok_or_else(|| anyhow::anyhow!("connect() must be called before upsert()"))?;
 
         let body = lines.join("\n") + "\n";
         let url = format!("{}/_bulk", self.base_url);
-        
+
         let response = client
             .post(&url)
             .header("Content-Type", "application/x-ndjson")
             .body(body)
             .timeout(std::time::Duration::from_secs(30))
-            .send().context("Failed to send bulk request")?;
+            .send()
+            .context("Failed to send bulk request")?;
 
         response.error_for_status_ref()?;
-        
-        let payload: serde_json::Value = response.json().context("Failed to parse bulk response")?;
-        
-        if payload.get("errors").and_then(|v| v.as_bool()).unwrap_or(false) {
+
+        let payload: serde_json::Value =
+            response.json().context("Failed to parse bulk response")?;
+
+        if payload
+            .get("errors")
+            .and_then(|v| v.as_bool())
+            .unwrap_or(false)
+        {
             return Err(anyhow::anyhow!("bulk ingest reported errors"));
         }
 
@@ -120,7 +131,7 @@ impl ElasticDriver {
 
     fn prepare_vector(&mut self, vector: &Vector) -> Result<Vec<f32>> {
         let array: Vec<f32> = vector.iter().map(|&v| v as f32).collect();
-        
+
         if let Some(dim) = self.dimension {
             if array.len() != dim {
                 return Err(anyhow::anyhow!(
@@ -165,7 +176,8 @@ impl VectorStoreDriver for ElasticDriver {
 
         let client = reqwest::blocking::Client::builder()
             .timeout(std::time::Duration::from_secs(30))
-            .build().context("Failed to build HTTP client")?;
+            .build()
+            .context("Failed to build HTTP client")?;
 
         let health_url = format!("{}/_cluster/health", self.base_url);
         let response = client
@@ -173,10 +185,7 @@ impl VectorStoreDriver for ElasticDriver {
             .timeout(std::time::Duration::from_secs(5))
             .send()
             .map_err(|e| {
-                DriverUnavailable::new(
-                    "Elastic",
-                    format!("unable to reach Elasticsearch: {}", e),
-                )
+                DriverUnavailable::new("Elastic", format!("unable to reach Elasticsearch: {}", e))
             })?;
 
         if response.status().as_u16() >= 500 {
@@ -192,14 +201,17 @@ impl VectorStoreDriver for ElasticDriver {
     }
 
     fn clear(&mut self, namespace: &str) -> Result<()> {
-        let client = self.client.as_ref()
+        let client = self
+            .client
+            .as_ref()
             .ok_or_else(|| anyhow::anyhow!("connect() must be called before clear()"))?;
 
         let url = format!("{}/{}", self.base_url, namespace);
         let response = client
             .delete(&url)
             .timeout(std::time::Duration::from_secs(15))
-            .send().context("Failed to delete index")?;
+            .send()
+            .context("Failed to delete index")?;
 
         let status = response.status().as_u16();
         if status != 200 && status != 202 && status != 204 && status != 404 {
@@ -210,12 +222,7 @@ impl VectorStoreDriver for ElasticDriver {
         Ok(())
     }
 
-    fn upsert(
-        &mut self,
-        items: Vec<UpsertItem>,
-        namespace: &str,
-        batch_size: usize,
-    ) -> Result<()> {
+    fn upsert(&mut self, items: Vec<UpsertItem>, namespace: &str, batch_size: usize) -> Result<()> {
         if self.client.is_none() {
             return Err(anyhow::anyhow!("connect() must be called before upsert()"));
         }
@@ -234,18 +241,18 @@ impl VectorStoreDriver for ElasticDriver {
 
         for (identifier, vector, _metadata) in items {
             let prepared = self.prepare_vector(&vector)?;
-            
+
             let action = json!({
                 "index": {
                     "_index": namespace,
                     "_id": identifier
                 }
             });
-            
+
             let doc = json!({
                 "vector": prepared
             });
-            
+
             bulk_lines.push(serde_json::to_string(&action)?);
             bulk_lines.push(serde_json::to_string(&doc)?);
 
@@ -262,13 +269,10 @@ impl VectorStoreDriver for ElasticDriver {
         Ok(())
     }
 
-    fn search(
-        &self,
-        query: &Vector,
-        k: usize,
-        namespace: &str,
-    ) -> Result<Vec<(String, f64)>> {
-        let client = self.client.as_ref()
+    fn search(&self, query: &Vector, k: usize, namespace: &str) -> Result<Vec<(String, f64)>> {
+        let client = self
+            .client
+            .as_ref()
             .ok_or_else(|| anyhow::anyhow!("connect() must be called before search()"))?;
 
         // Prepare query vector (need mutable self for prepare_vector, so clone the vector)
@@ -281,7 +285,7 @@ impl VectorStoreDriver for ElasticDriver {
         let prepared = temp_driver.prepare_vector(query)?;
 
         let num_candidates = (k * 4).max(k);
-        
+
         let search_body = json!({
             "size": k,
             "knn": {
@@ -298,11 +302,13 @@ impl VectorStoreDriver for ElasticDriver {
             .get(&url)
             .json(&search_body)
             .timeout(std::time::Duration::from_secs(15))
-            .send().context("Failed to search")?;
+            .send()
+            .context("Failed to search")?;
 
         response.error_for_status_ref()?;
-        
-        let payload: serde_json::Value = response.json().context("Failed to parse search response")?;
+
+        let payload: serde_json::Value =
+            response.json().context("Failed to parse search response")?;
 
         let hits_payload = payload
             .get("hits")
@@ -361,15 +367,16 @@ mod tests {
         let mut driver = ElasticDriver::new(None);
         let result = driver.connect();
         assert!(result.is_err());
-        assert!(result.unwrap_err().to_string().contains("ELASTIC_URL not configured"));
+        assert!(result
+            .unwrap_err()
+            .to_string()
+            .contains("ELASTIC_URL not configured"));
     }
 
     #[test]
     fn test_upsert_without_connect() {
         let mut driver = ElasticDriver::new(Some("cosine"));
-        let items = vec![
-            ("id1".to_string(), vec![1.0, 2.0, 3.0], None),
-        ];
+        let items = vec![("id1".to_string(), vec![1.0, 2.0, 3.0], None)];
         let result = driver.upsert(items, "test", 1000);
         assert!(result.is_err());
     }

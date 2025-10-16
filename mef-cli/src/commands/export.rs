@@ -1,17 +1,14 @@
+use crate::config::CliConfig;
 /// Export command - export system data
 use anyhow::{Context, Result};
-use crate::config::CliConfig;
 use std::fs;
 use std::path::PathBuf;
 
-pub fn execute(
-    config: &CliConfig,
-    format: &str,
-    output: Option<PathBuf>,
-) -> Result<()> {
+pub fn execute(config: &CliConfig, format: &str, output: Option<PathBuf>) -> Result<()> {
     let api_url = &config.api_url;
 
-    let response = reqwest::blocking::get(format!("{}/export/{}", api_url, format)).context("Failed to send request to API")?;
+    let response = reqwest::blocking::get(format!("{}/export/{}", api_url, format))
+        .context("Failed to send request to API")?;
 
     if response.status().is_success() {
         if let Some(output_path) = output {

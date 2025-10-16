@@ -1,5 +1,5 @@
 //! Integration tests for MEF API endpoints
-//! 
+//!
 //! This test suite validates the HTTP API endpoints and their interactions
 //! with the underlying MEF services.
 
@@ -24,9 +24,9 @@ fn test_health_endpoint() {
         .get(&format!("{}/healthz", API_BASE_URL))
         .send()
         .expect("Failed to send request");
-    
+
     assert!(response.status().is_success());
-    
+
     let body: Value = response.json().expect("Failed to parse response");
     assert_eq!(body["status"], "ok");
 }
@@ -39,9 +39,9 @@ fn test_metrics_endpoint() {
         .get(&format!("{}/metrics", API_BASE_URL))
         .send()
         .expect("Failed to send request");
-    
+
     assert!(response.status().is_success());
-    
+
     // Metrics should be in Prometheus format
     let body = response.text().expect("Failed to get response text");
     assert!(body.contains("# HELP"));
@@ -52,22 +52,22 @@ fn test_metrics_endpoint() {
 #[ignore] // Requires API server to be running
 fn test_search_endpoint() {
     let client = get_client();
-    
+
     // Create a search request
     let search_request = json!({
         "query_vector": vec![0.1; 768],
         "top_k": 10,
         "filters": {}
     });
-    
+
     let response = client
         .post(&format!("{}/search", API_BASE_URL))
         .json(&search_request)
         .send()
         .expect("Failed to send request");
-    
+
     assert!(response.status().is_success());
-    
+
     let body: Value = response.json().expect("Failed to parse response");
     assert!(body.is_object());
     assert!(body["results"].is_array());
@@ -77,7 +77,7 @@ fn test_search_endpoint() {
 #[ignore] // Requires API server to be running
 fn test_spiral_snapshot_endpoint() {
     let client = get_client();
-    
+
     // Create a snapshot request
     let snapshot_request = json!({
         "data": {
@@ -86,15 +86,15 @@ fn test_spiral_snapshot_endpoint() {
         },
         "seed": "TEST_SEED_API_001"
     });
-    
+
     let response = client
         .post(&format!("{}/spiral/snapshot", API_BASE_URL))
         .json(&snapshot_request)
         .send()
         .expect("Failed to send request");
-    
+
     assert!(response.status().is_success());
-    
+
     let body: Value = response.json().expect("Failed to parse response");
     assert!(body["snapshot_id"].is_string());
     assert!(body["coordinates"].is_array());
@@ -104,7 +104,7 @@ fn test_spiral_snapshot_endpoint() {
 #[ignore] // Requires API server to be running
 fn test_ledger_block_endpoint() {
     let client = get_client();
-    
+
     // Create a block request
     let block_request = json!({
         "tic": {
@@ -121,15 +121,15 @@ fn test_ledger_block_endpoint() {
             "coordinates": [0.1, 0.2, 0.3, 0.4, 0.5]
         }
     });
-    
+
     let response = client
         .post(&format!("{}/ledger/block", API_BASE_URL))
         .json(&block_request)
         .send()
         .expect("Failed to send request");
-    
+
     assert!(response.status().is_success());
-    
+
     let body: Value = response.json().expect("Failed to parse response");
     assert!(body["block_index"].is_number());
     assert!(body["block_hash"].is_string());
@@ -139,18 +139,18 @@ fn test_ledger_block_endpoint() {
 #[ignore] // Requires API server to be running
 fn test_api_error_handling() {
     let client = get_client();
-    
+
     // Send invalid request
     let invalid_request = json!({
         "invalid": "request"
     });
-    
+
     let response = client
         .post(&format!("{}/search", API_BASE_URL))
         .json(&invalid_request)
         .send()
         .expect("Failed to send request");
-    
+
     // Should return error status
     assert!(response.status().is_client_error() || response.status().is_server_error());
 }
@@ -159,7 +159,7 @@ fn test_api_error_handling() {
 #[ignore] // Requires API server to be running
 fn test_concurrent_requests() {
     use std::thread;
-    
+
     let handles: Vec<_> = (0..10)
         .map(|i| {
             thread::spawn(move || {
@@ -168,13 +168,13 @@ fn test_concurrent_requests() {
                     .get(&format!("{}/healthz", API_BASE_URL))
                     .send()
                     .expect("Failed to send request");
-                
+
                 assert!(response.status().is_success());
                 i
             })
         })
         .collect();
-    
+
     for handle in handles {
         handle.join().expect("Thread panicked");
     }

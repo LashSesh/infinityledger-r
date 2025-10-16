@@ -1,6 +1,6 @@
+use crate::config::CliConfig;
 /// Solve command - SPEC-002 fixpoint calculation
 use anyhow::{Context, Result};
-use crate::config::CliConfig;
 use serde::{Deserialize, Serialize};
 use std::fs;
 use std::path::PathBuf;
@@ -12,16 +12,13 @@ struct SolveResponse {
     steps: usize,
 }
 
-pub fn execute(
-    config: &CliConfig,
-    snapshot: &str,
-    output_file: Option<PathBuf>,
-) -> Result<()> {
+pub fn execute(config: &CliConfig, snapshot: &str, output_file: Option<PathBuf>) -> Result<()> {
     let api_url = &config.api_url;
 
     let response = reqwest::blocking::Client::new()
         .post(format!("{}/solve?snapshot_id={}", api_url, snapshot))
-        .send().context("Failed to send request to API")?;
+        .send()
+        .context("Failed to send request to API")?;
 
     if response.status().is_success() {
         let result: SolveResponse = response.json()?;

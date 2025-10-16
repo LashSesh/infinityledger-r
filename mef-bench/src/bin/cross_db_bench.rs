@@ -1,20 +1,19 @@
 /*!
  * Cross-Database Benchmark CLI
- * 
+ *
  * Runs comprehensive benchmarks across multiple vector database implementations
  * to compare performance, accuracy, and resource usage.
  */
 
 use anyhow::{Context, Result};
+use chrono::{DateTime, Utc};
 use mef_bench::{
-    get_driver_registry, VectorStoreDriver,
-    build_spiral_corpus, generate_query_vectors, brute_force_top_k,
-    UpsertItem,
+    brute_force_top_k, build_spiral_corpus, generate_query_vectors, get_driver_registry,
+    UpsertItem, VectorStoreDriver,
 };
 use serde::{Deserialize, Serialize};
 use std::fs;
 use std::time::{Duration, Instant};
-use chrono::{DateTime, Utc};
 
 #[derive(Debug, Serialize, Deserialize)]
 struct DriverBenchmarkResult {
@@ -22,24 +21,24 @@ struct DriverBenchmarkResult {
     metric: String,
     status: String,
     error_message: Option<String>,
-    
+
     // Timing metrics (in milliseconds)
     connect_time_ms: Option<f64>,
     clear_time_ms: Option<f64>,
     upsert_time_ms: Option<f64>,
     search_time_ms: Option<f64>,
     total_time_ms: Option<f64>,
-    
+
     // Search performance
     avg_search_latency_ms: Option<f64>,
     p50_search_latency_ms: Option<f64>,
     p95_search_latency_ms: Option<f64>,
     p99_search_latency_ms: Option<f64>,
-    
+
     // Accuracy metrics
     recall_at_10: Option<f64>,
     recall_at_100: Option<f64>,
-    
+
     // Throughput metrics
     vectors_per_second: Option<f64>,
     queries_per_second: Option<f64>,
@@ -75,7 +74,7 @@ struct BenchmarkSummary {
 fn main() -> Result<()> {
     // Parse command line arguments
     let args: Vec<String> = std::env::args().collect();
-    
+
     let drivers_to_test = if args.len() > 1 {
         args[1..].to_vec()
     } else {
@@ -90,39 +89,38 @@ fn main() -> Result<()> {
             "pinecone".to_string(),
         ]
     };
-    
+
     println!("🚀 MEF Cross-Database Benchmark Suite");
     println!("======================================\n");
-    
+
     // Configuration
     let num_vectors = std::env::var("BENCH_NUM_VECTORS")
         .ok()
         .and_then(|v| v.parse().ok())
         .unwrap_or(10000);
-    
+
     let num_queries = std::env::var("BENCH_NUM_QUERIES")
         .ok()
         .and_then(|v| v.parse().ok())
         .unwrap_or(100);
-    
+
     let dimension = std::env::var("BENCH_DIMENSION")
         .ok()
         .and_then(|v| v.parse().ok())
         .unwrap_or(128);
-    
+
     let k = std::env::var("BENCH_K")
         .ok()
         .and_then(|v| v.parse().ok())
         .unwrap_or(10);
-    
-    let metric = std::env::var("BENCH_METRIC")
-        .unwrap_or_else(|_| "cosine".to_string());
-    
+
+    let metric = std::env::var("BENCH_METRIC").unwrap_or_else(|_| "cosine".to_string());
+
     let batch_size = std::env::var("BENCH_BATCH_SIZE")
         .ok()
         .and_then(|v| v.parse().ok())
         .unwrap_or(1000);
-    
+
     println!("📊 Configuration:");
     println!("  Vectors: {}", num_vectors);
     println!("  Queries: {}", num_queries);
@@ -131,41 +129,48 @@ fn main() -> Result<()> {
     println!("  Metric: {}", metric);
     println!("  Batch size: {}", batch_size);
     println!("  Drivers: {}\n", drivers_to_test.join(", "));
-    
+
     // Generate benchmark dataset
     println!("📦 Generating benchmark dataset...");
     let (ids, vectors) = build_spiral_corpus(num_vectors, 42);
     let queries = generate_query_vectors(&vectors, num_queries, 123);
-    println!("  Generated {} vectors and {} queries\n", vectors.len(), queries.len());
-    
+    println!(
+        "  Generated {} vectors and {} queries\n",
+        vectors.len(),
+        queries.len()
+    );
+
     // Compute ground truth with FAISS baseline
     println!("🎯 Computing ground truth with exact search...");
     let ground_truth: Vec<Vec<String>> = queries
         .iter()
         .map(|query| {
             let results = brute_force_top_k(query, &vectors, k, &metric);
-            results.into_iter().map(|(idx, _score)| ids[idx].clone()).collect()
+            results
+                .into_iter()
+                .map(|(idx, _score)| ids[idx].clone())
+                .collect()
         })
         .collect();
     println!("  Ground truth computed\n");
-    
+
     // Prepare upsert items
     let items: Vec<UpsertItem> = ids
         .iter()
         .zip(vectors.iter())
         .map(|(id, vec)| (id.clone(), vec.clone(), None))
         .collect();
-    
+
     // Get driver registry
     let registry = get_driver_registry();
-    
+
     // Run benchmarks for each driver
     let mut results = Vec::new();
-    
+
     for driver_name in &drivers_to_test {
         println!("🔧 Testing driver: {}", driver_name);
         println!("  {}", "─".repeat(50));
-        
+
         let result = match registry.get(driver_name.as_str()) {
             Some(constructor) => {
                 let mut driver = constructor(Some(&metric));
@@ -202,13 +207,13 @@ fn main() -> Result<()> {
                 }
             }
         };
-        
+
         results.push(result);
     }
-    
+
     // Generate summary
     let summary = generate_summary(&results);
-    
+
     // Create report
     let report = CrossDBBenchmarkReport {
         timestamp: Utc::now(),
@@ -222,34 +227,34 @@ fn main() -> Result<()> {
         results,
         summary,
     };
-    
+
     // Print summary
     print_summary_table(&report);
-    
+
     // Save report to JSON
-    let output_path = std::env::var("BENCH_OUTPUT")
-        .unwrap_or_else(|_| "benchmark_results.json".to_string());
-    
+    let output_path =
+        std::env::var("BENCH_OUTPUT").unwrap_or_else(|_| "benchmark_results.json".to_string());
+
     // Create parent directory if it doesn't exist
     if let Some(parent) = std::path::Path::new(&output_path).parent() {
         fs::create_dir_all(parent)
             .context(format!("Failed to create directory for {}", output_path))?;
     }
-    
-    let json_output = serde_json::to_string_pretty(&report)
-        .context("Failed to serialize benchmark report")?;
-    
+
+    let json_output =
+        serde_json::to_string_pretty(&report).context("Failed to serialize benchmark report")?;
+
     fs::write(&output_path, json_output)
         .context(format!("Failed to write report to {}", output_path))?;
-    
+
     println!("\n💾 Full report saved to: {}", output_path);
-    
+
     // Exit with error code if any benchmarks failed
     if report.summary.failed_drivers > 0 {
         println!("\n⚠️  Some benchmarks failed!");
         std::process::exit(1);
     }
-    
+
     println!("\n✅ All benchmarks completed successfully!");
     Ok(())
 }
@@ -265,13 +270,13 @@ fn run_driver_benchmark(
 ) -> DriverBenchmarkResult {
     let driver_name = driver.name().to_string();
     let start_time = Instant::now();
-    
+
     // Connect
     println!("  📡 Connecting...");
     let connect_start = Instant::now();
     let connect_result = driver.connect();
     let connect_time_ms = connect_start.elapsed().as_secs_f64() * 1000.0;
-    
+
     if let Err(e) = connect_result {
         println!("  ❌ Connection failed: {}\n", e);
         return DriverBenchmarkResult {
@@ -295,7 +300,7 @@ fn run_driver_benchmark(
         };
     }
     println!("  ✓ Connected ({:.2}ms)", connect_time_ms);
-    
+
     // Clear collection
     println!("  🧹 Clearing collection...");
     let clear_start = Instant::now();
@@ -305,13 +310,13 @@ fn run_driver_benchmark(
     }
     let clear_time_ms = clear_start.elapsed().as_secs_f64() * 1000.0;
     println!("  ✓ Cleared ({:.2}ms)", clear_time_ms);
-    
+
     // Upsert vectors
     println!("  📥 Upserting {} vectors...", items.len());
     let upsert_start = Instant::now();
     let upsert_result = driver.upsert(items.to_vec(), namespace, batch_size);
     let upsert_time_ms = upsert_start.elapsed().as_secs_f64() * 1000.0;
-    
+
     if let Err(e) = upsert_result {
         println!("  ❌ Upsert failed: {}\n", e);
         return DriverBenchmarkResult {
@@ -334,38 +339,41 @@ fn run_driver_benchmark(
             queries_per_second: None,
         };
     }
-    
+
     let vectors_per_second = items.len() as f64 / (upsert_time_ms / 1000.0);
-    println!("  ✓ Upserted ({:.2}ms, {:.0} vectors/s)", upsert_time_ms, vectors_per_second);
-    
+    println!(
+        "  ✓ Upserted ({:.2}ms, {:.0} vectors/s)",
+        upsert_time_ms, vectors_per_second
+    );
+
     // Small delay to allow indexing to complete
     println!("  ⏳ Waiting for indexing...");
     std::thread::sleep(Duration::from_secs(2));
-    
+
     // Run search queries
     println!("  🔍 Running {} search queries...", queries.len());
     let mut search_latencies = Vec::new();
     let mut recall_scores = Vec::new();
-    
+
     let search_start = Instant::now();
     for (i, query) in queries.iter().enumerate() {
         let query_start = Instant::now();
         let search_result = driver.search(query, k, namespace);
         let query_latency = query_start.elapsed().as_secs_f64() * 1000.0;
-        
+
         match search_result {
             Ok(results) => {
                 search_latencies.push(query_latency);
-                
+
                 // Calculate recall
-                let returned_ids: Vec<String> = results.iter()
-                    .map(|(id, _score)| id.clone())
-                    .collect();
-                
-                let matches = returned_ids.iter()
+                let returned_ids: Vec<String> =
+                    results.iter().map(|(id, _score)| id.clone()).collect();
+
+                let matches = returned_ids
+                    .iter()
                     .filter(|id| ground_truth[i].contains(id))
                     .count();
-                
+
                 let recall = matches as f64 / k.min(ground_truth[i].len()) as f64;
                 recall_scores.push(recall);
             }
@@ -376,7 +384,7 @@ fn run_driver_benchmark(
         }
     }
     let search_time_ms = search_start.elapsed().as_secs_f64() * 1000.0;
-    
+
     if search_latencies.is_empty() {
         println!("  ❌ All search queries failed\n");
         return DriverBenchmarkResult {
@@ -399,29 +407,35 @@ fn run_driver_benchmark(
             queries_per_second: None,
         };
     }
-    
+
     // Calculate metrics
     let avg_latency = search_latencies.iter().sum::<f64>() / search_latencies.len() as f64;
     let queries_per_second = search_latencies.len() as f64 / (search_time_ms / 1000.0);
-    
+
     let mut sorted_latencies = search_latencies.clone();
     sorted_latencies.sort_by(|a, b| a.partial_cmp(b).unwrap());
-    
+
     let p50 = sorted_latencies[sorted_latencies.len() / 2];
     let p95 = sorted_latencies[sorted_latencies.len() * 95 / 100];
     let p99 = sorted_latencies[sorted_latencies.len() * 99 / 100];
-    
+
     let avg_recall = recall_scores.iter().sum::<f64>() / recall_scores.len() as f64;
-    
+
     let total_time_ms = start_time.elapsed().as_secs_f64() * 1000.0;
-    
+
     println!("  ✓ Searches completed");
     println!("    Avg latency: {:.2}ms", avg_latency);
-    println!("    p50: {:.2}ms, p95: {:.2}ms, p99: {:.2}ms", p50, p95, p99);
+    println!(
+        "    p50: {:.2}ms, p95: {:.2}ms, p99: {:.2}ms",
+        p50, p95, p99
+    );
     println!("    Recall@{}: {:.2}%", k, avg_recall * 100.0);
     println!("    QPS: {:.0}", queries_per_second);
-    println!("  ✅ Benchmark completed ({:.2}s total)\n", total_time_ms / 1000.0);
-    
+    println!(
+        "  ✅ Benchmark completed ({:.2}s total)\n",
+        total_time_ms / 1000.0
+    );
+
     DriverBenchmarkResult {
         driver_name,
         metric: metric.to_string(),
@@ -446,7 +460,7 @@ fn run_driver_benchmark(
 fn generate_summary(results: &[DriverBenchmarkResult]) -> BenchmarkSummary {
     let successful_drivers = results.iter().filter(|r| r.status == "success").count();
     let failed_drivers = results.len() - successful_drivers;
-    
+
     // Find fastest driver (lowest p50 latency)
     let fastest_driver = results
         .iter()
@@ -458,7 +472,7 @@ fn generate_summary(results: &[DriverBenchmarkResult]) -> BenchmarkSummary {
                 .unwrap()
         })
         .map(|r| r.driver_name.clone());
-    
+
     // Find highest recall driver
     let highest_recall_driver = results
         .iter()
@@ -470,7 +484,7 @@ fn generate_summary(results: &[DriverBenchmarkResult]) -> BenchmarkSummary {
                 .unwrap()
         })
         .map(|r| r.driver_name.clone());
-    
+
     // Find highest throughput driver
     let highest_throughput_driver = results
         .iter()
@@ -482,7 +496,7 @@ fn generate_summary(results: &[DriverBenchmarkResult]) -> BenchmarkSummary {
                 .unwrap()
         })
         .map(|r| r.driver_name.clone());
-    
+
     BenchmarkSummary {
         total_drivers_tested: results.len(),
         successful_drivers,
@@ -496,41 +510,48 @@ fn generate_summary(results: &[DriverBenchmarkResult]) -> BenchmarkSummary {
 fn print_summary_table(report: &CrossDBBenchmarkReport) {
     println!("\n📊 Benchmark Results Summary");
     println!("============================\n");
-    
+
     println!("Configuration:");
     println!("  Vectors: {}", report.config.num_vectors);
     println!("  Queries: {}", report.config.num_queries);
     println!("  Dimension: {}", report.config.dimension);
     println!("  k: {}", report.config.k);
     println!("  Metric: {}\n", report.config.metric);
-    
-    println!("{:<15} {:<10} {:<12} {:<12} {:<12} {:<12}",
-        "Driver", "Status", "P50 (ms)", "P95 (ms)", "Recall@10", "QPS");
+
+    println!(
+        "{:<15} {:<10} {:<12} {:<12} {:<12} {:<12}",
+        "Driver", "Status", "P50 (ms)", "P95 (ms)", "Recall@10", "QPS"
+    );
     println!("{}", "─".repeat(85));
-    
+
     for result in &report.results {
         let status_icon = match result.status.as_str() {
             "success" => "✅",
             _ => "❌",
         };
-        
-        let p50 = result.p50_search_latency_ms
+
+        let p50 = result
+            .p50_search_latency_ms
             .map(|v| format!("{:.2}", v))
             .unwrap_or_else(|| "-".to_string());
-        
-        let p95 = result.p95_search_latency_ms
+
+        let p95 = result
+            .p95_search_latency_ms
             .map(|v| format!("{:.2}", v))
             .unwrap_or_else(|| "-".to_string());
-        
-        let recall = result.recall_at_10
+
+        let recall = result
+            .recall_at_10
             .map(|v| format!("{:.1}%", v * 100.0))
             .unwrap_or_else(|| "-".to_string());
-        
-        let qps = result.queries_per_second
+
+        let qps = result
+            .queries_per_second
             .map(|v| format!("{:.0}", v))
             .unwrap_or_else(|| "-".to_string());
-        
-        println!("{:<15} {:<10} {:<12} {:<12} {:<12} {:<12}",
+
+        println!(
+            "{:<15} {:<10} {:<12} {:<12} {:<12} {:<12}",
             result.driver_name,
             format!("{} {}", status_icon, result.status),
             p50,
@@ -539,7 +560,7 @@ fn print_summary_table(report: &CrossDBBenchmarkReport) {
             qps
         );
     }
-    
+
     println!("\n🏆 Winners:");
     if let Some(ref fastest) = report.summary.fastest_driver {
         println!("  ⚡ Fastest (P50): {}", fastest);
@@ -550,7 +571,7 @@ fn print_summary_table(report: &CrossDBBenchmarkReport) {
     if let Some(ref throughput) = report.summary.highest_throughput_driver {
         println!("  🚀 Highest Throughput: {}", throughput);
     }
-    
+
     println!("\n📈 Overall:");
     println!("  Total: {}", report.summary.total_drivers_tested);
     println!("  ✅ Successful: {}", report.summary.successful_drivers);

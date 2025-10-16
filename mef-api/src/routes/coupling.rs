@@ -34,12 +34,15 @@ async fn coupling_seed(
     State(state): State<AppState>,
     Json(request): Json<CouplingSeedRequest>,
 ) -> Result<Json<CouplingSeedResponse>> {
-    let mut coupling_engine = state.coupling_engine.lock()
+    let mut coupling_engine = state
+        .coupling_engine
+        .lock()
         .map_err(|e| ApiError::Internal(format!("Failed to lock coupling engine: {}", e)))?;
-    
-    let result = coupling_engine.inject_seed(&request.event)
+
+    let result = coupling_engine
+        .inject_seed(&request.event)
         .map_err(|e| ApiError::Processing(format!("Failed to inject seed: {}", e)))?;
-    
+
     Ok(Json(CouplingSeedResponse {
         status: "ok".to_string(),
         result,
@@ -62,12 +65,15 @@ async fn coupling_sync(
     State(state): State<AppState>,
     Json(request): Json<CouplingSyncRequest>,
 ) -> Result<Json<CouplingSyncResponse>> {
-    let mut coupling_engine = state.coupling_engine.lock()
+    let mut coupling_engine = state
+        .coupling_engine
+        .lock()
         .map_err(|e| ApiError::Internal(format!("Failed to lock coupling engine: {}", e)))?;
-    
-    let result = coupling_engine.sync_hdag(request.threshold)
+
+    let result = coupling_engine
+        .sync_hdag(request.threshold)
         .map_err(|e| ApiError::Processing(format!("Failed to sync HDAG: {}", e)))?;
-    
+
     Ok(Json(CouplingSyncResponse {
         status: "ok".to_string(),
         result,
@@ -91,24 +97,30 @@ async fn spiral_nav(
     State(state): State<AppState>,
     Json(request): Json<SpiralNavRequest>,
 ) -> Result<Json<SpiralNavResponse>> {
-    let mut coupling_engine = state.coupling_engine.lock()
+    let mut coupling_engine = state
+        .coupling_engine
+        .lock()
         .map_err(|e| ApiError::Internal(format!("Failed to lock coupling engine: {}", e)))?;
-    
-    let result = coupling_engine.navigate_spiral(
-        request.theta_current,
-        &request.candidates,
-        None, // params
-    ).map_err(|e| ApiError::Processing(format!("Failed to navigate spiral: {}", e)))?;
-    
+
+    let result = coupling_engine
+        .navigate_spiral(
+            request.theta_current,
+            &request.candidates,
+            None, // params
+        )
+        .map_err(|e| ApiError::Processing(format!("Failed to navigate spiral: {}", e)))?;
+
     // Extract best_theta and best_score from result
-    let best_theta = result.get("best_theta")
+    let best_theta = result
+        .get("best_theta")
         .and_then(|v| v.as_f64())
         .unwrap_or(0.0);
-    
-    let best_score = result.get("best_score")
+
+    let best_score = result
+        .get("best_score")
         .and_then(|v| v.as_f64())
         .unwrap_or(0.0);
-    
+
     Ok(Json(SpiralNavResponse {
         best_theta,
         best_score,
@@ -132,21 +144,26 @@ async fn spiral_condense(
     State(state): State<AppState>,
     Json(request): Json<SpiralCondenseRequest>,
 ) -> Result<Json<SpiralCondenseResponse>> {
-    let mut coupling_engine = state.coupling_engine.lock()
+    let mut coupling_engine = state
+        .coupling_engine
+        .lock()
         .map_err(|e| ApiError::Internal(format!("Failed to lock coupling engine: {}", e)))?;
-    
-    let result = coupling_engine.condense_histories(&request.histories, &request.mode)
+
+    let result = coupling_engine
+        .condense_histories(&request.histories, &request.mode)
         .map_err(|e| ApiError::Processing(format!("Failed to condense histories: {}", e)))?;
-    
-    let condensed = result.get("condensed")
+
+    let condensed = result
+        .get("condensed")
         .and_then(|v| v.as_array())
         .map(|arr| arr.iter().filter_map(|x| x.as_f64()).collect())
         .unwrap_or_else(Vec::new);
-    
-    let variance = result.get("variance")
+
+    let variance = result
+        .get("variance")
         .and_then(|v| v.as_f64())
         .unwrap_or(0.0);
-    
+
     Ok(Json(SpiralCondenseResponse {
         condensed,
         variance,
@@ -167,18 +184,22 @@ async fn get_spiral(
     Path(id): Path<String>,
 ) -> Result<Json<SpiralResponse>> {
     use mef_spiral::SpiralSnapshot;
-    
+
     // Create spiral snapshot handler
-    let spiral = SpiralSnapshot::new(state.spiral_config.as_ref().clone(), state.store_path.as_ref())
-        .map_err(|e| ApiError::Internal(format!("Failed to create spiral snapshot: {}", e)))?;
-    
+    let spiral = SpiralSnapshot::new(
+        state.spiral_config.as_ref().clone(),
+        state.store_path.as_ref(),
+    )
+    .map_err(|e| ApiError::Internal(format!("Failed to create spiral snapshot: {}", e)))?;
+
     // Load snapshot
-    let snapshot_opt = spiral.load_snapshot(&id)
+    let snapshot_opt = spiral
+        .load_snapshot(&id)
         .map_err(|e| ApiError::NotFound(format!("Failed to load snapshot: {}", e)))?;
-    
-    let snapshot = snapshot_opt
-        .ok_or_else(|| ApiError::NotFound(format!("Snapshot {} not found", id)))?;
-    
+
+    let snapshot =
+        snapshot_opt.ok_or_else(|| ApiError::NotFound(format!("Snapshot {} not found", id)))?;
+
     Ok(Json(SpiralResponse {
         id: snapshot.id,
         coordinates: snapshot.coordinates,
@@ -191,16 +212,16 @@ async fn get_spiral(
 mod tests {
     use super::*;
     use crate::ApiConfig;
-    
+
     #[tokio::test]
     async fn test_coupling_seed() {
         let config = ApiConfig::default();
         let state = AppState::new(config).await.unwrap();
-        
+
         let request = CouplingSeedRequest {
             event: serde_json::json!({"type": "test"}),
         };
-        
+
         let result = coupling_seed(State(state), Json(request)).await;
         assert!(result.is_ok());
     }

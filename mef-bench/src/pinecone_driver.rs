@@ -1,8 +1,8 @@
 /*!
  * Driver for Pinecone's managed vector database using HTTP API.
- * 
+ *
  * Migrated from MEF-Core_v1.0/src/bench/drivers/pinecone_driver.py
- * 
+ *
  * This implementation uses the Pinecone HTTP API directly via reqwest
  * instead of the pinecone-client library to minimize dependencies.
  */
@@ -27,7 +27,7 @@ impl PineconeDriver {
         let metric = metric.unwrap_or("cosine").to_lowercase();
         let api_key = std::env::var("PINECONE_API_KEY").unwrap_or_default();
         let environment = std::env::var("PINECONE_ENV").unwrap_or_default();
-        
+
         Self {
             metric,
             api_key,
@@ -49,10 +49,12 @@ impl PineconeDriver {
         // For simplicity, construct the data plane URL
         // In practice, this should be fetched from the describe_index response
         if !self.environment.is_empty() {
-            Ok(format!("https://{}-{}.svc.{}.pinecone.io", 
-                index_name, 
-                "project",  // Simplified - should get from API
-                self.environment))
+            Ok(format!(
+                "https://{}-{}.svc.{}.pinecone.io",
+                index_name,
+                "project", // Simplified - should get from API
+                self.environment
+            ))
         } else {
             // Use the control plane to get index host
             Ok(format!("https://{}.pinecone.io", index_name))
@@ -60,7 +62,9 @@ impl PineconeDriver {
     }
 
     fn ensure_index(&mut self, namespace: &str, dimension: usize) -> Result<()> {
-        let client = self.client.as_ref()
+        let client = self
+            .client
+            .as_ref()
             .ok_or_else(|| anyhow::anyhow!("connect() must be called before upsert()"))?;
 
         // Check if index exists
@@ -69,11 +73,13 @@ impl PineconeDriver {
             .get(&list_url)
             .header("Api-Key", &self.api_key)
             .timeout(Duration::from_secs(10))
-            .send().context("Failed to list indexes")?;
+            .send()
+            .context("Failed to list indexes")?;
 
         if response.status().is_success() {
-            let indexes: serde_json::Value = response.json().context("Failed to parse indexes list")?;
-            
+            let indexes: serde_json::Value =
+                response.json().context("Failed to parse indexes list")?;
+
             if let Some(indexes_array) = indexes.get("indexes").and_then(|i| i.as_array()) {
                 for index in indexes_array {
                     if let Some(name) = index.get("name").and_then(|n| n.as_str()) {
@@ -116,7 +122,8 @@ impl PineconeDriver {
             .header("Api-Key", &self.api_key)
             .json(&payload)
             .timeout(Duration::from_secs(30))
-            .send().context("Failed to create index")?;
+            .send()
+            .context("Failed to create index")?;
 
         if !response.status().is_success() {
             let text = response.text().unwrap_or_default();
@@ -128,11 +135,13 @@ impl PineconeDriver {
     }
 
     fn wait_for_index_ready(&self, index_name: &str, timeout_secs: f64) -> Result<()> {
-        let client = self.client.as_ref()
+        let client = self
+            .client
+            .as_ref()
             .ok_or_else(|| anyhow::anyhow!("connect() must be called before wait"))?;
 
         let deadline = Instant::now() + Duration::from_secs_f64(timeout_secs);
-        
+
         loop {
             let describe_url = format!("{}/indexes/{}", self.control_plane_url(), index_name);
             let response = client
@@ -143,15 +152,18 @@ impl PineconeDriver {
 
             match response {
                 Ok(resp) if resp.status().is_success() => {
-                    let description: serde_json::Value = resp.json().context("Failed to parse index description")?;
-                    
+                    let description: serde_json::Value =
+                        resp.json().context("Failed to parse index description")?;
+
                     // Check if ready
-                    let ready = description.get("status")
+                    let ready = description
+                        .get("status")
                         .and_then(|s| s.get("ready"))
                         .and_then(|r| r.as_bool())
                         .unwrap_or(false);
 
-                    let state = description.get("status")
+                    let state = description
+                        .get("status")
                         .and_then(|s| s.get("state"))
                         .and_then(|s| s.as_str())
                         .unwrap_or("");
@@ -177,11 +189,13 @@ impl PineconeDriver {
     }
 
     fn wait_for_index_deletion(&self, index_name: &str, timeout_secs: f64) -> Result<()> {
-        let client = self.client.as_ref()
+        let client = self
+            .client
+            .as_ref()
             .ok_or_else(|| anyhow::anyhow!("connect() must be called before wait"))?;
 
         let deadline = Instant::now() + Duration::from_secs_f64(timeout_secs);
-        
+
         loop {
             let list_url = format!("{}/indexes", self.control_plane_url());
             let response = client
@@ -192,8 +206,9 @@ impl PineconeDriver {
 
             match response {
                 Ok(resp) if resp.status().is_success() => {
-                    let indexes: serde_json::Value = resp.json().context("Failed to parse indexes list")?;
-                    
+                    let indexes: serde_json::Value =
+                        resp.json().context("Failed to parse indexes list")?;
+
                     let mut found = false;
                     if let Some(indexes_array) = indexes.get("indexes").and_then(|i| i.as_array()) {
                         for index in indexes_array {
@@ -228,7 +243,7 @@ impl PineconeDriver {
 
     fn prepare_vector(&mut self, vector: &Vector) -> Result<Vec<f64>> {
         let array = vector.clone();
-        
+
         if let Some(dim) = self.dimension {
             if array.len() != dim {
                 return Err(anyhow::anyhow!(
@@ -264,16 +279,15 @@ impl VectorStoreDriver for PineconeDriver {
 
     fn connect(&mut self) -> Result<()> {
         if self.api_key.is_empty() {
-            return Err(DriverUnavailable::new(
-                "Pinecone",
-                "PINECONE_API_KEY not configured",
-            )
-            .into());
+            return Err(
+                DriverUnavailable::new("Pinecone", "PINECONE_API_KEY not configured").into(),
+            );
         }
 
         let client = reqwest::blocking::Client::builder()
             .timeout(Duration::from_secs(30))
-            .build().context("Failed to create HTTP client")?;
+            .build()
+            .context("Failed to create HTTP client")?;
 
         // Health check - try to list indexes
         let url = format!("{}/indexes", self.control_plane_url());
@@ -307,7 +321,9 @@ impl VectorStoreDriver for PineconeDriver {
     }
 
     fn clear(&mut self, namespace: &str) -> Result<()> {
-        let client = self.client.as_ref()
+        let client = self
+            .client
+            .as_ref()
             .ok_or_else(|| anyhow::anyhow!("connect() must be called before clear()"))?;
 
         // Check if index exists
@@ -334,7 +350,8 @@ impl VectorStoreDriver for PineconeDriver {
 
                         if found {
                             // Delete the index
-                            let delete_url = format!("{}/indexes/{}", self.control_plane_url(), namespace);
+                            let delete_url =
+                                format!("{}/indexes/{}", self.control_plane_url(), namespace);
                             let _ = client
                                 .delete(&delete_url)
                                 .header("Api-Key", &self.api_key)
@@ -352,12 +369,7 @@ impl VectorStoreDriver for PineconeDriver {
         Ok(())
     }
 
-    fn upsert(
-        &mut self,
-        items: Vec<UpsertItem>,
-        namespace: &str,
-        batch_size: usize,
-    ) -> Result<()> {
+    fn upsert(&mut self, items: Vec<UpsertItem>, namespace: &str, batch_size: usize) -> Result<()> {
         if self.client.is_none() {
             return Err(anyhow::anyhow!("connect() must be called before upsert()"));
         }
@@ -377,12 +389,12 @@ impl VectorStoreDriver for PineconeDriver {
         // Note: Simplified index URL construction
         // In production, should get proper host from describe_index
         let base_url = self.index_url(namespace)?;
-        
+
         let mut batch: Vec<serde_json::Value> = Vec::new();
-        
+
         for (identifier, vector, metadata) in items {
             let prepared = self.prepare_vector(&vector)?;
-            
+
             let mut record = json!({
                 "id": identifier,
                 "values": prepared
@@ -400,7 +412,7 @@ impl VectorStoreDriver for PineconeDriver {
                 // Send batch
                 let url = format!("{}/vectors/upsert", base_url);
                 let payload = json!({"vectors": batch});
-                
+
                 let response = client
                     .post(&url)
                     .header("Api-Key", &api_key)
@@ -424,7 +436,7 @@ impl VectorStoreDriver for PineconeDriver {
         if !batch.is_empty() {
             let url = format!("{}/vectors/upsert", base_url);
             let payload = json!({"vectors": batch});
-            
+
             let response = client
                 .post(&url)
                 .header("Api-Key", &api_key)
@@ -443,13 +455,10 @@ impl VectorStoreDriver for PineconeDriver {
         Ok(())
     }
 
-    fn search(
-        &self,
-        query: &Vector,
-        k: usize,
-        namespace: &str,
-    ) -> Result<Vec<(String, f64)>> {
-        let client = self.client.as_ref()
+    fn search(&self, query: &Vector, k: usize, namespace: &str) -> Result<Vec<(String, f64)>> {
+        let client = self
+            .client
+            .as_ref()
             .ok_or_else(|| anyhow::anyhow!("connect() must be called before search()"))?;
 
         // Prepare query vector
@@ -463,7 +472,7 @@ impl VectorStoreDriver for PineconeDriver {
 
         let base_url = self.index_url(namespace)?;
         let url = format!("{}/query", base_url);
-        
+
         let payload = json!({
             "vector": query_vec,
             "topK": k,
@@ -475,22 +484,24 @@ impl VectorStoreDriver for PineconeDriver {
             .header("Api-Key", &self.api_key)
             .json(&payload)
             .timeout(Duration::from_secs(30))
-            .send().context("Failed to query vectors")?;
+            .send()
+            .context("Failed to query vectors")?;
 
         if !response.status().is_success() {
             let text = response.text().unwrap_or_default();
             return Err(anyhow::anyhow!("Query failed: {}", text));
         }
 
-        let result: serde_json::Value = response.json().context("Failed to parse query response")?;
+        let result: serde_json::Value =
+            response.json().context("Failed to parse query response")?;
 
         let mut hits: Vec<(String, f64)> = Vec::new();
-        
+
         if let Some(matches) = result.get("matches").and_then(|m| m.as_array()) {
             for item in matches.iter().take(k) {
                 if let (Some(id), Some(score)) = (
                     item.get("id").and_then(|v| v.as_str()),
-                    item.get("score").and_then(|v| v.as_f64())
+                    item.get("score").and_then(|v| v.as_f64()),
                 ) {
                     hits.push((id.to_string(), score));
                 }
@@ -555,15 +566,16 @@ mod tests {
         let mut driver = PineconeDriver::new(None);
         let result = driver.connect();
         assert!(result.is_err());
-        assert!(result.unwrap_err().to_string().contains("PINECONE_API_KEY not configured"));
+        assert!(result
+            .unwrap_err()
+            .to_string()
+            .contains("PINECONE_API_KEY not configured"));
     }
 
     #[test]
     fn test_upsert_without_connect() {
         let mut driver = PineconeDriver::new(Some("cosine"));
-        let items = vec![
-            ("id1".to_string(), vec![1.0, 2.0, 3.0], None),
-        ];
+        let items = vec![("id1".to_string(), vec![1.0, 2.0, 3.0], None)];
         let result = driver.upsert(items, "test", 1000);
         assert!(result.is_err());
     }

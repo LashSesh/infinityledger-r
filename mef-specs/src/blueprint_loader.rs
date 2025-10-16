@@ -68,7 +68,8 @@ fn validate_schema(data: &HashMap<String, Value>) -> Result<(), BlueprintValidat
     }
 
     // Validate spec
-    let spec = data.get("spec")
+    let spec = data
+        .get("spec")
         .and_then(|v| v.as_object())
         .ok_or_else(|| BlueprintValidationError::Schema("spec must be a mapping".to_string()))?;
 
@@ -87,9 +88,12 @@ fn validate_schema(data: &HashMap<String, Value>) -> Result<(), BlueprintValidat
     }
 
     // Validate priorities
-    let priorities = data.get("priorities")
+    let priorities = data
+        .get("priorities")
         .and_then(|v| v.as_object())
-        .ok_or_else(|| BlueprintValidationError::Schema("priorities must be a mapping".to_string()))?;
+        .ok_or_else(|| {
+            BlueprintValidationError::Schema("priorities must be a mapping".to_string())
+        })?;
 
     for field in &["must", "should", "could"] {
         if !priorities.contains_key(*field) {
@@ -101,16 +105,15 @@ fn validate_schema(data: &HashMap<String, Value>) -> Result<(), BlueprintValidat
     }
 
     // Validate components
-    let components = data.get("components")
+    let components = data
+        .get("components")
         .and_then(|v| v.as_array())
         .ok_or_else(|| BlueprintValidationError::Schema("components must be a list".to_string()))?;
 
     for (index, component) in components.iter().enumerate() {
-        let comp_obj = component.as_object()
-            .ok_or_else(|| BlueprintValidationError::Schema(format!(
-                "components[{}] must be a mapping",
-                index
-            )))?;
+        let comp_obj = component.as_object().ok_or_else(|| {
+            BlueprintValidationError::Schema(format!("components[{}] must be a mapping", index))
+        })?;
 
         for field in &["name", "type"] {
             if !comp_obj.contains_key(*field) {
@@ -123,7 +126,8 @@ fn validate_schema(data: &HashMap<String, Value>) -> Result<(), BlueprintValidat
     }
 
     // Validate storage
-    let storage = data.get("storage")
+    let storage = data
+        .get("storage")
         .and_then(|v| v.as_object())
         .ok_or_else(|| BlueprintValidationError::Schema("storage must be a mapping".to_string()))?;
 
@@ -137,7 +141,8 @@ fn validate_schema(data: &HashMap<String, Value>) -> Result<(), BlueprintValidat
     }
 
     // Validate api
-    let api = data.get("api")
+    let api = data
+        .get("api")
         .and_then(|v| v.as_object())
         .ok_or_else(|| BlueprintValidationError::Schema("api must be a mapping".to_string()))?;
 
@@ -151,9 +156,12 @@ fn validate_schema(data: &HashMap<String, Value>) -> Result<(), BlueprintValidat
     }
 
     // Validate index_backends
-    let backends = data.get("index_backends")
+    let backends = data
+        .get("index_backends")
         .and_then(|v| v.as_object())
-        .ok_or_else(|| BlueprintValidationError::Schema("index_backends must be a mapping".to_string()))?;
+        .ok_or_else(|| {
+            BlueprintValidationError::Schema("index_backends must be a mapping".to_string())
+        })?;
 
     for field in &["hnsw", "faiss"] {
         if !backends.contains_key(*field) {
@@ -165,17 +173,23 @@ fn validate_schema(data: &HashMap<String, Value>) -> Result<(), BlueprintValidat
     }
 
     // Validate consistency
-    if !data.get("consistency")
+    if !data
+        .get("consistency")
         .and_then(|v| v.as_object())
         .is_some()
     {
-        return Err(BlueprintValidationError::Schema("consistency must be a mapping".to_string()));
+        return Err(BlueprintValidationError::Schema(
+            "consistency must be a mapping".to_string(),
+        ));
     }
 
     // Validate merkaba_gate
-    let merkaba_gate = data.get("merkaba_gate")
+    let merkaba_gate = data
+        .get("merkaba_gate")
         .and_then(|v| v.as_object())
-        .ok_or_else(|| BlueprintValidationError::Schema("merkaba_gate must be a mapping".to_string()))?;
+        .ok_or_else(|| {
+            BlueprintValidationError::Schema("merkaba_gate must be a mapping".to_string())
+        })?;
 
     for field in &["graph", "on_fail"] {
         if !merkaba_gate.contains_key(*field) {
@@ -187,9 +201,12 @@ fn validate_schema(data: &HashMap<String, Value>) -> Result<(), BlueprintValidat
     }
 
     // Validate workflows
-    let workflows = data.get("workflows")
+    let workflows = data
+        .get("workflows")
         .and_then(|v| v.as_object())
-        .ok_or_else(|| BlueprintValidationError::Schema("workflows must be a mapping".to_string()))?;
+        .ok_or_else(|| {
+            BlueprintValidationError::Schema("workflows must be a mapping".to_string())
+        })?;
 
     for field in &["upsert", "query", "rebuild"] {
         if !workflows.contains_key(*field) {
@@ -201,12 +218,15 @@ fn validate_schema(data: &HashMap<String, Value>) -> Result<(), BlueprintValidat
     }
 
     // Validate config
-    let config = data.get("config")
+    let config = data
+        .get("config")
         .and_then(|v| v.as_object())
         .ok_or_else(|| BlueprintValidationError::Schema("config must be a mapping".to_string()))?;
 
     if !config.contains_key("env") {
-        return Err(BlueprintValidationError::Schema("config missing 'env'".to_string()));
+        return Err(BlueprintValidationError::Schema(
+            "config missing 'env'".to_string(),
+        ));
     }
 
     Ok(())
@@ -216,7 +236,7 @@ fn validate_schema(data: &HashMap<String, Value>) -> Result<(), BlueprintValidat
 fn normalize_yaml(data: &HashMap<String, Value>) -> String {
     // Convert to Value for serialization
     let value = serde_json::to_value(data).unwrap();
-    
+
     // Use YAML serialization with sorted keys
     serde_yaml::to_string(&value).unwrap_or_else(|_| {
         // Fallback to JSON if YAML fails
@@ -227,15 +247,14 @@ fn normalize_yaml(data: &HashMap<String, Value>) -> String {
 /// Parse YAML (or JSON) into a dictionary
 fn load_yaml(text: &str) -> Result<HashMap<String, Value>, BlueprintValidationError> {
     // Try YAML first
-    let loaded: Value = serde_yaml::from_str(text)
-        .or_else(|_| serde_json::from_str(text))?;
+    let loaded: Value = serde_yaml::from_str(text).or_else(|_| serde_json::from_str(text))?;
 
     if let Value::Object(map) = loaded {
         let result: HashMap<String, Value> = map.into_iter().collect();
         Ok(result)
     } else {
         Err(BlueprintValidationError::Other(
-            "Blueprint root must be a mapping".to_string()
+            "Blueprint root must be a mapping".to_string(),
         ))
     }
 }
@@ -243,7 +262,7 @@ fn load_yaml(text: &str) -> Result<HashMap<String, Value>, BlueprintValidationEr
 /// Compute the BLAKE2b hash of the normalized YAML representation
 fn compute_hash(normalized_yaml: &str) -> String {
     use sha2::{Digest, Sha256};
-    
+
     // Use SHA256 for compatibility (BLAKE3 is not in workspace dependencies)
     let mut hasher = Sha256::new();
     hasher.update(normalized_yaml.as_bytes());
@@ -251,12 +270,14 @@ fn compute_hash(normalized_yaml: &str) -> String {
 }
 
 /// Load, validate, and normalize a blueprint from disk
-pub fn load_blueprint(path: impl AsRef<Path>) -> Result<BlueprintDocument, BlueprintValidationError> {
+pub fn load_blueprint(
+    path: impl AsRef<Path>,
+) -> Result<BlueprintDocument, BlueprintValidationError> {
     let blueprint_path = path.as_ref();
-    
+
     if !blueprint_path.exists() {
         return Err(BlueprintValidationError::FileNotFound(
-            blueprint_path.display().to_string()
+            blueprint_path.display().to_string(),
         ));
     }
 
@@ -330,7 +351,8 @@ mod tests {
             "config": {
                 "env": "production"
             }
-        })).unwrap()
+        }))
+        .unwrap()
     }
 
     #[test]
@@ -345,7 +367,10 @@ mod tests {
         data.remove("workflows");
         let result = validate_schema(&data);
         assert!(result.is_err());
-        assert!(result.unwrap_err().to_string().contains("Missing required top-level keys"));
+        assert!(result
+            .unwrap_err()
+            .to_string()
+            .contains("Missing required top-level keys"));
     }
 
     #[test]
@@ -356,7 +381,10 @@ mod tests {
         }
         let result = validate_schema(&data);
         assert!(result.is_err());
-        assert!(result.unwrap_err().to_string().contains("spec missing fields"));
+        assert!(result
+            .unwrap_err()
+            .to_string()
+            .contains("spec missing fields"));
     }
 
     #[test]
@@ -396,14 +424,14 @@ mod tests {
     fn test_load_blueprint_success() {
         let temp_dir = TempDir::new().unwrap();
         let blueprint_path = temp_dir.path().join("blueprint.json");
-        
+
         let data = create_minimal_blueprint();
         let json = serde_json::to_string_pretty(&data).unwrap();
         fs::write(&blueprint_path, json).unwrap();
 
         let result = load_blueprint(&blueprint_path);
         assert!(result.is_ok());
-        
+
         let doc = result.unwrap();
         assert_eq!(doc.model.spec.id, "SPEC-002");
         assert!(!doc.spec_hash.is_empty());
@@ -413,22 +441,29 @@ mod tests {
     fn test_load_blueprint_file_not_found() {
         let result = load_blueprint("/nonexistent/path/blueprint.json");
         assert!(result.is_err());
-        assert!(matches!(result.unwrap_err(), BlueprintValidationError::FileNotFound(_)));
+        assert!(matches!(
+            result.unwrap_err(),
+            BlueprintValidationError::FileNotFound(_)
+        ));
     }
 
     #[test]
     fn test_load_blueprint_invalid_schema() {
         let temp_dir = TempDir::new().unwrap();
         let blueprint_path = temp_dir.path().join("invalid.json");
-        
+
         let invalid_data = serde_json::json!({
             "spec": {
                 "id": "SPEC-002"
                 // Missing required fields
             }
         });
-        
-        fs::write(&blueprint_path, serde_json::to_string_pretty(&invalid_data).unwrap()).unwrap();
+
+        fs::write(
+            &blueprint_path,
+            serde_json::to_string_pretty(&invalid_data).unwrap(),
+        )
+        .unwrap();
 
         let result = load_blueprint(&blueprint_path);
         assert!(result.is_err());

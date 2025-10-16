@@ -124,10 +124,10 @@ pub fn normalize_payload(payload: &Value) -> Value {
 /// Check if string represents a date
 fn is_date_string(s: &str) -> bool {
     let date_patterns = [
-        r"^\d{4}-\d{2}-\d{2}$",                        // YYYY-MM-DD
-        r"^\d{4}-\d{2}-\d{2}[T ]\d{2}:\d{2}:\d{2}",   // YYYY-MM-DD HH:MM:SS
-        r"^\d{2}/\d{2}/\d{4}$",                        // MM/DD/YYYY or DD/MM/YYYY
-        r"^\d{2}\.\d{2}\.\d{4}$",                      // DD.MM.YYYY
+        r"^\d{4}-\d{2}-\d{2}$",                     // YYYY-MM-DD
+        r"^\d{4}-\d{2}-\d{2}[T ]\d{2}:\d{2}:\d{2}", // YYYY-MM-DD HH:MM:SS
+        r"^\d{2}/\d{2}/\d{4}$",                     // MM/DD/YYYY or DD/MM/YYYY
+        r"^\d{2}\.\d{2}\.\d{4}$",                   // DD.MM.YYYY
     ];
 
     date_patterns
@@ -241,8 +241,7 @@ impl TritonCore {
         let mut seconds_bytes = [0u8; 4];
         seconds_bytes.copy_from_slice(&hash_bytes[20..24]);
         let seconds_offset = u32::from_be_bytes(seconds_bytes) % 86400;
-        let timestamp = (base_time + chrono::Duration::seconds(seconds_offset as i64))
-            .to_rfc3339();
+        let timestamp = (base_time + chrono::Duration::seconds(seconds_offset as i64)).to_rfc3339();
 
         // Compute hash of payload
         let payload_hash = Sha256::digest(payload_str.as_bytes());
@@ -273,10 +272,7 @@ impl TritonCore {
 impl Default for TritonCore {
     fn default() -> Self {
         let mut config = HashMap::new();
-        config.insert(
-            "seed".to_string(),
-            Value::String("MEF_SEED_42".to_string()),
-        );
+        config.insert("seed".to_string(), Value::String("MEF_SEED_42".to_string()));
         Self::new(config)
     }
 }
@@ -296,16 +292,16 @@ mod tests {
         });
 
         let normalized = normalize_payload(&payload);
-        
+
         // Check string trimmed
         assert_eq!(normalized["name"], "Alice");
-        
+
         // Check number converted to float
         assert_eq!(normalized["age"], 30.0);
-        
+
         // Check bool preserved
         assert_eq!(normalized["active"], true);
-        
+
         // Check forbidden field removed
         assert!(normalized.get("debug").is_none());
     }
@@ -321,13 +317,13 @@ mod tests {
         });
 
         let normalized = normalize_payload(&payload);
-        
+
         // Check nested string trimmed
         assert_eq!(normalized["user"]["name"], "Bob");
-        
+
         // Check nested forbidden field removed
         assert!(normalized["user"].get("tmp").is_none());
-        
+
         // Check array item trimmed
         assert_eq!(normalized["items"][2], "test");
     }
@@ -356,17 +352,17 @@ mod tests {
     fn test_triton_core_normalize() {
         let core = TritonCore::default();
         let data = json!({"test": "data"});
-        
+
         let result = core.normalize(&data, "raw").unwrap();
-        
+
         // Check vector has 5 dimensions
         assert_eq!(result.vector.len(), 5);
-        
+
         // Check all values in [-1, 1]
         for v in &result.vector {
             assert!(*v >= -1.0 && *v <= 1.0);
         }
-        
+
         // Check metadata
         assert!(result.metadata.size > 0);
         assert_eq!(result.metadata.hash.len(), 64); // SHA256 hex
@@ -376,10 +372,10 @@ mod tests {
     fn test_determinism() {
         let core = TritonCore::default();
         let data = json!({"test": "data"});
-        
+
         let result1 = core.normalize(&data, "raw").unwrap();
         let result2 = core.normalize(&data, "raw").unwrap();
-        
+
         // Same input should produce same output
         assert_eq!(result1.vector, result2.vector);
         assert_eq!(result1.timestamp, result2.timestamp);
@@ -393,16 +389,16 @@ mod tests {
             "a": 2,
             "m": 3
         });
-        
+
         let payload2 = json!({
             "a": 2,
             "m": 3,
             "z": 1
         });
-        
+
         let normalized1 = normalize_payload(&payload1);
         let normalized2 = normalize_payload(&payload2);
-        
+
         // Keys should be sorted, so serialization should be identical
         let str1 = serde_json::to_string(&normalized1).unwrap();
         let str2 = serde_json::to_string(&normalized2).unwrap();

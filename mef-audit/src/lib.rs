@@ -1,3 +1,3 @@
 mod logger;
 
-pub use logger::{MEFAuditLogger, AuditEvent, AuditReport, EventSeverity};
+pub use logger::{AuditEvent, AuditReport, EventSeverity, MEFAuditLogger};

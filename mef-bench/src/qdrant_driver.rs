@@ -1,8 +1,8 @@
 /*!
  * Driver for Qdrant's HTTP API.
- * 
+ *
  * Migrated from MEF-Core_v1.0/src/bench/drivers/qdrant_driver.py
- * 
+ *
  * This implementation uses the Qdrant HTTP API directly via reqwest
  * instead of the qdrant-client library to minimize dependencies.
  */
@@ -27,7 +27,7 @@ impl QdrantDriver {
             .unwrap_or_default()
             .trim_end_matches('/')
             .to_string();
-        
+
         Self {
             metric,
             base_url,
@@ -37,7 +37,9 @@ impl QdrantDriver {
     }
 
     fn ensure_collection(&mut self, namespace: &str, dimension: usize) -> Result<()> {
-        let client = self.client.as_ref()
+        let client = self
+            .client
+            .as_ref()
             .ok_or_else(|| anyhow::anyhow!("connect() must be called before using the driver"))?;
 
         let distance = match self.metric.as_str() {
@@ -55,7 +57,7 @@ impl QdrantDriver {
         });
 
         let url = format!("{}/collections/{}", self.base_url, namespace);
-        
+
         // Try to recreate the collection
         let _ = client
             .delete(&url)
@@ -68,10 +70,7 @@ impl QdrantDriver {
             .timeout(std::time::Duration::from_secs(15))
             .send()
             .map_err(|e| {
-                DriverUnavailable::new(
-                    "Qdrant",
-                    format!("failed to ensure collection: {}", e),
-                )
+                DriverUnavailable::new("Qdrant", format!("failed to ensure collection: {}", e))
             })?;
 
         if !response.status().is_success() {
@@ -86,7 +85,9 @@ impl QdrantDriver {
     }
 
     fn flush_batch(&self, namespace: &str, batch: Vec<serde_json::Value>) -> Result<()> {
-        let client = self.client.as_ref()
+        let client = self
+            .client
+            .as_ref()
             .ok_or_else(|| anyhow::anyhow!("connect() must be called before using the driver"))?;
 
         let payload = json!({
@@ -101,10 +102,7 @@ impl QdrantDriver {
             .timeout(std::time::Duration::from_secs(30))
             .send()
             .map_err(|e| {
-                DriverUnavailable::new(
-                    "Qdrant",
-                    format!("failed to upsert batch: {}", e),
-                )
+                DriverUnavailable::new("Qdrant", format!("failed to upsert batch: {}", e))
             })?;
 
         if !response.status().is_success() {
@@ -130,16 +128,15 @@ impl VectorStoreDriver for QdrantDriver {
 
     fn connect(&mut self) -> Result<()> {
         if self.base_url.is_empty() {
-            return Err(DriverUnavailable::new(
-                "Qdrant",
-                "QDRANT_URL not configured".to_string(),
-            )
-            .into());
+            return Err(
+                DriverUnavailable::new("Qdrant", "QDRANT_URL not configured".to_string()).into(),
+            );
         }
 
         let client = reqwest::blocking::Client::builder()
             .timeout(std::time::Duration::from_secs(30))
-            .build().context("Failed to build HTTP client")?;
+            .build()
+            .context("Failed to build HTTP client")?;
 
         // Use collections endpoint for health check as /health may not exist in all versions
         let health_url = format!("{}/collections", self.base_url);
@@ -148,10 +145,7 @@ impl VectorStoreDriver for QdrantDriver {
             .timeout(std::time::Duration::from_secs(5))
             .send()
             .map_err(|e| {
-                DriverUnavailable::new(
-                    "Qdrant",
-                    format!("unable to connect to Qdrant: {}", e),
-                )
+                DriverUnavailable::new("Qdrant", format!("unable to connect to Qdrant: {}", e))
             })?;
 
         if !response.status().is_success() {
@@ -167,7 +161,9 @@ impl VectorStoreDriver for QdrantDriver {
     }
 
     fn clear(&mut self, namespace: &str) -> Result<()> {
-        let client = self.client.as_ref()
+        let client = self
+            .client
+            .as_ref()
             .ok_or_else(|| anyhow::anyhow!("connect() must be called before using the driver"))?;
 
         let url = format!("{}/collections/{}", self.base_url, namespace);
@@ -176,10 +172,7 @@ impl VectorStoreDriver for QdrantDriver {
             .timeout(std::time::Duration::from_secs(15))
             .send()
             .map_err(|e| {
-                DriverUnavailable::new(
-                    "Qdrant",
-                    format!("failed to clear collection: {}", e),
-                )
+                DriverUnavailable::new("Qdrant", format!("failed to clear collection: {}", e))
             })?;
 
         let status = response.status().as_u16();
@@ -195,14 +188,11 @@ impl VectorStoreDriver for QdrantDriver {
         Ok(())
     }
 
-    fn upsert(
-        &mut self,
-        items: Vec<UpsertItem>,
-        namespace: &str,
-        batch_size: usize,
-    ) -> Result<()> {
+    fn upsert(&mut self, items: Vec<UpsertItem>, namespace: &str, batch_size: usize) -> Result<()> {
         if self.client.is_none() {
-            return Err(anyhow::anyhow!("connect() must be called before using the driver"));
+            return Err(anyhow::anyhow!(
+                "connect() must be called before using the driver"
+            ));
         }
 
         let mut batch: Vec<serde_json::Value> = Vec::new();
@@ -260,13 +250,10 @@ impl VectorStoreDriver for QdrantDriver {
         Ok(())
     }
 
-    fn search(
-        &self,
-        query: &Vector,
-        k: usize,
-        namespace: &str,
-    ) -> Result<Vec<(String, f64)>> {
-        let client = self.client.as_ref()
+    fn search(&self, query: &Vector, k: usize, namespace: &str) -> Result<Vec<(String, f64)>> {
+        let client = self
+            .client
+            .as_ref()
             .ok_or_else(|| anyhow::anyhow!("connect() must be called before using the driver"))?;
 
         let search_body = json!({
@@ -282,12 +269,7 @@ impl VectorStoreDriver for QdrantDriver {
             .json(&search_body)
             .timeout(std::time::Duration::from_secs(15))
             .send()
-            .map_err(|e| {
-                DriverUnavailable::new(
-                    "Qdrant",
-                    format!("search failed: {}", e),
-                )
-            })?;
+            .map_err(|e| DriverUnavailable::new("Qdrant", format!("search failed: {}", e)))?;
 
         if !response.status().is_success() {
             return Err(DriverUnavailable::new(
@@ -297,7 +279,8 @@ impl VectorStoreDriver for QdrantDriver {
             .into());
         }
 
-        let payload: serde_json::Value = response.json().context("Failed to parse search response")?;
+        let payload: serde_json::Value =
+            response.json().context("Failed to parse search response")?;
 
         let results = payload
             .get("result")
@@ -307,7 +290,12 @@ impl VectorStoreDriver for QdrantDriver {
         let mut hits: Vec<(String, f64)> = Vec::new();
         for entry in results {
             if let (Some(id), Some(score)) = (
-                entry.get("id").and_then(|v| v.as_str().or_else(|| v.as_u64().map(|n| Box::leak(n.to_string().into_boxed_str()) as &str))),
+                entry.get("id").and_then(|v| {
+                    v.as_str().or_else(|| {
+                        v.as_u64()
+                            .map(|n| Box::leak(n.to_string().into_boxed_str()) as &str)
+                    })
+                }),
                 entry.get("score").and_then(|v| v.as_f64()),
             ) {
                 hits.push((id.to_string(), score));
@@ -361,15 +349,16 @@ mod tests {
         let mut driver = QdrantDriver::new(None);
         let result = driver.connect();
         assert!(result.is_err());
-        assert!(result.unwrap_err().to_string().contains("QDRANT_URL not configured"));
+        assert!(result
+            .unwrap_err()
+            .to_string()
+            .contains("QDRANT_URL not configured"));
     }
 
     #[test]
     fn test_upsert_without_connect() {
         let mut driver = QdrantDriver::new(Some("cosine"));
-        let items = vec![
-            ("id1".to_string(), vec![1.0, 2.0, 3.0], None),
-        ];
+        let items = vec![("id1".to_string(), vec![1.0, 2.0, 3.0], None)];
         let result = driver.upsert(items, "test", 1000);
         assert!(result.is_err());
     }

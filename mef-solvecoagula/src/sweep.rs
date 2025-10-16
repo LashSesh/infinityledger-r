@@ -1,6 +1,5 @@
 /// Sweep (SW) operator implementation.
 /// Threshold sweeping with cosine schedule for resonance adjustment.
-
 use ndarray::Array1;
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
@@ -131,9 +130,7 @@ impl Sweep {
     /// Verify Lipschitz continuity of the operator
     pub fn verify_lipschitz(&self) -> LipschitzResults {
         // Test with sample values
-        let test_values: Vec<f64> = (0..100)
-            .map(|i| -2.0 + 4.0 * (i as f64 / 99.0))
-            .collect();
+        let test_values: Vec<f64> = (0..100).map(|i| -2.0 + 4.0 * (i as f64 / 99.0)).collect();
 
         let gate_values: Vec<f64> = test_values
             .iter()
@@ -144,10 +141,7 @@ impl Sweep {
             .iter()
             .cloned()
             .fold(f64::NEG_INFINITY, f64::max);
-        let min_gate_value = gate_values
-            .iter()
-            .cloned()
-            .fold(f64::INFINITY, f64::min);
+        let min_gate_value = gate_values.iter().cloned().fold(f64::INFINITY, f64::min);
 
         LipschitzResults {
             max_gate_value,

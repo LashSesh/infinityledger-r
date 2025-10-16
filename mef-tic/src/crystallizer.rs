@@ -131,10 +131,7 @@ impl TICCrystallizer {
         let store_path = store_path.as_ref().to_path_buf();
         fs::create_dir_all(&store_path)?;
 
-        Ok(Self {
-            config,
-            store_path,
-        })
+        Ok(Self { config, store_path })
     }
 
     /// Compute invariant metrics from fixpoint and convergence trajectory
@@ -159,11 +156,8 @@ impl TICCrystallizer {
         // Compute variance across all trajectory values
         let flat_values: Vec<f64> = trajectory.iter().flat_map(|v| v.iter().copied()).collect();
         let mean = flat_values.iter().sum::<f64>() / flat_values.len() as f64;
-        let variance = flat_values
-            .iter()
-            .map(|v| (v - mean).powi(2))
-            .sum::<f64>()
-            / flat_values.len() as f64;
+        let variance =
+            flat_values.iter().map(|v| (v - mean).powi(2)).sum::<f64>() / flat_values.len() as f64;
 
         // Retention: how much of initial structure is preserved
         let retention = if !trajectory.is_empty() {
@@ -193,11 +187,7 @@ impl TICCrystallizer {
                 .map(|i| {
                     let values: Vec<f64> = trajectory.iter().map(|v| v[i]).collect();
                     let mean = values.iter().sum::<f64>() / values.len() as f64;
-                    values
-                        .iter()
-                        .map(|v| (v - mean).powi(2))
-                        .sum::<f64>()
-                        / values.len() as f64
+                    values.iter().map(|v| (v - mean).powi(2)).sum::<f64>() / values.len() as f64
                 })
                 .collect();
             let max_var = variances.iter().copied().fold(f64::NEG_INFINITY, f64::max);
@@ -278,7 +268,12 @@ impl TICCrystallizer {
                 .sum::<f64>()
                 .sqrt();
 
-            let base = fixpoint.iter().map(|x| x.powi(2)).sum::<f64>().sqrt().max(1.0);
+            let base = fixpoint
+                .iter()
+                .map(|x| x.powi(2))
+                .sum::<f64>()
+                .sqrt()
+                .max(1.0);
             let normalized_dev = (dev / base) / n as f64;
             deviations.push(normalized_dev);
         }
@@ -307,7 +302,7 @@ impl TICCrystallizer {
         let norm = fixpoint.iter().map(|x| x.powi(2)).sum::<f64>().sqrt();
         let consistency = 1.0 - diff / (2.0 * norm);
 
-        consistency.max(0.0).min(1.0)
+        consistency.clamp(0.0, 1.0)
     }
 
     /// Validate proof for TIC acceptance (Merkaba gate)
@@ -438,7 +433,14 @@ impl TICCrystallizer {
         snapshot_data: &serde_json::Value,
     ) -> Result<TIC> {
         // Generate deterministic TIC ID
-        let hash_input = format!("{}_{}_{}_{:?}", snapshot_id, seed, format!("{:?}", fixpoint.to_vec()), convergence_info);
+        let fixpoint_vec = fixpoint.to_vec();
+        let hash_input = format!(
+            "{}_{}__{:?}_{:?}",
+            snapshot_id,
+            seed,
+            fixpoint_vec,
+            convergence_info
+        );
         let tic_hash = format!("{:x}", Sha256::digest(hash_input.as_bytes()));
         let tic_id = tic_hash[..16].to_string();
 
@@ -462,9 +464,9 @@ impl TICCrystallizer {
                     arr.iter()
                         .take(10)
                         .filter_map(|h| {
-                            h.get("norm").and_then(|n| n.as_f64()).map(|norm| {
-                                Array1::from_vec(vec![norm; 5])
-                            })
+                            h.get("norm")
+                                .and_then(|n| n.as_f64())
+                                .map(|norm| Array1::from_vec(vec![norm; 5]))
                         })
                         .collect()
                 })
@@ -482,11 +484,7 @@ impl TICCrystallizer {
             .get("coordinates")
             .and_then(|c| c.as_array())
             .map(|arr| {
-                Array1::from_vec(
-                    arr.iter()
-                        .filter_map(|v| v.as_f64())
-                        .collect::<Vec<f64>>(),
-                )
+                Array1::from_vec(arr.iter().filter_map(|v| v.as_f64()).collect::<Vec<f64>>())
             })
             .unwrap_or_else(|| Array1::zeros(fixpoint.len()));
 
@@ -752,7 +750,13 @@ mod tests {
         });
 
         let tic = crystallizer
-            .create_tic(&fixpoint, "snap_1", "seed_1", &convergence_info, &snapshot_data)
+            .create_tic(
+                &fixpoint,
+                "snap_1",
+                "seed_1",
+                &convergence_info,
+                &snapshot_data,
+            )
             .unwrap();
 
         // Save
@@ -776,7 +780,10 @@ mod tests {
             tic_id: "test_tic".to_string(),
             seed: "seed".to_string(),
             fixpoint: vec![0.8, 0.9, 0.85, 0.75, 0.8],
-            window: vec!["2025-01-01T00:00:00Z".to_string(), "2025-01-01T00:05:00Z".to_string()],
+            window: vec![
+                "2025-01-01T00:00:00Z".to_string(),
+                "2025-01-01T00:05:00Z".to_string(),
+            ],
             invariants: Invariants {
                 variance: 0.01,
                 retention: 0.95,

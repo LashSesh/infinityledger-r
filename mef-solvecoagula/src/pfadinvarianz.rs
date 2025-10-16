@@ -1,6 +1,5 @@
 /// Pfadinvarianz (PI) operator implementation.
 /// Path invariance projection ensuring canonical ordering.
-
 use ndarray::Array1;
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
@@ -77,7 +76,7 @@ impl Pfadinvarianz {
     }
 
     /// Sort vectors in canonical order
-    fn canonical_order(&self, vectors: &mut Vec<Array1<f64>>) {
+    fn canonical_order(&self, vectors: &mut [Array1<f64>]) {
         match self.canon.as_str() {
             "lexicographic" => {
                 vectors.sort_by(|a, b| {
@@ -150,16 +149,8 @@ impl Pfadinvarianz {
         let mut test_results = Vec::new();
 
         for _ in 0..10 {
-            let v1 = Array1::from(
-                (0..5)
-                    .map(|_| normal.sample(&mut rng))
-                    .collect::<Vec<_>>(),
-            );
-            let v2 = Array1::from(
-                (0..5)
-                    .map(|_| normal.sample(&mut rng))
-                    .collect::<Vec<_>>(),
-            );
+            let v1 = Array1::from((0..5).map(|_| normal.sample(&mut rng)).collect::<Vec<_>>());
+            let v2 = Array1::from((0..5).map(|_| normal.sample(&mut rng)).collect::<Vec<_>>());
 
             let pi_v1 = self.apply(&v1);
             let pi_v2 = self.apply(&v2);
@@ -176,7 +167,10 @@ impl Pfadinvarianz {
         }
 
         let mean_ratio = test_results.iter().sum::<f64>() / test_results.len() as f64;
-        let max_ratio = test_results.iter().cloned().fold(f64::NEG_INFINITY, f64::max);
+        let max_ratio = test_results
+            .iter()
+            .cloned()
+            .fold(f64::NEG_INFINITY, f64::max);
 
         NonExpansiveResults {
             mean_ratio,

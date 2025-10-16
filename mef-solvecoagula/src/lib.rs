@@ -3,15 +3,18 @@
  * SPEC-002-compliant fixpoint iteration operators
  */
 
-pub mod operators;
 pub mod doublekick;
-pub mod sweep;
+pub mod operators;
 pub mod pfadinvarianz;
+pub mod sweep;
 pub mod weight_transfer;
 
 use anyhow::Result;
 use ndarray::{Array1, Array2};
-use operators::{iterate_to_fixpoint, ConvergenceInfo, ConvergenceStep, DKArgs, PIArgs, SWArgs, WTArgs};
+use operators::{
+    iterate_to_fixpoint, ConvergenceInfo, ConvergenceStep, DKArgs, FixpointParams, PIArgs,
+    SWArgs, WTArgs,
+};
 use serde::{Deserialize, Serialize};
 use serde_json::Value;
 use std::collections::HashMap;
@@ -190,7 +193,7 @@ impl SolveCoagula {
         let seed = 42u64;
         let seed_bytes = seed.to_le_bytes();
         let mut hasher = Sha256::new();
-        hasher.update(&seed_bytes);
+        hasher.update(seed_bytes);
         let hash = hasher.finalize();
 
         // Generate W from hash deterministically
@@ -205,7 +208,7 @@ impl SolveCoagula {
 
         // Normalize to ||W||_2 <= 1 (approximate with Frobenius norm)
         let w_norm = w.iter().map(|x| x * x).sum::<f64>().sqrt() / 5.0_f64.sqrt();
-        w = w / (w_norm + 0.1);
+        w /= w_norm + 0.1;
 
         // Bias vector
         let b = Array1::zeros(5);
@@ -281,17 +284,20 @@ impl SolveCoagula {
         };
 
         // Fixpoint iteration
+        let params = FixpointParams {
+            eps: self.eps,
+            max_iter: self.max_iter,
+            dk_args: Some(&dk_args),
+            sw_args: Some(&sw_args),
+            pi_args: Some(&pi_args),
+            wt_args: Some(&wt_args),
+        };
         let (mut v_star, steps) = iterate_to_fixpoint(
             v0,
             &self.w,
             &self.b,
             self.lambda_factor,
-            self.eps,
-            self.max_iter,
-            Some(&dk_args),
-            Some(&sw_args),
-            Some(&pi_args),
-            Some(&wt_args),
+            &params,
         )?;
 
         let mut history = Vec::new();
@@ -315,10 +321,9 @@ impl SolveCoagula {
         if !converged {
             let relaxation_limit = (8).max(self.max_iter / 64);
             let mut relaxed = v_star.clone();
-            let mut delta =
-                ((&self.w.dot(&relaxed) + &self.b) * self.lambda_factor - &relaxed)
-                    .dot(&((&self.w.dot(&relaxed) + &self.b) * self.lambda_factor - &relaxed))
-                    .sqrt();
+            let mut delta = ((&self.w.dot(&relaxed) + &self.b) * self.lambda_factor - &relaxed)
+                .dot(&((&self.w.dot(&relaxed) + &self.b) * self.lambda_factor - &relaxed))
+                .sqrt();
 
             let mut relaxation_history = Vec::new();
             for extra in 1..=relaxation_limit {
@@ -436,7 +441,8 @@ impl SolveCoagula {
     /// Verify contractivity
     pub fn verify_contractivity(&self) -> Value {
         let w_norm = self.w.iter().map(|x| x * x).sum::<f64>().sqrt() / 5.0_f64.sqrt();
-        let is_contractive = (0.0 < self.lambda_factor && self.lambda_factor < 1.0) && w_norm <= 1.0;
+        let is_contractive =
+            (0.0 < self.lambda_factor && self.lambda_factor < 1.0) && w_norm <= 1.0;
 
         serde_json::json!({
             "W_spectral_norm": w_norm,
@@ -599,7 +605,7 @@ mod tests {
         let sc = SolveCoagula::new(config).unwrap();
 
         let info = sc.get_operator_info();
-        
+
         assert!(info["affine"]["lambda"].as_f64().unwrap() > 0.0);
         assert!(info["affine"]["lambda"].as_f64().unwrap() < 1.0);
         assert!(info["operators"]["dk"]["alpha1"].is_f64());
@@ -612,7 +618,7 @@ mod tests {
         let mut config = SolveCoagulaConfig::default();
         config.max_iter = 500;
         config.eps = 1e-5;
-        
+
         let sc = SolveCoagula::new(config).unwrap();
 
         let v0 = Array1::from_vec(vec![1.0, 0.5, -0.3, 0.8, -0.2]);

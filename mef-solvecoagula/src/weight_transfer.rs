@@ -4,7 +4,6 @@
 /// WT(v) = Σ_{ℓ∈L} w'_ℓ · P_ℓ(v)
 /// where w'_ℓ = (1-γ)w_ℓ + γw̃_ℓ, 0 < γ ≤ 0.5
 /// Maintains contractivity through convex combination.
-
 use ndarray::{Array1, Array2};
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
@@ -238,7 +237,7 @@ impl WeightTransfer {
             if let (Some(projection), Some(&weight)) =
                 (self.projections.get(level), self.weights.get(level))
             {
-                result = result + &(projection.dot(v) * weight);
+                result += &(projection.dot(v) * weight);
             }
         }
 
@@ -272,16 +271,8 @@ impl WeightTransfer {
         let mut test_results = Vec::new();
 
         for _ in 0..10 {
-            let v1 = Array1::from(
-                (0..5)
-                    .map(|_| normal.sample(&mut rng))
-                    .collect::<Vec<_>>(),
-            );
-            let v2 = Array1::from(
-                (0..5)
-                    .map(|_| normal.sample(&mut rng))
-                    .collect::<Vec<_>>(),
-            );
+            let v1 = Array1::from((0..5).map(|_| normal.sample(&mut rng)).collect::<Vec<_>>());
+            let v2 = Array1::from((0..5).map(|_| normal.sample(&mut rng)).collect::<Vec<_>>());
 
             let wt_v1 = self.apply(&v1);
             let wt_v2 = self.apply(&v2);
@@ -359,7 +350,10 @@ impl WeightTransfer {
 
 impl Default for WeightTransfer {
     fn default() -> Self {
-        Self::new(0.1, vec![ScaleLevel::Micro, ScaleLevel::Meso, ScaleLevel::Macro])
+        Self::new(
+            0.1,
+            vec![ScaleLevel::Micro, ScaleLevel::Meso, ScaleLevel::Macro],
+        )
     }
 }
 

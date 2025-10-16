@@ -12,25 +12,25 @@ pub type Result<T> = std::result::Result<T, ApiError>;
 pub enum ApiError {
     #[error("Not found: {0}")]
     NotFound(String),
-    
+
     #[error("Invalid input: {0}")]
     InvalidInput(String),
-    
+
     #[error("Unauthorized: {0}")]
     Unauthorized(String),
-    
+
     #[error("Internal error: {0}")]
     Internal(String),
-    
+
     #[error("Storage error: {0}")]
     Storage(String),
-    
+
     #[error("Ledger error: {0}")]
     Ledger(String),
-    
+
     #[error("Processing error: {0}")]
     Processing(String),
-    
+
     #[error("Vector DB error: {0}")]
     VectorDB(String),
 }
@@ -47,12 +47,12 @@ impl IntoResponse for ApiError {
             ApiError::Processing(msg) => (StatusCode::INTERNAL_SERVER_ERROR, msg.clone()),
             ApiError::VectorDB(msg) => (StatusCode::INTERNAL_SERVER_ERROR, msg.clone()),
         };
-        
+
         let body = Json(json!({
             "error": error_message,
             "status": status.as_u16(),
         }));
-        
+
         (status, body).into_response()
     }
 }

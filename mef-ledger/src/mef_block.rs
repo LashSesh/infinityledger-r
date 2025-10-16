@@ -116,11 +116,11 @@ impl MEFLedger {
     pub fn new(ledger_path: impl AsRef<Path>) -> Result<Self> {
         let ledger_path = ledger_path.as_ref().to_path_buf();
         std::fs::create_dir_all(&ledger_path).context("Failed to create ledger directory")?;
-        
+
         let index_file = ledger_path.join("ledger_index.json");
         let index = Self::load_index(&index_file)?;
         let genesis_hash = "0".repeat(64);
-        
+
         Ok(Self {
             ledger_path,
             index,
@@ -131,8 +131,10 @@ impl MEFLedger {
     /// Load ledger index from disk
     fn load_index(index_file: &Path) -> Result<LedgerIndex> {
         if index_file.exists() {
-            let contents = std::fs::read_to_string(index_file).context("Failed to read ledger index")?;
-            let index: LedgerIndex = serde_json::from_str(&contents).context("Failed to parse ledger index")?;
+            let contents =
+                std::fs::read_to_string(index_file).context("Failed to read ledger index")?;
+            let index: LedgerIndex =
+                serde_json::from_str(&contents).context("Failed to parse ledger index")?;
             Ok(index)
         } else {
             Ok(LedgerIndex::default())
@@ -142,11 +144,12 @@ impl MEFLedger {
     /// Save ledger index to disk
     fn save_index(&mut self) -> Result<()> {
         self.index.metadata.last_updated = Utc::now().format("%Y-%m-%dT%H:%M:%S%.6fZ").to_string();
-        
+
         let index_file = self.ledger_path.join("ledger_index.json");
-        let json = serde_json::to_string_pretty(&self.index).context("Failed to serialize ledger index")?;
+        let json = serde_json::to_string_pretty(&self.index)
+            .context("Failed to serialize ledger index")?;
         std::fs::write(&index_file, json).context("Failed to write ledger index")?;
-        
+
         Ok(())
     }
 
@@ -160,10 +163,10 @@ impl MEFLedger {
         if let Some(obj) = block_data.as_object_mut() {
             obj.remove("hash");
         }
-        
+
         // Create deterministic string representation
         let block_str = serde_json::to_string(&block_data).unwrap();
-        
+
         // Compute SHA256
         let mut hasher = Sha256::new();
         hasher.update(block_str.as_bytes());
@@ -175,16 +178,18 @@ impl MEFLedger {
         if self.index.current_index < 0 {
             return Ok(None);
         }
-        
-        let block_file = self.ledger_path.join(format!("block_{:06}.mef", self.index.current_index));
-        
+
+        let block_file = self
+            .ledger_path
+            .join(format!("block_{:06}.mef", self.index.current_index));
+
         if !block_file.exists() {
             return Ok(None);
         }
-        
+
         let contents = std::fs::read_to_string(&block_file).context("Failed to read block file")?;
         let block: MefBlock = serde_json::from_str(&contents).context("Failed to parse block")?;
-        
+
         Ok(Some(block))
     }
 
@@ -202,30 +207,35 @@ impl MEFLedger {
     /// # Arguments
     /// * `tic` - Full TIC data as JSON
     pub fn compact_tic_data(tic: &JsonValue) -> Result<CompactTic> {
-        let tic_id = tic["tic_id"].as_str()
+        let tic_id = tic["tic_id"]
+            .as_str()
             .ok_or_else(|| anyhow::anyhow!("Missing tic_id"))?
             .to_string();
-        
-        let seed = tic["seed"].as_str()
+
+        let seed = tic["seed"]
+            .as_str()
             .ok_or_else(|| anyhow::anyhow!("Missing seed"))?
             .to_string();
-        
+
         // Compute fixpoint norm
-        let fixpoint = tic["fixpoint"].as_array()
+        let fixpoint = tic["fixpoint"]
+            .as_array()
             .ok_or_else(|| anyhow::anyhow!("Missing fixpoint"))?;
-        let fixpoint_norm: f64 = fixpoint.iter()
+        let fixpoint_norm: f64 = fixpoint
+            .iter()
             .filter_map(|v| v.as_f64())
             .map(|x| x * x)
             .sum::<f64>()
             .sqrt();
-        
-        let window = tic["window"].as_array()
+
+        let window = tic["window"]
+            .as_array()
             .ok_or_else(|| anyhow::anyhow!("Missing window"))?
             .iter()
             .filter_map(|v| v.as_str())
             .map(|s| s.to_string())
             .collect();
-        
+
         Ok(CompactTic {
             tic_id,
             seed,
@@ -244,20 +254,22 @@ impl MEFLedger {
     pub fn create_block(&self, tic: &JsonValue, snapshot: &JsonValue) -> Result<MefBlock> {
         // Get next index
         let next_index = self.index.current_index + 1;
-        
+
         // Get previous hash
         let previous_hash = self.get_last_hash()?;
-        
+
         // Compute snapshot hash
-        let snapshot_str = serde_json::to_string(snapshot).context("Failed to serialize snapshot")?;
+        let snapshot_str =
+            serde_json::to_string(snapshot).context("Failed to serialize snapshot")?;
         let mut hasher = Sha256::new();
         hasher.update(snapshot_str.as_bytes());
         let snapshot_hash = format!("{:x}", hasher.finalize());
-        
-        let tic_id = tic["tic_id"].as_str()
+
+        let tic_id = tic["tic_id"]
+            .as_str()
             .ok_or_else(|| anyhow::anyhow!("Missing tic_id"))?
             .to_string();
-        
+
         // Create block structure
         let mut block_json = serde_json::json!({
             "index": next_index,
@@ -268,14 +280,15 @@ impl MEFLedger {
             "data": Self::compact_tic_data(tic)?,
             "proof": tic["proof"].clone(),
         });
-        
+
         // Compute block hash
         let hash = Self::compute_block_hash(&block_json);
         block_json["hash"] = serde_json::json!(hash);
-        
+
         // Deserialize to MefBlock
-        let block: MefBlock = serde_json::from_value(block_json).context("Failed to create block")?;
-        
+        let block: MefBlock =
+            serde_json::from_value(block_json).context("Failed to create block")?;
+
         Ok(block)
     }
 
@@ -287,28 +300,34 @@ impl MEFLedger {
     pub fn append_block(&mut self, tic: &JsonValue, snapshot: &JsonValue) -> Result<MefBlock> {
         // Create new block
         let block = self.create_block(tic, snapshot)?;
-        
+
         // Verify chain integrity before appending
         if !self.verify_chain_integrity(0)? {
             anyhow::bail!("Chain integrity check failed");
         }
-        
+
         // Save block to disk
-        let block_file = self.ledger_path.join(format!("block_{:06}.mef", block.index));
+        let block_file = self
+            .ledger_path
+            .join(format!("block_{:06}.mef", block.index));
         let json = serde_json::to_string_pretty(&block).context("Failed to serialize block")?;
         std::fs::write(&block_file, json).context("Failed to write block file")?;
-        
+
         // Update index
         self.index.blocks.push(BlockSummary {
             index: block.index,
             hash: block.hash.clone(),
             tic_id: block.tic_id.clone(),
             timestamp: block.timestamp.clone(),
-            file: block_file.file_name().unwrap().to_string_lossy().to_string(),
+            file: block_file
+                .file_name()
+                .unwrap()
+                .to_string_lossy()
+                .to_string(),
         });
         self.index.current_index = block.index;
         self.save_index()?;
-        
+
         Ok(block)
     }
 
@@ -318,14 +337,14 @@ impl MEFLedger {
     /// * `index` - Block index
     pub fn get_block(&self, index: i32) -> Result<Option<MefBlock>> {
         let block_file = self.ledger_path.join(format!("block_{:06}.mef", index));
-        
+
         if !block_file.exists() {
             return Ok(None);
         }
-        
+
         let contents = std::fs::read_to_string(&block_file).context("Failed to read block file")?;
         let block: MefBlock = serde_json::from_str(&contents).context("Failed to parse block")?;
-        
+
         Ok(Some(block))
     }
 
@@ -348,29 +367,29 @@ impl MEFLedger {
             // Empty ledger is valid
             return Ok(true);
         }
-        
+
         let mut prev_hash = if start_index == 0 {
             Some(self.genesis_hash.clone())
         } else {
             None
         };
-        
+
         for i in start_index..=self.index.current_index {
             let block = self.get_block(i)?;
-            
+
             if block.is_none() {
                 eprintln!("Missing block at index {}", i);
                 return Ok(false);
             }
-            
+
             let block = block.unwrap();
-            
+
             // Verify block hash
             if !self.verify_block_hash(&block) {
                 eprintln!("Invalid hash for block {}", i);
                 return Ok(false);
             }
-            
+
             // Verify chain linkage
             if let Some(ref expected_prev) = prev_hash {
                 if block.previous_hash != *expected_prev {
@@ -378,10 +397,10 @@ impl MEFLedger {
                     return Ok(false);
                 }
             }
-            
+
             prev_hash = Some(block.hash.clone());
         }
-        
+
         Ok(true)
     }
 
@@ -392,7 +411,7 @@ impl MEFLedger {
         } else {
             0
         };
-        
+
         // Calculate chain file size
         let mut total_size = 0u64;
         for block_info in &self.index.blocks {
@@ -401,7 +420,7 @@ impl MEFLedger {
                 total_size += metadata.len();
             }
         }
-        
+
         // Get time range
         let time_range = if total_blocks > 0 {
             let first_block = self.get_block(0)?;
@@ -416,7 +435,7 @@ impl MEFLedger {
                 last: None,
             }
         };
-        
+
         Ok(ChainStatistics {
             total_blocks,
             current_index: self.index.current_index,
@@ -438,7 +457,7 @@ mod tests {
     fn test_create_ledger() {
         let temp_dir = std::env::temp_dir().join("test_ledger");
         let ledger = MEFLedger::new(&temp_dir).unwrap();
-        
+
         assert_eq!(ledger.index.current_index, -1);
         assert_eq!(ledger.index.blocks.len(), 0);
     }
@@ -450,10 +469,10 @@ mod tests {
             "previous_hash": "0".repeat(64),
             "data": {"test": "data"}
         });
-        
+
         let hash1 = MEFLedger::compute_block_hash(&block);
         let hash2 = MEFLedger::compute_block_hash(&block);
-        
+
         // Determinism test
         assert_eq!(hash1, hash2);
         assert_eq!(hash1.len(), 64);
@@ -464,7 +483,7 @@ mod tests {
         let temp_dir = std::env::temp_dir().join("test_ledger_append");
         let _ = std::fs::remove_dir_all(&temp_dir);
         let mut ledger = MEFLedger::new(&temp_dir).unwrap();
-        
+
         let tic = json!({
             "tic_id": "tic-001",
             "seed": "MEF_SEED_42",
@@ -474,14 +493,14 @@ mod tests {
             "window": ["2025-01-01T00:00:00", "2025-01-01T01:00:00"],
             "proof": {"merkle_root": "abc123"}
         });
-        
+
         let snapshot = json!({
             "id": "snap-001",
             "coordinates": [0.1, 0.2, 0.3, 0.4, 0.5]
         });
-        
+
         let block = ledger.append_block(&tic, &snapshot).unwrap();
-        
+
         assert_eq!(block.index, 0);
         assert_eq!(block.tic_id, "tic-001");
         assert_eq!(ledger.index.current_index, 0);
@@ -492,7 +511,7 @@ mod tests {
         let temp_dir = std::env::temp_dir().join("test_ledger_integrity");
         let _ = std::fs::remove_dir_all(&temp_dir);
         let mut ledger = MEFLedger::new(&temp_dir).unwrap();
-        
+
         // Add multiple blocks
         for i in 0..3 {
             let tic = json!({
@@ -504,15 +523,15 @@ mod tests {
                 "window": ["2025-01-01T00:00:00", "2025-01-01T01:00:00"],
                 "proof": {"merkle_root": "abc123"}
             });
-            
+
             let snapshot = json!({
                 "id": format!("snap-{:03}", i),
                 "coordinates": [0.1, 0.2, 0.3, 0.4, 0.5]
             });
-            
+
             ledger.append_block(&tic, &snapshot).unwrap();
         }
-        
+
         // Verify chain
         assert!(ledger.verify_chain_integrity(0).unwrap());
         assert_eq!(ledger.index.current_index, 2);

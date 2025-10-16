@@ -1,6 +1,6 @@
 /*!
  * Common interfaces for vector store benchmark drivers.
- * 
+ *
  * Migrated from MEF-Core_v1.0/src/bench/drivers/base.py
  */
 
@@ -86,10 +86,13 @@ mod tests {
     fn test_driver_unavailable_as_dict() {
         let error = DriverUnavailable::new("test-driver", "connection failed");
         let dict = error.as_dict();
-        
+
         assert_eq!(dict.get("name").unwrap(), &serde_json::json!("test-driver"));
         assert_eq!(dict.get("skipped").unwrap(), &serde_json::json!(true));
-        assert_eq!(dict.get("reason").unwrap(), &serde_json::json!("connection failed"));
+        assert_eq!(
+            dict.get("reason").unwrap(),
+            &serde_json::json!("connection failed")
+        );
     }
 
     #[test]
