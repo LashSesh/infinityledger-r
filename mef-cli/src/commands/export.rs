@@ -23,14 +23,12 @@ pub fn execute(config: &CliConfig, format: &str, output: Option<PathBuf>) -> Res
                     .with_context(|| format!("Failed to write to {:?}", output_path))?;
             }
             println!("✓ Exported to: {:?}", output_path);
+        } else if format == "json" {
+            let json_data: serde_json::Value = response.json()?;
+            println!("{}", serde_json::to_string_pretty(&json_data)?);
         } else {
-            if format == "json" {
-                let json_data: serde_json::Value = response.json()?;
-                println!("{}", serde_json::to_string_pretty(&json_data)?);
-            } else {
-                let text = response.text()?;
-                println!("{}", text);
-            }
+            let text = response.text()?;
+            println!("{}", text);
         }
         Ok(())
     } else {

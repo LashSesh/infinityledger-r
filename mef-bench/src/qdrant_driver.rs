@@ -205,8 +205,8 @@ impl VectorStoreDriver for QdrantDriver {
 
             // Convert string identifier to numeric ID for Qdrant
             // Extract numeric part from "vec_<id>" format or hash the string
-            let numeric_id: u64 = if identifier.starts_with("vec_") {
-                identifier[4..].parse().unwrap_or_else(|_| {
+            let numeric_id: u64 = if let Some(stripped) = identifier.strip_prefix("vec_") {
+                stripped.parse().unwrap_or_else(|_| {
                     // If parsing fails, use hash
                     use std::collections::hash_map::DefaultHasher;
                     use std::hash::{Hash, Hasher};

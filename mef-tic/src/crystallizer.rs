@@ -436,10 +436,7 @@ impl TICCrystallizer {
         let fixpoint_vec = fixpoint.to_vec();
         let hash_input = format!(
             "{}_{}__{:?}_{:?}",
-            snapshot_id,
-            seed,
-            fixpoint_vec,
-            convergence_info
+            snapshot_id, seed, fixpoint_vec, convergence_info
         );
         let tic_hash = format!("{:x}", Sha256::digest(hash_input.as_bytes()));
         let tic_id = tic_hash[..16].to_string();

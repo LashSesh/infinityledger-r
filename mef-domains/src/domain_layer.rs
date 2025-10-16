@@ -447,8 +447,8 @@ mod tests {
 
         assert!(result.is_ok());
         let result = result.unwrap();
-        assert!(result.resonat_id.len() > 0);
-        assert!(result.mesh_id.len() > 0);
+        assert!(!result.resonat_id.is_empty());
+        assert!(!result.mesh_id.is_empty());
     }
 
     #[test]
@@ -460,7 +460,7 @@ mod tests {
 
         assert!(result.is_ok());
         let result = result.unwrap();
-        assert!(result.resonat_id.len() > 0);
+        assert!(!result.resonat_id.is_empty());
     }
 
     #[test]

@@ -413,7 +413,10 @@ impl MerkabaGate {
 
         // Check coherence
         if phi < params.phi_star {
-            reasons.push(format!("coherence_insufficient: {:.3} < {}", phi, params.phi_star));
+            reasons.push(format!(
+                "coherence_insufficient: {:.3} < {}",
+                phi, params.phi_star
+            ));
             return (false, format!("rejected: {}", reasons.join(", ")));
         }
 
@@ -473,14 +476,7 @@ impl MerkabaGate {
             phi_star,
             eta: if mci.is_some() { Some(eta) } else { None },
         };
-        let (commit, reason) = self.merkaba_decide(
-            &por,
-            delta_pi,
-            phi,
-            delta_v,
-            mci,
-            &params,
-        );
+        let (commit, reason) = self.merkaba_decide(&por, delta_pi, phi, delta_v, mci, &params);
 
         // Create gate event
         let gate_event = GateEvent {
@@ -751,8 +747,7 @@ mod tests {
             phi_star: 0.6,
             eta: None,
         };
-        let (commit, _reason) =
-            gate.merkaba_decide("invalid", 1e-7, 0.8, -0.1, None, &params);
+        let (commit, _reason) = gate.merkaba_decide("invalid", 1e-7, 0.8, -0.1, None, &params);
 
         assert!(!commit);
     }
@@ -768,8 +763,7 @@ mod tests {
             phi_star: 0.6,
             eta: None,
         };
-        let (commit, _reason) =
-            gate.merkaba_decide("valid", 1e-5, 0.8, -0.1, None, &params);
+        let (commit, _reason) = gate.merkaba_decide("valid", 1e-5, 0.8, -0.1, None, &params);
 
         assert!(!commit);
     }

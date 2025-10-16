@@ -4,6 +4,7 @@ use anyhow::{Context, Result};
 use serde::{Deserialize, Serialize};
 
 #[derive(Debug, Serialize)]
+#[allow(dead_code)]
 struct AppendRequest {
     tic_id: String,
     snapshot_id: String,

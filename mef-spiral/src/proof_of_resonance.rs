@@ -517,7 +517,7 @@ mod tests {
         let coords = vec![1.0, 2.0, 3.0, 4.0, 5.0];
         let (resonance, spectrum) = por.compute_fft_resonance(&coords);
 
-        assert!(resonance >= 0.0 && resonance <= 1.0);
+        assert!((0.0..=1.0).contains(&resonance));
         assert_eq!(spectrum.len(), coords.len());
     }
 
@@ -547,7 +547,7 @@ mod tests {
         let coords = vec![1.0, 2.0, 3.0, 4.0, 5.0];
         let claimed = 0.5;
 
-        let (is_valid, data) = por.validate_resonance(&coords, claimed);
+        let (_is_valid, data) = por.validate_resonance(&coords, claimed);
 
         assert_eq!(data.claimed_resonance, claimed);
         assert!(data.deviation >= 0.0);
@@ -560,7 +560,7 @@ mod tests {
         let coords = vec![1.0, 2.0, 3.0, 4.0, 5.0];
         let stability = por.compute_stability_metric(&coords, None);
 
-        assert!(stability >= 0.0 && stability <= 1.0);
+        assert!((0.0..=1.0).contains(&stability));
     }
 
     #[test]
@@ -570,7 +570,7 @@ mod tests {
         let history = vec![vec![0.9, 1.9, 2.9, 3.9, 4.9], vec![1.1, 2.1, 3.1, 4.1, 5.1]];
         let stability = por.compute_stability_metric(&coords, Some(&history));
 
-        assert!(stability >= 0.0 && stability <= 1.0);
+        assert!((0.0..=1.0).contains(&stability));
     }
 
     #[test]
@@ -635,7 +635,7 @@ mod tests {
         ];
 
         let network_resonance = por.compute_network_resonance(&snapshots);
-        assert!(network_resonance >= 0.0 && network_resonance <= 1.0);
+        assert!((0.0..=1.0).contains(&network_resonance));
     }
 
     #[test]

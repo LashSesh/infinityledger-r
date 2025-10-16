@@ -12,7 +12,7 @@ use crate::domain_layer::{DomainLayer, DomainProcessingResult};
 use crate::meshholo::MeshHolo;
 use anyhow::{anyhow, Result};
 use chrono::{DateTime, Duration, Utc};
-use mef_core::gates::merkaba_gate::{MerkabaGate, MerkabaDeCisionParams};
+use mef_core::gates::merkaba_gate::{MerkabaDeCisionParams, MerkabaGate};
 use mef_hdag::HDAG;
 use mef_ledger::mef_block::MEFLedger;
 use nalgebra::{DMatrix, DVector};
@@ -404,11 +404,7 @@ impl Xswap {
         }
 
         // Make decision
-        let params = MerkabaDeCisionParams {
-            eps,
-            phi_star,
-            eta,
-        };
+        let params = MerkabaDeCisionParams { eps, phi_star, eta };
         let (commit, reason) =
             merkaba_gate.merkaba_decide(por, delta_pi, phi, delta_v, Some(mci), &params);
 
@@ -537,7 +533,11 @@ impl Xswap {
         params: &LedgerCommitParams,
         auto_commit: bool,
     ) -> Result<Option<Value>> {
-        if !auto_commit || !params.gate_event["decision"]["commit"].as_bool().unwrap_or(false) {
+        if !auto_commit
+            || !params.gate_event["decision"]["commit"]
+                .as_bool()
+                .unwrap_or(false)
+        {
             return Ok(None);
         }
 
@@ -639,7 +639,6 @@ impl Xswap {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::adapter::TextDomainAdapter;
     use mef_core::MEFCore;
     use mef_topology::MetatronRouter;
     use std::sync::Arc;
@@ -814,7 +813,7 @@ mod tests {
         assert_eq!(rotation.nrows(), 3);
         assert_eq!(rotation.ncols(), 3);
         assert_eq!(translation.len(), 3);
-        assert!(gap >= 0.0 && gap <= 1.0);
+        assert!((0.0..=1.0).contains(&gap));
     }
 
     #[test]

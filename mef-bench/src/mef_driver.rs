@@ -154,7 +154,7 @@ impl VectorStoreDriver for MEFDriver {
             payload.insert("id".to_string(), json!(identifier));
             payload.insert(
                 "vector".to_string(),
-                json!(vector.iter().map(|&v| v as f64).collect::<Vec<_>>()),
+                json!(vector.to_vec()),
             );
             payload.insert("epoch".to_string(), json!(1)); // Default epoch for benchmarking
 
@@ -191,7 +191,7 @@ impl VectorStoreDriver for MEFDriver {
         let url = format!("{}/search", self.base_url);
         let payload = json!({
             "collection": namespace,
-            "query_vector": query.iter().map(|&v| v as f64).collect::<Vec<_>>(),
+            "query_vector": query.to_vec(),
             "top_k": k as i32,
             "mode": "ann",
             "solve": false,

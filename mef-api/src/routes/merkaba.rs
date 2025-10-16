@@ -7,7 +7,7 @@ use axum::{
 use serde::{Deserialize, Serialize};
 use serde_json::Value as JsonValue;
 
-use crate::{error::ApiError, AppState, Result};
+use crate::{AppState, Result};
 
 pub fn router() -> Router<AppState> {
     Router::new()

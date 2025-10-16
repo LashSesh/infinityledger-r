@@ -584,7 +584,7 @@ mod tests {
 
         let results = storage.verify_integrity();
         assert!(!results.valid);
-        assert!(results.errors.len() > 0);
+        assert!(!results.errors.is_empty());
     }
 
     #[test]
