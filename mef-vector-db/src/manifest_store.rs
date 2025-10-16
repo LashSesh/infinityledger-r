@@ -11,7 +11,7 @@ use std::collections::HashMap;
 use std::path::{Path, PathBuf};
 
 /// Configuration for persisting artifacts to an external service
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize, Default)]
 pub struct PersistenceConfig {
     /// Provider type (e.g., "s3")
     pub provider: Option<String>,
@@ -52,18 +52,8 @@ impl PersistenceConfig {
     }
 }
 
-impl Default for PersistenceConfig {
-    fn default() -> Self {
-        Self {
-            provider: None,
-            bucket: None,
-            prefix: None,
-        }
-    }
-}
-
 /// Representation of the manifest metadata
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize, Default)]
 pub struct Manifest {
     /// Collection metadata indexed by collection name
     pub collections: HashMap<String, Value>,
@@ -102,15 +92,6 @@ impl Manifest {
         Self {
             collections,
             persistence,
-        }
-    }
-}
-
-impl Default for Manifest {
-    fn default() -> Self {
-        Self {
-            collections: HashMap::new(),
-            persistence: PersistenceConfig::default(),
         }
     }
 }
@@ -266,7 +247,7 @@ impl ManifestStore {
         }
 
         self.save_manifest()?;
-        self.sync_to_s3(&[self.manifest_path.clone()])?;
+        self.sync_to_s3(std::slice::from_ref(&self.manifest_path))?;
 
         Ok(())
     }

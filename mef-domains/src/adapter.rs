@@ -33,6 +33,12 @@ pub trait DomainAdapter: Send + Sync {
 /// and calculating tripolar signatures from text features.
 pub struct TextDomainAdapter;
 
+impl Default for TextDomainAdapter {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 impl TextDomainAdapter {
     pub fn new() -> Self {
         Self
@@ -40,8 +46,7 @@ impl TextDomainAdapter {
 
     /// Split text into sentences (simplified)
     fn split_sentences(text: &str) -> Vec<String> {
-        text.replace('!', ".")
-            .replace('?', ".")
+        text.replace(&['!', '?'][..], ".")
             .split('.')
             .map(|s| s.trim().to_string())
             .filter(|s| !s.is_empty())
@@ -175,6 +180,12 @@ impl DomainAdapter for TextDomainAdapter {
 /// tripolar signatures from time-domain and frequency-domain features.
 pub struct SignalDomainAdapter {
     window_size: usize,
+}
+
+impl Default for SignalDomainAdapter {
+    fn default() -> Self {
+        Self::new()
+    }
 }
 
 impl SignalDomainAdapter {

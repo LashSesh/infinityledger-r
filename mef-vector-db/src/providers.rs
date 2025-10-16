@@ -241,7 +241,7 @@ impl IndexProvider for HNSWProvider {
                     .get("vector")
                     .and_then(|v| v.as_array())
                     .map(|arr| arr.iter().filter_map(|x| x.as_f64()).collect())
-                    .unwrap_or_else(Vec::new);
+                    .unwrap_or_default();
                 (id.clone(), vec)
             })
             .collect();
@@ -253,7 +253,7 @@ impl IndexProvider for HNSWProvider {
             .get("vector")
             .and_then(|v| v.as_array())
             .map(|arr| arr.iter().filter_map(|x| x.as_f64()).collect())
-            .unwrap_or_else(Vec::new);
+            .unwrap_or_default();
         self.raw_vectors.insert(record_id.to_string(), vec);
 
         // Mark cached structures dirty

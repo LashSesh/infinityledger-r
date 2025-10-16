@@ -1,7 +1,6 @@
 /// Metatron Router API endpoints
 use axum::{
     extract::{Path, Query, State},
-    http::StatusCode,
     routing::{delete, get, post},
     Json, Router,
 };
@@ -107,7 +106,7 @@ async fn process_through_pipeline(
     // Step 2: Pad to 13 dimensions for Metatron
     let mut padded = input_vector.clone();
     padded.resize(13, 0.0);
-    let input_array = Array1::from_vec(padded.clone());
+    let _input_array = Array1::from_vec(padded.clone());
 
     // Step 3: Select optimal route through Metatron topology
     let target_props = request.target_properties.as_ref().and_then(|v| {

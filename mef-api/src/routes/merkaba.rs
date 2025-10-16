@@ -1,7 +1,6 @@
 /// Merkaba Gate API endpoints
 use axum::{
     extract::{Query, State},
-    http::StatusCode,
     routing::{get, post},
     Json, Router,
 };

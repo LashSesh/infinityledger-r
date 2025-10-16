@@ -489,7 +489,7 @@ impl SpiralCouplingEngine {
         let seed_steps = self.seed_step_hashes(histories);
         let mut combined_steps: Vec<String> = seed_steps
             .into_iter()
-            .chain(pending_steps.into_iter())
+            .chain(pending_steps)
             .collect::<HashSet<_>>()
             .into_iter()
             .collect();

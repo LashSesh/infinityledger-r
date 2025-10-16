@@ -1,7 +1,6 @@
 /// Domain Layer API endpoints - Resonit, Resonat, MeshHolo, Infogenome
 use axum::{
     extract::{Path, Query, State},
-    http::StatusCode,
     routing::{get, post},
     Json, Router,
 };

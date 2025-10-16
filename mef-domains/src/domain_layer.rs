@@ -57,23 +57,12 @@ pub struct DomainLayer {
 }
 
 /// Domain processing metrics
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize, Default)]
 pub struct DomainMetrics {
     pub resonits_created: usize,
     pub resonats_formed: usize,
     pub meshes_triangulated: usize,
     pub cross_domain_transfers: usize,
-}
-
-impl Default for DomainMetrics {
-    fn default() -> Self {
-        Self {
-            resonits_created: 0,
-            resonats_formed: 0,
-            meshes_triangulated: 0,
-            cross_domain_transfers: 0,
-        }
-    }
 }
 
 /// Domain processing result

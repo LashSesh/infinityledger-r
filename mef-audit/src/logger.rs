@@ -292,26 +292,24 @@ impl MEFAuditLogger {
             let file = File::open(&self.event_log_file)?;
             let reader = BufReader::new(file);
 
-            for line in reader.lines() {
-                if let Ok(line) = line {
-                    if let Ok(event) = serde_json::from_str::<AuditEvent>(&line) {
-                        // Apply filters
-                        if let Some(et) = event_type {
-                            if event.event_type != et {
-                                continue;
-                            }
+            for line in reader.lines().map_while(Result::ok) {
+                if let Ok(event) = serde_json::from_str::<AuditEvent>(&line) {
+                    // Apply filters
+                    if let Some(et) = event_type {
+                        if event.event_type != et {
+                            continue;
                         }
-                        if let Some(comp) = component {
-                            if event.component != comp {
-                                continue;
-                            }
+                    }
+                    if let Some(comp) = component {
+                        if event.component != comp {
+                            continue;
                         }
+                    }
 
-                        events.push(event);
+                    events.push(event);
 
-                        if events.len() >= limit {
-                            break;
-                        }
+                    if events.len() >= limit {
+                        break;
                     }
                 }
             }

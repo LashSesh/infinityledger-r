@@ -45,6 +45,18 @@ pub struct AlignmentArtifacts {
     pub ledger_block: Option<Value>,
 }
 
+/// Parameters for ledger commit
+#[derive(Debug, Clone)]
+struct LedgerCommitParams<'a> {
+    alignment_id: &'a str,
+    source_result: &'a DomainProcessingResult,
+    target_result: &'a DomainProcessingResult,
+    alignment_score: f64,
+    manifold_gap: f64,
+    gate_event: &'a Value,
+    hdag_data: &'a Value,
+}
+
 impl AlignmentArtifacts {
     /// Convert artifacts to a serializable dictionary
     pub fn to_dict(&self) -> Value {
@@ -169,16 +181,16 @@ impl Xswap {
         )?;
 
         // Commit to ledger if appropriate
-        let ledger_block = self.commit_ledger(
-            &alignment_id,
-            &source_result,
-            &target_result,
+        let commit_params = LedgerCommitParams {
+            alignment_id: &alignment_id,
+            source_result: &source_result,
+            target_result: &target_result,
             alignment_score,
             manifold_gap,
-            &gate_event,
-            &hdag_data,
-            auto_commit,
-        )?;
+            gate_event: &gate_event,
+            hdag_data: &hdag_data,
+        };
+        let ledger_block = self.commit_ledger(&commit_params, auto_commit)?;
 
         let artifacts = AlignmentArtifacts {
             alignment_id,
@@ -344,8 +356,8 @@ impl Xswap {
     ) -> Result<Value> {
         // Extract fixpoints from TIC IDs (placeholder - would need actual TIC data)
         // For now, we'll use simplified logic
-        let source_fixpoint = vec![1.0; 13];
-        let target_fixpoint = vec![1.0; 13];
+        let source_fixpoint = [1.0; 13];
+        let target_fixpoint = [1.0; 13];
 
         let n = source_fixpoint.len().min(target_fixpoint.len());
         let src_fp: Vec<f64> = source_fixpoint.iter().take(n).copied().collect();
@@ -385,7 +397,7 @@ impl Xswap {
         // Allow override if alignment is strong
         if por == "invalid" {
             let alignment_sufficient = phi >= phi_star && delta_pi.abs() <= eps;
-            let mci_sufficient = eta.map_or(true, |e| mci >= e);
+            let mci_sufficient = eta.is_none_or(|e| mci >= e);
             if alignment_sufficient && mci_sufficient && delta_v < 0.0 {
                 por = "valid";
             }
@@ -522,16 +534,10 @@ impl Xswap {
     /// Commit alignment to ledger
     fn commit_ledger(
         &self,
-        alignment_id: &str,
-        source_result: &DomainProcessingResult,
-        target_result: &DomainProcessingResult,
-        alignment_score: f64,
-        manifold_gap: f64,
-        gate_event: &Value,
-        hdag_data: &Value,
+        params: &LedgerCommitParams,
         auto_commit: bool,
     ) -> Result<Option<Value>> {
-        if !auto_commit || !gate_event["decision"]["commit"].as_bool().unwrap_or(false) {
+        if !auto_commit || !params.gate_event["decision"]["commit"].as_bool().unwrap_or(false) {
             return Ok(None);
         }
 
@@ -541,26 +547,26 @@ impl Xswap {
         let combined_fixpoint = self.combine_fixpoints(&source_fixpoint, &target_fixpoint);
 
         let ledger_tic = json!({
-            "tic_id": alignment_id,
+            "tic_id": params.alignment_id,
             "seed": "xswap",
             "fixpoint": combined_fixpoint,
             "window": [0.0, 1.0],
             "invariants": {
-                "alignment_score": alignment_score,
-                "manifold_gap": manifold_gap,
-                "hdag_invariant": hdag_data.get("path").and_then(|p| p.get("invariant")),
+                "alignment_score": params.alignment_score,
+                "manifold_gap": params.manifold_gap,
+                "hdag_invariant": params.hdag_data.get("path").and_then(|p| p.get("invariant")),
             },
             "sigma_bar": {
                 "source": {},
                 "target": {},
             },
             "proof": {
-                "por": gate_event["checks"]["por"],
-                "phi": gate_event["checks"]["phi"],
-                "delta_pi": gate_event["checks"]["delta_pi"],
-                "delta_v": gate_event["checks"]["delta_v"],
-                "mci": gate_event["checks"]["mci"],
-                "decision": gate_event["decision"],
+                "por": params.gate_event["checks"]["por"],
+                "phi": params.gate_event["checks"]["phi"],
+                "delta_pi": params.gate_event["checks"]["delta_pi"],
+                "delta_v": params.gate_event["checks"]["delta_v"],
+                "mci": params.gate_event["checks"]["mci"],
+                "decision": params.gate_event["decision"],
             },
         });
 
@@ -569,25 +575,25 @@ impl Xswap {
         let meshes = domain_layer.meshes.lock().unwrap();
 
         let source_gap = meshes
-            .get(&source_result.mesh_id)
+            .get(&params.source_result.mesh_id)
             .map(|m| m.invariants.lambda_gap)
             .unwrap_or(0.0);
         let target_gap = meshes
-            .get(&target_result.mesh_id)
+            .get(&params.target_result.mesh_id)
             .map(|m| m.invariants.lambda_gap)
             .unwrap_or(0.0);
 
         let ledger_snapshot = json!({
-            "id": alignment_id,
+            "id": params.alignment_id,
             "phase": (source_gap + target_gap) / 2.0,
             "timestamp": Utc::now().to_rfc3339(),
-            "source_node": hdag_data.get("source_node"),
-            "target_node": hdag_data.get("target_node"),
-            "edge_id": hdag_data.get("edge_id"),
+            "source_node": params.hdag_data.get("source_node"),
+            "target_node": params.hdag_data.get("target_node"),
+            "edge_id": params.hdag_data.get("edge_id"),
             "alignment": {
-                "score": alignment_score,
-                "gap": manifold_gap,
-                "path": hdag_data.get("path"),
+                "score": params.alignment_score,
+                "gap": params.manifold_gap,
+                "path": params.hdag_data.get("path"),
             },
         });
 

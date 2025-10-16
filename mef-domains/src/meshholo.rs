@@ -204,17 +204,14 @@ impl MeshHolo {
         let lap_vec: Vec<f64> = lap.iter().cloned().collect();
         let nalg_matrix = DMatrix::from_row_slice(n, n, &lap_vec);
 
-        match nalg_matrix.symmetric_eigenvalues() {
-            eigs => {
-                let mut eigenvalues: Vec<f64> = eigs.iter().cloned().collect();
-                eigenvalues.sort_by(|a, b| a.partial_cmp(b).unwrap());
+        let eigs = nalg_matrix.symmetric_eigenvalues();
+        let mut eigenvalues: Vec<f64> = eigs.iter().cloned().collect();
+        eigenvalues.sort_by(|a, b| a.partial_cmp(b).unwrap());
 
-                if eigenvalues.len() > 1 {
-                    eigenvalues[1] - eigenvalues[0]
-                } else {
-                    0.0
-                }
-            }
+        if eigenvalues.len() > 1 {
+            eigenvalues[1] - eigenvalues[0]
+        } else {
+            0.0
         }
     }
 

@@ -81,13 +81,13 @@ impl VectorRecord {
             .or_else(|| payload.get("values"))
             .and_then(|v| v.as_array())
             .map(|arr| arr.iter().filter_map(|v| v.as_f64()).collect())
-            .unwrap_or_else(Vec::new);
+            .unwrap_or_default();
 
         let metadata = payload
             .get("metadata")
             .and_then(|v| v.as_object())
             .map(|obj| obj.iter().map(|(k, v)| (k.clone(), v.clone())).collect())
-            .unwrap_or_else(HashMap::new);
+            .unwrap_or_default();
 
         let epoch = payload.get("epoch").and_then(|v| v.as_i64());
 
@@ -132,12 +132,12 @@ impl CollectionState {
         let vectors = payload
             .get("vectors")
             .and_then(|v| serde_json::from_value(v.clone()).ok())
-            .unwrap_or_else(HashMap::new);
+            .unwrap_or_default();
 
         let indexes = payload
             .get("indexes")
             .and_then(|v| serde_json::from_value(v.clone()).ok())
-            .unwrap_or_else(HashMap::new);
+            .unwrap_or_default();
 
         Self { vectors, indexes }
     }
@@ -268,7 +268,7 @@ impl IndexManager {
         let state = self
             .collections
             .entry(collection.to_string())
-            .or_insert_with(CollectionState::default);
+            .or_default();
 
         for (id, payload) in &updates {
             state.vectors.insert(id.clone(), payload.clone());
@@ -327,7 +327,7 @@ impl IndexManager {
         let state = self
             .collections
             .entry(collection.to_string())
-            .or_insert_with(CollectionState::default);
+            .or_default();
 
         let mut removed = false;
         for vector_id in vector_ids {
@@ -378,7 +378,7 @@ impl IndexManager {
     pub fn get_collection_state(&mut self, collection: &str) -> CollectionState {
         self.collections
             .entry(collection.to_string())
-            .or_insert_with(CollectionState::default)
+            .or_default()
             .clone()
     }
 
@@ -435,7 +435,7 @@ impl IndexManager {
             self.provider_instances
                 .get(collection)
                 .and_then(|p| p.get_last_plan())
-                .unwrap_or_else(HashMap::new)
+                .unwrap_or_default()
         };
         self.last_search_plan = plan;
 
@@ -730,7 +730,7 @@ impl IndexManager {
             let state = self
                 .collections
                 .entry(collection.to_string())
-                .or_insert_with(CollectionState::default);
+                .or_default();
             provider.build(&state.vectors);
             self.provider_instances
                 .insert(collection.to_string(), provider);
@@ -811,7 +811,7 @@ impl IndexManager {
                     obj.iter().map(|(k, v)| (k.clone(), v.clone())).collect();
                 canonical.insert(
                     key.clone(),
-                    serde_json::to_value(&Self::strip_volatile(&nested, &full_key, removed))
+                    serde_json::to_value(Self::strip_volatile(&nested, &full_key, removed))
                         .unwrap(),
                 );
             } else if let Some(arr) = val.as_array() {
