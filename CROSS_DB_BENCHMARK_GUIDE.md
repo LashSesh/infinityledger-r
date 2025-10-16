@@ -303,6 +303,23 @@ Results are uploaded as GitHub Actions artifacts.
 - Use release build for accurate measurements
 - Ensure adequate system resources
 
+### Scaling to Larger Datasets
+
+For testing with 100K vectors or more:
+
+```bash
+# 100K vectors with 10K batch size
+BENCH_NUM_VECTORS=100000 \
+BENCH_BATCH_SIZE=10000 \
+BENCH_NUM_QUERIES=50 \
+./target/release/cross-db-bench faiss mef qdrant
+
+# For even larger datasets, adjust batch size proportionally
+# Rule of thumb: batch_size = num_vectors / 10 to num_vectors / 20
+```
+
+**Note**: The CI is configured to run with 50K vectors and 5K batch size for comprehensive testing while maintaining reasonable runtime.
+
 ## References
 
 - [Benchmark Driver README](mef-bench/README.md)
