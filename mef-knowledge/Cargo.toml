@@ -13,5 +13,12 @@ serde_json = { workspace = true }
 sha2 = { workspace = true }
 anyhow = { workspace = true }
 thiserror = { workspace = true }
+ndarray = { workspace = true }
+hmac = "0.12"
+uuid = { workspace = true }
+chrono = { workspace = true }
+tracing = { workspace = true }
 
 [dev-dependencies]
+tokio = { workspace = true }
+

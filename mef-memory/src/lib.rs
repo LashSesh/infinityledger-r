@@ -8,9 +8,15 @@
 
 pub mod backend;
 pub mod inmemory;
+pub mod backends;
+pub mod index;
+pub mod operations;
 
 pub use backend::{MemoryBackend, SearchResult};
 pub use inmemory::InMemoryBackend;
+pub use backends::{VectorBackend, InMemoryBackend as InMemoryBackendV2};
+pub use index::{MemoryIndex, MemoryConfig};
+pub use operations::{UpsertRequest, SearchRequest, SearchResponse, SearchResult as SearchResultV2};
 
 use mef_schemas::MemoryItem;
 

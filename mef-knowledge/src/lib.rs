@@ -12,11 +12,17 @@ pub mod content_address;
 pub mod seed_derivation;
 pub mod vector8;
 pub mod inference;
+pub mod primitives;
+pub mod metric;
+pub mod derivation;
 
 pub use canonical::canonical_json;
 pub use content_address::compute_mef_id;
 pub use seed_derivation::derive_seed;
 pub use vector8::{Vector8Builder, Vector8Config};
+pub use primitives::{canonical_json as canonical_json_v2, compute_content_hash, compute_mef_id as compute_mef_id_v2, derive_seed as derive_seed_v2};
+pub use metric::{Vector8Builder as Vector8BuilderV2, Vector8Weights};
+pub use derivation::{KnowledgeDerivation, DeriveRequest, DeriveResponse};
 
 #[derive(Debug, thiserror::Error)]
 pub enum KnowledgeError {

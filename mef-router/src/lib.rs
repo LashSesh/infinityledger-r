@@ -10,11 +10,15 @@ pub mod s7_space;
 pub mod route_selection;
 pub mod mesh_metrics;
 pub mod adapter;
+pub mod s7;
+pub mod scoring;
 
 pub use s7_space::generate_s7_permutations;
 pub use route_selection::select_route;
 pub use mesh_metrics::compute_mesh_score;
 pub use adapter::{MetatronAdapter, AdapterMode};
+pub use s7::{generate_permutations, select_route as select_route_v2};
+pub use scoring::{mesh_score, extract_mesh_metrics};
 
 #[derive(Debug, thiserror::Error)]
 pub enum RouterError {

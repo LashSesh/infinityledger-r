@@ -114,10 +114,10 @@ impl MemoryIndex {
         }
         
         // Validate dimension
-        if item.vector8.len() != self.config.dimension {
+        if item.get_vector().len() != self.config.dimension {
             return Err(IndexError::InvalidDimension {
                 expected: self.config.dimension,
-                actual: item.vector8.len(),
+                actual: item.get_vector().len(),
             });
         }
         
@@ -245,7 +245,7 @@ mod tests {
         let index = MemoryIndex::new(config).unwrap();
         let runtime = tokio::runtime::Runtime::new().unwrap();
         
-        let item = MemoryItem::new(
+        let item = MemoryItem::new_extended(
             "test".to_string(),
             vec![1.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0],
             SpectralSignature { psi: 0.3, rho: 0.3, omega: 0.4 },

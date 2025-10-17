@@ -23,7 +23,7 @@
 //! - Reads from `mef-ledger` for TIC and block operations
 //! - Uses `mef-router` for route selection
 
-use mef_schemas::{KnowledgeObject, RouteReference, TicReference};
+use mef_schemas::{KnowledgeObjectV2 as KnowledgeObject, RouteReference, TicReference};
 use serde::{Deserialize, Serialize};
 use thiserror::Error;
 

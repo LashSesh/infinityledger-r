@@ -12,11 +12,11 @@ This document summarizes the implementation of the MEF Knowledge Engine extensio
 
 | Module | Purpose | Lines of Code | Tests |
 |--------|---------|---------------|-------|
-| mef-schemas | Type system & JSON schemas | ~450 | 11 |
-| mef-knowledge | Knowledge processing | ~850 | 19 |
-| mef-memory | Vector database abstraction | ~550 | 4 |
-| mef-router | S7 route selection | ~650 | 13 |
-| **Total** | | **~2,500** | **47** |
+| mef-schemas | Type system & JSON schemas | ~450 | 16 |
+| mef-knowledge | Knowledge processing | ~850 | 33 |
+| mef-memory | Vector database abstraction | ~550 | 15 |
+| mef-router | S7 route selection | ~650 | 25 |
+| **Total** | | **~2,500** | **89** |
 
 #### 2. Documentation (4 comprehensive guides)
 
@@ -31,9 +31,9 @@ This document summarizes the implementation of the MEF Knowledge Engine extensio
 ### Implementation Statistics
 
 - **Production Code**: 2,500+ lines
-- **Test Code**: 1,200+ lines  
+- **Test Code**: 1,800+ lines  
 - **Documentation**: 90+ pages
-- **Test Coverage**: 47 tests (100% pass rate)
+- **Test Coverage**: 89 tests (100% pass rate)
 - **Build Time**: +2 seconds (extension only)
 - **Runtime Overhead**: 0 when disabled
 
@@ -57,10 +57,10 @@ This document summarizes the implementation of the MEF Knowledge Engine extensio
 - Zero-copy where possible
 - Ergonomic error types
 
-**Tests**: 11 passing
-- Validation tests (4)
-- Serialization tests (2)
-- Gate logic tests (3)
+**Tests**: 16 passing
+- Validation tests (7)
+- Serialization tests (3)
+- Gate logic tests (4)
 - Edge case tests (2)
 
 ### mef-knowledge
@@ -82,12 +82,15 @@ This document summarizes the implementation of the MEF Knowledge Engine extensio
 - Normalized 8D vector construction
 - Configurable weight system
 
-**Tests**: 19 passing
-- Canonical JSON tests (3)
+**Tests**: 33 passing
+- Canonical JSON tests (5)
 - Content addressing tests (4)
 - Seed derivation tests (5)
-- Vector construction tests (4)
+- Vector construction tests (8)
 - Inference tests (3)
+- Primitives tests (5)
+- Derivation tests (2)
+- Metric tests (1)
 
 **Security**:
 - Root seeds never logged or persisted
@@ -112,10 +115,11 @@ This document summarizes the implementation of the MEF Knowledge Engine extensio
 - Efficient in-memory search
 - Support for future backends (FAISS, HNSW)
 
-**Tests**: 4 passing
-- Backend tests (2)
-- Search tests (1)
+**Tests**: 15 passing
+- Backend tests (4)
+- Search tests (7)
 - Distance computation tests (1)
+- Index tests (3)
 
 **Performance**:
 - In-memory: O(1) insert, O(n) search
@@ -139,11 +143,12 @@ This document summarizes the implementation of the MEF Knowledge Engine extensio
 - Adapter pattern for flexibility
 - Cacheable permutation generation
 
-**Tests**: 13 passing
+**Tests**: 25 passing
 - Permutation generation tests (3)
-- Mesh scoring tests (3)
-- Route selection tests (4)
+- Mesh scoring tests (7)
+- Route selection tests (8)
 - Adapter tests (3)
+- S7 space tests (4)
 
 **Performance**:
 - S7 generation: ~5ms (cacheable)
@@ -575,7 +580,7 @@ The MEF Knowledge Engine extension is production-ready and provides a solid foun
 ### Key Achievements
 
 ✅ 2,500+ lines of production Rust code  
-✅ 47 comprehensive tests (100% pass rate)  
+✅ 89 comprehensive tests (100% pass rate)  
 ✅ 90+ pages of documentation  
 ✅ Zero modifications to core system  
 ✅ Zero warnings in build  
