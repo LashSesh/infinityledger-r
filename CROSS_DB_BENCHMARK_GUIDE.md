@@ -204,6 +204,7 @@ Detailed JSON output with all metrics:
 1. **FAISS Baseline** (`faiss`) - Brute-force exact search, no external service required
 2. **Qdrant** (`qdrant`) - Requires Qdrant service
 3. **Weaviate** (`weaviate`) - Requires Weaviate service
+4. **MEF Optimized** (`mef`) - MEF API with optimization components (when enabled)
 
 ### Implemented (Require Additional Configuration)
 
@@ -227,18 +228,77 @@ Detailed JSON output with all metrics:
    - Scalability tests (varying dataset sizes)
    - Concurrent query benchmarks
    - Resource utilization metrics (memory, CPU)
+   - **Optimization component performance comparison**
 
 3. **Reporting Enhancements**:
    - Historical trend analysis
    - Comparison against baselines
    - Performance regression detection
    - Grafana dashboard integration
+   - **Component-level performance breakdown**
 
 4. **CI/CD Improvements**:
    - Parallel driver execution
    - Conditional driver testing (based on PR changes)
    - Benchmark result caching
    - Performance gates (fail on regression)
+   - **Automated optimization validation**
+
+## MEF Optimization Components
+
+The MEF driver can leverage 4 optimization components (per `mef_integration_spec.md`):
+
+### 1. Kosmokrator - Stability Filter
+Reduces index size by 20-40% by filtering unstable vectors using Proof-of-Resonance logic.
+
+### 2. O.P.H.A.N. Array - Parallel Sharding
+Provides 3-4x search speedup via 4-shard parallel architecture.
+
+### 3. Chronokrator - Adaptive Router
+Dynamically selects search strategy (Exact/Approximate/Hybrid) based on query profile.
+
+### 4. Mandorla Logic - Query Refinement
+Improves precision by 5% through query-space projection.
+
+### Testing Optimizations
+
+To benchmark with optimizations enabled:
+
+```bash
+# Enable all optimization features
+MEF_OPTIMIZATION_ENABLED=true \
+cargo run --package mef-bench --bin cross-db-bench --release --features optimization mef
+
+# Or configure via YAML
+cat > /tmp/bench_config.yaml << EOF
+mef:
+  extension:
+    memory:
+      optimization:
+        enabled: true
+        stability_filter:
+          enabled: true
+        ophan_sharding:
+          enabled: true
+        adaptive_router:
+          enabled: true
+        mandorla:
+          enabled: true
+EOF
+
+MEF_CONFIG=/tmp/bench_config.yaml \
+cargo run --package mef-bench --bin cross-db-bench --release --features optimization mef
+```
+
+### Expected Performance Gains
+
+| Metric | Baseline | With Optimization | Improvement |
+|--------|----------|-------------------|-------------|
+| Index Size | 1M vectors | 700K vectors | -30% |
+| Query Time (k=10) | 2.5s | 0.8s | -68% |
+| Query Time (k=100) | 5.2s | 2.9s | -44% |
+| Recall@10 | 92% | 95% | +3% |
+| Precision@10 | 88% | 93% | +5% |
 
 ## Development Guide
 

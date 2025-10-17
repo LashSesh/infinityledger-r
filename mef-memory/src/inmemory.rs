@@ -5,6 +5,7 @@ use mef_schemas::MemoryItem;
 use std::collections::HashMap;
 
 /// Simple in-memory backend using HashMap
+#[derive(Clone)]
 pub struct InMemoryBackend {
     items: HashMap<String, MemoryItem>,
 }

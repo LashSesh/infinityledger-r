@@ -25,3 +25,10 @@ default = ["inmemory"]
 inmemory = []
 faiss = []
 hnsw = []
+
+# Performance optimization features (per mef_integration_spec.md)
+optimization = ["stability-filter", "ophan-sharding", "adaptive-routing", "mandorla"]
+stability-filter = []
+ophan-sharding = []
+adaptive-routing = []
+mandorla = []

@@ -127,6 +127,62 @@ jobs:
           name: test-results-${{ matrix.os }}-${{ matrix.rust }}
           path: target/debug/
 
+  # Test optimization features
+  test-optimization:
+    name: Test Optimization Features
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      
+      - name: Install Rust toolchain
+        uses: dtolnay/rust-toolchain@stable
+      
+      - name: Cache cargo registry
+        uses: actions/cache@v4
+        with:
+          path: ~/.cargo/registry
+          key: ${{ runner.os }}-cargo-registry-${{ hashFiles('**/Cargo.lock') }}
+      
+      - name: Cache cargo build
+        uses: actions/cache@v4
+        with:
+          path: target
+          key: ${{ runner.os }}-cargo-build-target-${{ hashFiles('**/Cargo.lock') }}
+      
+      - name: Build mef-memory with optimization features
+        run: |
+          echo "=== Testing Optimization Features ==="
+          cargo build --package mef-memory --features optimization --verbose
+          echo "✓ Optimization build successful"
+      
+      - name: Test individual optimization features
+        run: |
+          echo "=== Testing Individual Features ==="
+          
+          cargo test --package mef-memory --features stability-filter --verbose
+          echo "✓ Stability filter tests passed"
+          
+          cargo test --package mef-memory --features ophan-sharding --verbose
+          echo "✓ O.P.H.A.N. sharding tests passed"
+          
+          cargo test --package mef-memory --features adaptive-routing --verbose
+          echo "✓ Adaptive routing tests passed"
+          
+          cargo test --package mef-memory --features mandorla --verbose
+          echo "✓ Mandorla tests passed"
+      
+      - name: Test all optimization features together
+        run: |
+          echo "=== Testing All Features Together ==="
+          cargo test --package mef-memory --features optimization --verbose
+          echo "✓ All optimization tests passed"
+      
+      - name: Build benchmarks with optimization
+        run: |
+          echo "=== Building Optimization Benchmarks ==="
+          cargo build --package mef-benchmarks --features optimization --release
+          echo "✓ Optimization benchmarks built successfully"
+
   # Integration tests with services
   integration-test:
     name: Integration Tests with Services
@@ -202,6 +258,11 @@ jobs:
           # Build and run criterion benchmarks
           cargo build --package mef-benchmarks --release
           cargo bench --package mef-benchmarks
+          
+          # Also test with optimization features
+          echo "=== Building with optimization features ==="
+          cargo build --package mef-benchmarks --release --features optimization
+          echo "✓ Optimization features build successful"
       
       - name: Upload criterion results
         uses: actions/upload-artifact@v4

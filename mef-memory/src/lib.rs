@@ -12,6 +12,15 @@ pub mod index;
 pub mod inmemory;
 pub mod operations;
 
+// Performance optimization backends
+#[cfg(any(
+    feature = "stability-filter",
+    feature = "ophan-sharding",
+    feature = "adaptive-routing",
+    feature = "mandorla"
+))]
+pub mod backends_opt;
+
 pub use backend::{MemoryBackend, SearchResult};
 pub use backends::{InMemoryBackend as InMemoryBackendV2, VectorBackend};
 pub use index::{MemoryConfig, MemoryIndex};
@@ -19,6 +28,19 @@ pub use inmemory::InMemoryBackend;
 pub use operations::{
     SearchRequest, SearchResponse, SearchResult as SearchResultV2, UpsertRequest,
 };
+
+// Re-export optimization components when features are enabled
+#[cfg(feature = "stability-filter")]
+pub use backends_opt::{FilteredBackend, FilterStats, StabilityFilter, StabilityFilterConfig};
+
+#[cfg(feature = "ophan-sharding")]
+pub use backends_opt::OphanBackend;
+
+#[cfg(feature = "adaptive-routing")]
+pub use backends_opt::{AdaptiveRouter, RouterConfig, SearchStrategy};
+
+#[cfg(feature = "mandorla")]
+pub use backends_opt::{IndexCoverageStats, MandorlaBackend, MandorlaConfig, MandorlaRefiner};
 
 use mef_schemas::MemoryItem;
 
