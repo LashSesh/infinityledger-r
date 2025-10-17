@@ -58,7 +58,7 @@ mod tests {
 
     #[test]
     fn test_upsert_request_serialization() {
-        let item = MemoryItem::new(
+        let item = MemoryItem::new_extended(
             "test".to_string(),
             vec![1.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0],
             SpectralSignature { psi: 0.3, rho: 0.3, omega: 0.4 },

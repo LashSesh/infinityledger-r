@@ -10,11 +10,15 @@ pub mod route_spec;
 pub mod memory_item;
 pub mod knowledge_object;
 pub mod gate_event;
+pub mod knowledge;
+pub mod gate;
 
-pub use route_spec::RouteSpec;
-pub use memory_item::{MemoryItem, SpectralSignature};
+pub use route_spec::{RouteSpec, OperatorSlot};
+pub use memory_item::{MemoryItem, SpectralSignature, PorStatus};
 pub use knowledge_object::KnowledgeObject;
 pub use gate_event::{MerkabaGateEvent, GateDecision};
+pub use knowledge::{KnowledgeObject as KnowledgeObjectV2, TicReference, RouteReference, KnowledgeContext};
+pub use gate::{MerkabaGateEvent as MerkabaGateEventV2, GateChecks, GateDecision as GateDecisionV2};
 
 #[derive(Debug, thiserror::Error)]
 pub enum SchemaError {

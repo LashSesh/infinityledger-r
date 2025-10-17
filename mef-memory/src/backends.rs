@@ -99,7 +99,7 @@ impl VectorBackend for InMemoryBackend {
         let mut results: Vec<(String, f64)> = self.items
             .iter()
             .map(|(id, item)| {
-                let similarity = Self::cosine_similarity(query, &item.vector8);
+                let similarity = Self::cosine_similarity(query, item.get_vector());
                 (id.clone(), similarity)
             })
             .collect();
@@ -140,7 +140,7 @@ mod tests {
         let mut backend = InMemoryBackend::new();
         backend.init().await.unwrap();
         
-        let item = MemoryItem::new(
+        let item = MemoryItem::new_extended(
             "test".to_string(),
             vec![1.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0],
             SpectralSignature { psi: 0.3, rho: 0.3, omega: 0.4 },
@@ -159,7 +159,7 @@ mod tests {
     async fn test_in_memory_search() {
         let mut backend = InMemoryBackend::new();
         
-        let item1 = MemoryItem::new(
+        let item1 = MemoryItem::new_extended(
             "item1".to_string(),
             vec![1.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0],
             SpectralSignature { psi: 0.3, rho: 0.3, omega: 0.4 },
@@ -167,7 +167,7 @@ mod tests {
             "TIC-1".to_string(),
         );
         
-        let item2 = MemoryItem::new(
+        let item2 = MemoryItem::new_extended(
             "item2".to_string(),
             vec![0.0, 1.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0],
             SpectralSignature { psi: 0.3, rho: 0.3, omega: 0.4 },

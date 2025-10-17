@@ -130,7 +130,7 @@ pub fn select_route(seed: &str, mesh_metrics: &HashMap<String, f64>) -> RouteSpe
     let route_hash = format!("{:x}", hasher.finalize());
     let route_id = route_hash.chars().take(16).collect();
     
-    RouteSpec::new(route_id, sigma, permutation, score)
+    RouteSpec::new_extended(route_id, sigma, permutation, score)
 }
 
 #[cfg(test)]
@@ -202,7 +202,7 @@ mod tests {
         let metrics = HashMap::new();
         let route = select_route("test", &metrics);
         
-        assert_eq!(route.sigma.len(), 7);
+        assert_eq!(route.sigma.as_ref().unwrap().len(), 7);
         assert_eq!(route.permutation.len(), 7);
         assert!(route.validate().is_ok());
     }

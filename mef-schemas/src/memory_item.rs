@@ -15,6 +15,17 @@ pub struct SpectralSignature {
     pub omega: f64,
 }
 
+/// Proof of Resonance status
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+pub enum PorStatus {
+    /// PoR validation passed
+    Valid,
+    /// PoR validation failed
+    Invalid,
+    /// PoR not yet computed
+    Pending,
+}
+
 /// MemoryItem represents an 8D normalized vector with spectral signature
 /// Constructed from 5D spiral coordinates + 3D spectral features
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
@@ -25,8 +36,20 @@ pub struct MemoryItem {
     /// The 8D normalized vector (||z||₂ = 1)
     pub vector: Vec<f64>,
     
+    /// Alias for vector to support both naming conventions
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub vector8: Option<Vec<f64>>,
+    
     /// Spectral signature
     pub spectral: SpectralSignature,
+    
+    /// Proof of Resonance status
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub por_status: Option<PorStatus>,
+    
+    /// Associated TIC identifier
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub tic_id: Option<String>,
     
     /// Optional metadata
     #[serde(skip_serializing_if = "Option::is_none")]
@@ -60,10 +83,37 @@ impl MemoryItem {
         
         Ok(Self {
             id,
-            vector,
+            vector: vector.clone(),
+            vector8: Some(vector),
             spectral,
+            por_status: None,
+            tic_id: None,
             metadata,
         })
+    }
+    
+    /// Create a new MemoryItem with extended fields
+    pub fn new_extended(
+        id: String,
+        vector: Vec<f64>,
+        spectral: SpectralSignature,
+        por_status: PorStatus,
+        tic_id: String,
+    ) -> Self {
+        Self {
+            id,
+            vector: vector.clone(),
+            vector8: Some(vector),
+            spectral,
+            por_status: Some(por_status),
+            tic_id: Some(tic_id),
+            metadata: None,
+        }
+    }
+    
+    /// Get the vector (supports both vector and vector8 fields)
+    pub fn get_vector(&self) -> &[f64] {
+        self.vector8.as_deref().unwrap_or(&self.vector)
     }
 }
 
