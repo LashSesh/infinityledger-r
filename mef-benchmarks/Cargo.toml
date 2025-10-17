@@ -10,6 +10,8 @@ repository.workspace = true
 mef-spiral = { path = "../mef-spiral" }
 mef-ledger = { path = "../mef-ledger" }
 mef-core = { path = "../mef-core" }
+mef-memory = { path = "../mef-memory" }
+mef-schemas = { path = "../mef-schemas" }
 serde_json = { workspace = true }
 tempfile = "3.8"
 
@@ -19,3 +21,11 @@ criterion = { version = "0.5", features = ["html_reports"] }
 [[bench]]
 name = "performance_baseline"
 harness = false
+
+[[bench]]
+name = "optimization_bench"
+harness = false
+
+[features]
+default = []
+optimization = ["mef-memory/optimization"]

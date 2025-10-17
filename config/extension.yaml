@@ -13,7 +13,7 @@ mef:
     # Vector memory
     memory:
       enabled: false  # Default OFF
-      backend: inmemory  # Options: inmemory, faiss, hnsw
+      backend: inmemory  # Options: inmemory, faiss, hnsw, optimized
       backends:
         inmemory:
           max_items: 10000
@@ -23,6 +23,34 @@ mef:
         hnsw:
           m: 16
           ef_construction: 200
+      
+      # Performance optimization components (mef_integration_spec.md)
+      optimization:
+        enabled: false  # Enable all optimizations
+        
+        # Kosmokrator - Stability Filter
+        stability_filter:
+          enabled: false
+          coherence_threshold: 0.85  # κ* threshold
+          max_fluctuation: 0.02      # ε tolerance
+          window_size: 10            # History window
+        
+        # O.P.H.A.N. Array - Parallel Sharding
+        ophan_sharding:
+          enabled: false
+          num_shards: 4              # Fixed at 4 for optimal performance
+        
+        # Chronokrator - Adaptive Routing
+        adaptive_router:
+          enabled: false
+          small_k_threshold: 10      # k < 10 → Exact search
+          large_k_threshold: 100     # k > 100 → Approximate search
+          high_dim_threshold: 128    # dim > 128 → Approximate search
+        
+        # Mandorla Logic - Query Refinement
+        mandorla:
+          enabled: false
+          overlap_threshold: 0.7     # Query-index overlap threshold
     
     # S7 routing
     router:
