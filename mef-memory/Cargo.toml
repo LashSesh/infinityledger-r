@@ -21,7 +21,7 @@ tokio = { workspace = true }
 
 
 [features]
-default = ["inmemory"]
+default = ["inmemory", "optimization"]
 inmemory = []
 faiss = []
 hnsw = []

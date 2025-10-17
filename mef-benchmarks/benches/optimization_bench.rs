@@ -166,12 +166,13 @@ fn bench_full_stack(c: &mut Criterion) {
     let val = 1.0 / (8.0_f64).sqrt();
     
     c.bench_function("full_stack_search", |b| {
-        // Layer all optimizations
+        // Layer all optimizations in a valid order
+        // Note: OphanBackend requires Clone, so it must come before FilteredBackend
         let base = InMemoryBackend::new();
+        let sharded = OphanBackend::new(base);
         let filter = StabilityFilter::new(StabilityFilterConfig::default());
-        let filtered = FilteredBackend::new(base, filter);
-        let sharded = OphanBackend::new(filtered);
-        let routed = AdaptiveRouter::new(sharded, RouterConfig::default());
+        let filtered = FilteredBackend::new(sharded, filter);
+        let routed = AdaptiveRouter::new(filtered, RouterConfig::default());
         let refiner = MandorlaRefiner::new(MandorlaConfig::default());
         let mut optimized = MandorlaBackend::new(routed, refiner);
         
