@@ -2,10 +2,12 @@
 /// Migrated from: MEF-Core_v1.0/src/api/server.py
 use axum::Router;
 use std::net::SocketAddr;
+use std::sync::Arc;
 use tower_http::trace::TraceLayer;
 use tracing_subscriber::{layer::SubscriberExt, util::SubscriberInitExt};
 
 use mef_api::{routes, ApiConfig, AppState};
+use mef_knowledge::{ExtensionConfig, ExtensionPipeline};
 
 #[tokio::main]
 async fn main() -> anyhow::Result<()> {
@@ -27,7 +29,7 @@ async fn main() -> anyhow::Result<()> {
     tracing::info!("Application state initialized");
 
     // Build router
-    let app = Router::new()
+    let mut app = Router::new()
         .merge(routes::health::router())
         .merge(routes::ingest::router())
         .merge(routes::process::router())
@@ -44,6 +46,22 @@ async fn main() -> anyhow::Result<()> {
         .merge(routes::merkaba::router())
         .with_state(state)
         .layer(TraceLayer::new_for_http());
+
+    // Optionally load and mount extension routes
+    if let Ok(ext_config) = ExtensionConfig::load_from_env() {
+        let pipeline = ExtensionPipeline::new(ext_config.mef.extension.clone());
+        if pipeline.is_enabled() {
+            tracing::info!("Extension enabled, mounting extension routes");
+            let ext_state = routes::extension::ExtensionState {
+                pipeline: Arc::new(tokio::sync::Mutex::new(pipeline)),
+            };
+            app = app.merge(routes::extension::router(ext_state));
+        } else {
+            tracing::info!("Extension configuration loaded but all features disabled");
+        }
+    } else {
+        tracing::info!("Extension configuration not found or invalid, skipping extension routes");
+    }
 
     // Start server
     let addr = SocketAddr::from(([0, 0, 0, 0], config.port));

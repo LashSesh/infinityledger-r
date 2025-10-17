@@ -1,6 +1,7 @@
 pub mod commit;
 pub mod coupling;
 pub mod domain;
+pub mod extension;
 /// API routes
 pub mod health;
 pub mod index;

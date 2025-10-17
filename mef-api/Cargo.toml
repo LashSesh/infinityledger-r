@@ -58,6 +58,8 @@ mef-vector-db = { path = "../mef-vector-db" }
 mef-core = { path = "../mef-core" }
 mef-topology = { path = "../mef-topology" }
 mef-domains = { path = "../mef-domains" }
+mef-knowledge = { path = "../mef-knowledge" }
+mef-schemas = { path = "../mef-schemas" }
 
 [dev-dependencies]
 reqwest = { version = "0.11", features = ["json", "blocking"] }

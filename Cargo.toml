@@ -22,6 +22,18 @@ members = [
     "mef-router",
 ]
 
+[package]
+name = "infinityledger-r"
+version.workspace = true
+edition.workspace = true
+authors.workspace = true
+license.workspace = true
+repository.workspace = true
+
+[dependencies]
+mef-knowledge = { path = "mef-knowledge" }
+mef-schemas = { path = "mef-schemas" }
+
 [workspace.package]
 version = "1.0.0"
 edition = "2021"
