@@ -1,0 +1,36 @@
+mef:
+  extension:
+    # Knowledge processing
+    knowledge:
+      enabled: false  # Default OFF
+      inference:
+        threshold: 0.5
+        max_iterations: 100
+      derivation:
+        root_seed_env: "MEF_ROOT_SEED"  # Environment variable for root seed
+        default_path_prefix: "MEF"
+    
+    # Vector memory
+    memory:
+      enabled: false  # Default OFF
+      backend: inmemory  # Options: inmemory, faiss, hnsw
+      backends:
+        inmemory:
+          max_items: 10000
+        faiss:
+          index_type: "IVF"
+          nlist: 100
+        hnsw:
+          m: 16
+          ef_construction: 200
+    
+    # S7 routing
+    router:
+      enabled: false  # Default OFF
+      mode: inproc  # Options: inproc, service
+      service:
+        url: "http://router-service:8080"
+        timeout_ms: 5000
+      cache:
+        enabled: true
+        s7_permutations: true  # Cache generated permutations

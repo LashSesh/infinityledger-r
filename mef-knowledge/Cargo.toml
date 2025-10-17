@@ -8,8 +8,11 @@ repository.workspace = true
 
 [dependencies]
 mef-schemas = { path = "../mef-schemas" }
+mef-memory = { path = "../mef-memory" }
+mef-router = { path = "../mef-router" }
 serde = { workspace = true }
 serde_json = { workspace = true }
+serde_yaml = "0.9"
 sha2 = { workspace = true }
 anyhow = { workspace = true }
 thiserror = { workspace = true }
