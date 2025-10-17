@@ -49,6 +49,15 @@ This project represents a complete Rust reimplementation of the MEF-Core system,
 | **mef-specs** | Acquisition specifications | ✅ |
 | **mef-acquisition** | Data acquisition layer | ✅ |
 
+### Extension Modules (Knowledge Engine)
+
+| Module | Description | Status |
+|--------|-------------|--------|
+| **mef-schemas** | Extension type system (RouteSpec, MemoryItem, KnowledgeObject) | ✅ |
+| **mef-knowledge** | Knowledge derivation and content addressing | ✅ |
+| **mef-memory** | Vector memory with pluggable backends | ✅ |
+| **mef-router** | Deterministic S7 route selection | ✅ |
+
 ### Applications
 
 | Application | Description |
@@ -115,6 +124,75 @@ BENCH_DIMENSION=128 \
 BENCH_BATCH_SIZE=5000 \
 ./target/release/cross-db-bench faiss mef
 ```
+
+## 🧠 MEF Knowledge Engine Extension
+
+The MEF system includes an optional **Knowledge Engine Extension** that provides:
+
+- **Knowledge Derivation**: Content-addressed knowledge objects with HD-style seed derivation
+- **Vector Memory**: 8D normalized vectors with pluggable backends (in-memory, FAISS, HNSW)
+- **Deterministic Routing**: S7 permutation-based route selection with mesh scoring
+- **Gate Evaluation**: Merkaba gate decision logic (FIRE/HOLD)
+
+### Extension Features
+
+- ✅ **ADD-ONLY Integration**: Zero modifications to core system
+- ✅ **Feature-Gated**: All functionality disabled by default, zero overhead when off
+- ✅ **Deterministic**: Same inputs + same seed → same outputs
+- ✅ **Security-First**: BIP-39 root seeds never logged or persisted
+- ✅ **Backwards Compatible**: 100% compatible with existing MEF-Core
+
+### Enabling the Extension
+
+1. Create or edit `config/extension.yaml`:
+
+```yaml
+mef:
+  extension:
+    knowledge:
+      enabled: true
+      inference:
+        threshold: 0.5
+        max_iterations: 100
+      derivation:
+        root_seed_env: "MEF_ROOT_SEED"
+        default_path_prefix: "MEF"
+    memory:
+      enabled: true
+      backend: inmemory
+      backends:
+        inmemory:
+          max_items: 10000
+    router:
+      enabled: true
+      mode: inproc
+```
+
+2. Set the environment variable:
+
+```bash
+export MEF_EXTENSION_CONFIG=config/extension.yaml
+export MEF_ROOT_SEED=<secure-root-seed>
+```
+
+3. Restart the MEF API server:
+
+```bash
+cargo run --release --package mef-api
+```
+
+The extension API endpoints will be available at:
+- `POST /knowledge/derive` - Derive knowledge objects
+- `GET /knowledge/:mef_id` - Retrieve knowledge objects
+- `POST /memory/store` - Store memory items
+- `POST /memory/search` - Search memory store
+- `POST /router/select` - Select S7 routes
+
+### Extension Documentation
+
+- **[EXTENSION_README.md](EXTENSION_README.md)** - Quick start guide
+- **[ARCHITECTURE_EXTENSION.md](ARCHITECTURE_EXTENSION.md)** - Detailed architecture
+- **[EXTENSION_INTEGRATION.md](EXTENSION_INTEGRATION.md)** - Integration guide
 
 ## 🧪 Testing
 
