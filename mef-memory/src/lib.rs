@@ -1,5 +1,5 @@
 //! MEF Memory - Vector database abstraction
-//! 
+//!
 //! This module provides:
 //! - Pluggable backend system with trait-based interface
 //! - Complete in-memory backend implementation
@@ -7,16 +7,18 @@
 //! - Support for FAISS/HNSW backends (scaffolded for future)
 
 pub mod backend;
-pub mod inmemory;
 pub mod backends;
 pub mod index;
+pub mod inmemory;
 pub mod operations;
 
 pub use backend::{MemoryBackend, SearchResult};
+pub use backends::{InMemoryBackend as InMemoryBackendV2, VectorBackend};
+pub use index::{MemoryConfig, MemoryIndex};
 pub use inmemory::InMemoryBackend;
-pub use backends::{VectorBackend, InMemoryBackend as InMemoryBackendV2};
-pub use index::{MemoryIndex, MemoryConfig};
-pub use operations::{UpsertRequest, SearchRequest, SearchResponse, SearchResult as SearchResultV2};
+pub use operations::{
+    SearchRequest, SearchResponse, SearchResult as SearchResultV2, UpsertRequest,
+};
 
 use mef_schemas::MemoryItem;
 
@@ -24,10 +26,10 @@ use mef_schemas::MemoryItem;
 pub enum MemoryError {
     #[error("Backend error: {0}")]
     Backend(String),
-    
+
     #[error("Item not found: {0}")]
     NotFound(String),
-    
+
     #[error("Invalid query: {0}")]
     InvalidQuery(String),
 }
@@ -44,23 +46,23 @@ impl MemoryStore {
     pub fn new(backend: Box<dyn MemoryBackend>) -> Self {
         Self { backend }
     }
-    
+
     /// Create an in-memory backend store
     #[cfg(feature = "inmemory")]
     pub fn in_memory() -> Self {
         Self::new(Box::new(InMemoryBackend::new()))
     }
-    
+
     /// Store a memory item
     pub fn store(&mut self, item: MemoryItem) -> Result<()> {
         self.backend.store(item)
     }
-    
+
     /// Retrieve a memory item by ID
     pub fn get(&self, id: &str) -> Result<Option<MemoryItem>> {
         self.backend.get(id)
     }
-    
+
     /// Search for similar vectors
     pub fn search(&self, query: &[f64], k: usize) -> Result<Vec<SearchResult>> {
         self.backend.search(query, k)
@@ -76,7 +78,7 @@ mod tests {
     #[cfg(feature = "inmemory")]
     fn test_memory_store_in_memory() {
         let mut store = MemoryStore::in_memory();
-        
+
         let val = 1.0 / (8.0_f64).sqrt();
         let vector = vec![val; 8];
         let spectral = SpectralSignature {
@@ -84,17 +86,12 @@ mod tests {
             rho: 0.3,
             omega: 0.4,
         };
-        
-        let item = MemoryItem::new(
-            "mem_001".to_string(),
-            vector,
-            spectral,
-            None,
-        ).unwrap();
-        
+
+        let item = MemoryItem::new("mem_001".to_string(), vector, spectral, None).unwrap();
+
         let result = store.store(item);
         assert!(result.is_ok());
-        
+
         let retrieved = store.get("mem_001");
         assert!(retrieved.is_ok());
         assert!(retrieved.unwrap().is_some());

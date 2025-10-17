@@ -37,10 +37,10 @@ pub fn canonical_json<T: Serialize>(obj: &T) -> anyhow::Result<String> {
     // Serialize to serde_json::Value first to enable transformation
     let value = serde_json::to_value(obj)?;
     let rounded = round_floats(value);
-    
+
     // Serialize with no whitespace, sorted keys
     let json = serde_json::to_string(&rounded)?;
-    
+
     Ok(json)
 }
 
@@ -104,7 +104,7 @@ pub fn compute_mef_id<T: Serialize>(
     let tic_json = canonical_json(tic)?;
     let blob = format!("{}|{}|{}", tic_json, route_id, seed_path);
     let hash = compute_content_hash(blob.as_bytes());
-    
+
     // Take first 32 characters as specified
     Ok(hash.chars().take(32).collect())
 }
@@ -126,15 +126,14 @@ pub fn compute_mef_id<T: Serialize>(
 /// The root seed (BIP-39 mnemonic) MUST NEVER be logged or persisted.
 /// Only derived seeds and path IDs should be stored.
 pub fn derive_seed(root_seed: &[u8], path: &str) -> Vec<u8> {
-    use sha2::Sha256;
     use hmac::{Hmac, Mac};
-    
+    use sha2::Sha256;
+
     type HmacSha256 = Hmac<Sha256>;
-    
-    let mut mac = HmacSha256::new_from_slice(root_seed)
-        .expect("HMAC can take key of any size");
+
+    let mut mac = HmacSha256::new_from_slice(root_seed).expect("HMAC can take key of any size");
     mac.update(path.as_bytes());
-    
+
     mac.finalize().into_bytes().to_vec()
 }
 
@@ -186,10 +185,10 @@ mod tests {
         let tic = json!({"tic_id": "TIC-123", "timestamp": "2025-10-16T22:00:00Z"});
         let route_id = "route-abc";
         let seed_path = "MEF/test/spiral/0001";
-        
+
         let id1 = compute_mef_id(&tic, route_id, seed_path).unwrap();
         let id2 = compute_mef_id(&tic, route_id, seed_path).unwrap();
-        
+
         assert_eq!(id1, id2);
         assert_eq!(id1.len(), 32);
     }
@@ -198,10 +197,10 @@ mod tests {
     fn test_derive_seed_deterministic() {
         let root = b"test_root_seed_32_bytes_long____";
         let path = "MEF/text/spiral/0001";
-        
+
         let seed1 = derive_seed(root, path);
         let seed2 = derive_seed(root, path);
-        
+
         assert_eq!(seed1, seed2);
         assert_eq!(seed1.len(), 32); // SHA256 output
     }
@@ -209,10 +208,10 @@ mod tests {
     #[test]
     fn test_derive_seed_different_paths() {
         let root = b"test_root_seed_32_bytes_long____";
-        
+
         let seed1 = derive_seed(root, "MEF/text/spiral/0001");
         let seed2 = derive_seed(root, "MEF/text/spiral/0002");
-        
+
         assert_ne!(seed1, seed2);
     }
 }

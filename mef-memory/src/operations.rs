@@ -17,11 +17,11 @@ pub struct UpsertRequest {
 pub struct SearchRequest {
     /// Query vector (8D)
     pub query_vector8: Vec<f64>,
-    
+
     /// Number of results to return
     #[serde(default = "default_top_k")]
     pub top_k: usize,
-    
+
     /// Optional metadata filters
     #[serde(skip_serializing_if = "Option::is_none")]
     pub filters: Option<serde_json::Value>,
@@ -36,7 +36,7 @@ fn default_top_k() -> usize {
 pub struct SearchResult {
     /// Matching memory item
     pub item: MemoryItem,
-    
+
     /// Similarity score (cosine or distance)
     pub score: f64,
 }
@@ -46,7 +46,7 @@ pub struct SearchResult {
 pub struct SearchResponse {
     /// List of results, sorted by relevance
     pub results: Vec<SearchResult>,
-    
+
     /// Query time in milliseconds
     pub query_time_ms: f64,
 }
@@ -61,15 +61,19 @@ mod tests {
         let item = MemoryItem::new_extended(
             "test".to_string(),
             vec![1.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0],
-            SpectralSignature { psi: 0.3, rho: 0.3, omega: 0.4 },
+            SpectralSignature {
+                psi: 0.3,
+                rho: 0.3,
+                omega: 0.4,
+            },
             PorStatus::Valid,
             "TIC-123".to_string(),
         );
-        
+
         let request = UpsertRequest { items: vec![item] };
         let json = serde_json::to_string(&request).unwrap();
         let deserialized: UpsertRequest = serde_json::from_str(&json).unwrap();
-        
+
         assert_eq!(deserialized.items.len(), 1);
     }
 
@@ -80,7 +84,7 @@ mod tests {
             top_k: default_top_k(),
             filters: None,
         };
-        
+
         assert_eq!(request.top_k, 10);
     }
 }

@@ -17,15 +17,18 @@ use thiserror::Error;
 pub enum IndexError {
     #[error("Memory index is disabled (memory.enabled=false)")]
     Disabled,
-    
+
     #[error("Index path not configured")]
     PathNotConfigured,
-    
+
     #[error("Backend error: {0}")]
     BackendError(String),
-    
+
     #[error("Invalid vector dimension: expected {expected}, got {actual}")]
     InvalidDimension { expected: usize, actual: usize },
+
+    #[error("Invalid spectral signature: {0}")]
+    InvalidSignature(String),
 }
 
 /// Memory index configuration
@@ -33,16 +36,16 @@ pub enum IndexError {
 pub struct MemoryConfig {
     /// Feature flag: enable memory indexing
     pub enabled: bool,
-    
+
     /// Path to index storage (empty = disabled)
     pub path: Option<String>,
-    
+
     /// Vector dimension (must be 8 for MEF)
     pub dimension: usize,
-    
+
     /// Distance metric (cosine, l2, or inner_product)
     pub metric: String,
-    
+
     /// Backend type (in-memory, faiss, hnswlib, etc.)
     pub backend: String,
 }
@@ -86,13 +89,13 @@ impl MemoryIndex {
         if config.enabled && config.path.is_none() {
             return Err(IndexError::PathNotConfigured);
         }
-        
+
         // TODO: Initialize backend based on config.backend
         // For now, just validate configuration
-        
+
         Ok(Self { config })
     }
-    
+
     /// Upsert a memory item into the index
     ///
     /// ## No-op when disabled
@@ -112,7 +115,7 @@ impl MemoryIndex {
         if !self.config.enabled {
             return Ok(()); // No-op when disabled
         }
-        
+
         // Validate dimension
         if item.get_vector().len() != self.config.dimension {
             return Err(IndexError::InvalidDimension {
@@ -120,13 +123,13 @@ impl MemoryIndex {
                 actual: item.get_vector().len(),
             });
         }
-        
+
         // TODO: Call backend.upsert(item)
         tracing::debug!("Memory upsert: {} (TODO: implement backend)", item.id);
-        
+
         Ok(())
     }
-    
+
     /// Search for similar vectors
     ///
     /// ## No-op when disabled
@@ -157,7 +160,7 @@ impl MemoryIndex {
         if !self.config.enabled {
             return Ok(Vec::new()); // Empty results when disabled
         }
-        
+
         // Validate dimension
         if query_vector.len() != self.config.dimension {
             return Err(IndexError::InvalidDimension {
@@ -165,13 +168,13 @@ impl MemoryIndex {
                 actual: query_vector.len(),
             });
         }
-        
+
         // TODO: Call backend.search(query_vector, top_k, filters)
         tracing::debug!("Memory search: top_k={} (TODO: implement backend)", top_k);
-        
+
         Ok(Vec::new())
     }
-    
+
     /// Get a memory item by ID
     ///
     /// ## No-op when disabled
@@ -185,13 +188,13 @@ impl MemoryIndex {
         if !self.config.enabled {
             return Ok(None);
         }
-        
+
         // TODO: Call backend.get(id)
         tracing::debug!("Memory get: {} (TODO: implement backend)", id);
-        
+
         Ok(None)
     }
-    
+
     /// Delete a memory item by ID
     ///
     /// ## No-op when disabled
@@ -203,13 +206,13 @@ impl MemoryIndex {
         if !self.config.enabled {
             return Ok(());
         }
-        
+
         // TODO: Call backend.delete(id)
         tracing::debug!("Memory delete: {} (TODO: implement backend)", id);
-        
+
         Ok(())
     }
-    
+
     /// Get index statistics
     ///
     /// Returns number of vectors, memory usage, etc.
@@ -224,7 +227,7 @@ impl MemoryIndex {
                 "count": 0,
             }));
         }
-        
+
         // TODO: Call backend.stats()
         Ok(serde_json::json!({
             "enabled": true,
@@ -244,18 +247,22 @@ mod tests {
         let config = MemoryConfig::default(); // enabled = false
         let index = MemoryIndex::new(config).unwrap();
         let runtime = tokio::runtime::Runtime::new().unwrap();
-        
+
         let item = MemoryItem::new_extended(
             "test".to_string(),
             vec![1.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0],
-            SpectralSignature { psi: 0.3, rho: 0.3, omega: 0.4 },
+            SpectralSignature {
+                psi: 0.3,
+                rho: 0.3,
+                omega: 0.4,
+            },
             PorStatus::Valid,
             "TIC-123".to_string(),
         );
-        
+
         let mut index_mut = index;
         let result = runtime.block_on(index_mut.upsert(item));
-        
+
         // Should succeed as no-op
         assert!(result.is_ok());
     }
@@ -267,9 +274,9 @@ mod tests {
             path: None,
             ..Default::default()
         };
-        
+
         let result = MemoryIndex::new(config);
-        
+
         // Should fail without path
         assert!(matches!(result, Err(IndexError::PathNotConfigured)));
     }
@@ -279,10 +286,10 @@ mod tests {
         let config = MemoryConfig::default();
         let index = MemoryIndex::new(config).unwrap();
         let runtime = tokio::runtime::Runtime::new().unwrap();
-        
+
         let query = vec![1.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0];
         let results = runtime.block_on(index.search(&query, 10, None)).unwrap();
-        
+
         // Should return empty results
         assert!(results.is_empty());
     }

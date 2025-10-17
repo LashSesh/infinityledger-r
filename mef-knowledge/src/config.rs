@@ -96,7 +96,7 @@ impl ExtensionConfig {
         let config = serde_yaml::from_str(&content)?;
         Ok(config)
     }
-    
+
     pub fn load_from_env() -> anyhow::Result<Self> {
         let path = std::env::var("MEF_EXTENSION_CONFIG")
             .unwrap_or_else(|_| "config/extension.yaml".to_string());

@@ -15,9 +15,7 @@ pub struct InferenceConfig {
 
 impl Default for InferenceConfig {
     fn default() -> Self {
-        Self {
-            threshold: 0.5,
-        }
+        Self { threshold: 0.5 }
     }
 }
 
@@ -26,14 +24,14 @@ impl InferenceEngine {
     pub fn new(config: InferenceConfig) -> Self {
         Self { config }
     }
-    
+
     /// Perform knowledge inference (scaffold)
     /// This is a placeholder that will be implemented in Phase 2
     pub fn infer(&self, _input: &[f64]) -> crate::Result<Vec<f64>> {
         // Scaffold: returns input as-is
         Ok(_input.to_vec())
     }
-    
+
     /// Project knowledge onto a subspace (scaffold)
     pub fn project(&self, _input: &[f64], _dimension: usize) -> crate::Result<Vec<f64>> {
         // Scaffold: returns first `dimension` elements

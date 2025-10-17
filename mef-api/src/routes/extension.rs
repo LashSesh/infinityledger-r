@@ -1,14 +1,15 @@
 use axum::{
+    extract::{Path, State},
     routing::{get, post},
-    Router, Json, extract::{State, Path},
+    Json, Router,
 };
 use serde::{Deserialize, Serialize};
-use std::sync::Arc;
 use std::collections::HashMap;
+use std::sync::Arc;
 
+use crate::error::ApiError;
 use mef_knowledge::ExtensionPipeline;
 use mef_schemas::{KnowledgeObject, MemoryItem, RouteSpec};
-use crate::error::ApiError;
 
 #[derive(Clone)]
 pub struct ExtensionState {
@@ -73,21 +74,21 @@ async fn derive_knowledge(
 ) -> Result<Json<DeriveKnowledgeResponse>, ApiError> {
     // Placeholder implementation
     // In a full implementation, this would use mef_knowledge::derive_seed and compute_mef_id
-    let mef_id = format!("mef_{}", uuid::Uuid::new_v4().to_string().replace("-", "")[..16].to_string());
-    
+    let mef_id = format!(
+        "mef_{}",
+        uuid::Uuid::new_v4().to_string().replace("-", "")[..16].to_string()
+    );
+
     let knowledge = KnowledgeObject::new(
         mef_id.clone(),
         req.tic_id,
         req.route_id,
         req.seed_path,
-        vec![],  // Empty derived seed for placeholder
+        vec![], // Empty derived seed for placeholder
         None,
     );
-    
-    Ok(Json(DeriveKnowledgeResponse {
-        mef_id,
-        knowledge,
-    }))
+
+    Ok(Json(DeriveKnowledgeResponse { mef_id, knowledge }))
 }
 
 async fn get_knowledge(
@@ -96,7 +97,10 @@ async fn get_knowledge(
 ) -> Result<Json<KnowledgeObject>, ApiError> {
     // Placeholder implementation
     // In a full implementation, this would retrieve from storage
-    Err(ApiError::NotFound(format!("Knowledge object {} not found", mef_id)))
+    Err(ApiError::NotFound(format!(
+        "Knowledge object {} not found",
+        mef_id
+    )))
 }
 
 async fn store_memory(
@@ -104,10 +108,11 @@ async fn store_memory(
     Json(item): Json<MemoryItem>,
 ) -> Result<Json<StoreResponse>, ApiError> {
     let mut pipeline = state.pipeline.lock().await;
-    
-    pipeline.store_memory(item)
+
+    pipeline
+        .store_memory(item)
         .map_err(|e| ApiError::Internal(format!("Failed to store memory: {}", e)))?;
-    
+
     Ok(Json(StoreResponse {
         success: true,
         message: "Memory item stored successfully".to_string(),
@@ -120,9 +125,7 @@ async fn search_memory(
 ) -> Result<Json<SearchResponse>, ApiError> {
     // Placeholder implementation
     // In a full implementation, this would search the memory store
-    Ok(Json(SearchResponse {
-        results: vec![],
-    }))
+    Ok(Json(SearchResponse { results: vec![] }))
 }
 
 async fn select_route(
@@ -130,10 +133,11 @@ async fn select_route(
     Json(req): Json<SelectRouteRequest>,
 ) -> Result<Json<RouteSpec>, ApiError> {
     let pipeline = state.pipeline.lock().await;
-    
-    let route = pipeline.select_route(&req.seed, &req.metrics)
+
+    let route = pipeline
+        .select_route(&req.seed, &req.metrics)
         .map_err(|e| ApiError::Internal(format!("Failed to select route: {}", e)))?;
-    
+
     match route {
         Some(route_spec) => Ok(Json(route_spec)),
         None => Err(ApiError::Internal("Router not enabled".to_string())),
@@ -144,9 +148,8 @@ async fn select_route(
 mod tests {
     use super::*;
     use mef_knowledge::config::{
-        ExtensionSettings, KnowledgeConfig, MemoryConfig, RouterConfig,
-        InferenceSettings, DerivationSettings, BackendConfigs, InMemoryConfig,
-        ServiceConfig, CacheConfig,
+        BackendConfigs, CacheConfig, DerivationSettings, ExtensionSettings, InMemoryConfig,
+        InferenceSettings, KnowledgeConfig, MemoryConfig, RouterConfig, ServiceConfig,
     };
 
     fn test_config() -> ExtensionSettings {
