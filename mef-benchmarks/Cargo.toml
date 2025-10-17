@@ -27,5 +27,5 @@ name = "optimization_bench"
 harness = false
 
 [features]
-default = []
+default = ["optimization"]
 optimization = ["mef-memory/optimization"]
