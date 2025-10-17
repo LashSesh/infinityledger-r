@@ -29,6 +29,19 @@ pub use operations::{
     SearchRequest, SearchResponse, SearchResult as SearchResultV2, UpsertRequest,
 };
 
+// Re-export optimization components when features are enabled
+#[cfg(feature = "stability-filter")]
+pub use backends_opt::{FilteredBackend, FilterStats, StabilityFilter, StabilityFilterConfig};
+
+#[cfg(feature = "ophan-sharding")]
+pub use backends_opt::OphanBackend;
+
+#[cfg(feature = "adaptive-routing")]
+pub use backends_opt::{AdaptiveRouter, RouterConfig, SearchStrategy};
+
+#[cfg(feature = "mandorla")]
+pub use backends_opt::{IndexCoverageStats, MandorlaBackend, MandorlaConfig, MandorlaRefiner};
+
 use mef_schemas::MemoryItem;
 
 #[derive(Debug, thiserror::Error)]
