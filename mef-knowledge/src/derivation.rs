@@ -31,25 +31,25 @@ use thiserror::Error;
 pub enum DerivationError {
     #[error("Acquisition failed: {0}")]
     AcquisitionFailed(String),
-    
+
     #[error("Spiral embedding failed: {0}")]
     SpiralFailed(String),
-    
+
     #[error("PoR validation failed: {0}")]
     PorFailed(String),
-    
+
     #[error("Solve-Coagula iteration failed: {0}")]
     SolveFailed(String),
-    
+
     #[error("Gate held: {0}")]
     GateHeld(String),
-    
+
     #[error("TIC crystallization failed: {0}")]
     TicFailed(String),
-    
+
     #[error("Ledger append failed: {0}")]
     LedgerFailed(String),
-    
+
     #[error("Feature disabled: {0}")]
     Disabled(String),
 }
@@ -59,11 +59,11 @@ pub enum DerivationError {
 pub struct DeriveRequest {
     /// Input payload (domain-specific data)
     pub payload: serde_json::Value,
-    
+
     /// Seed path for deterministic derivation
     /// Format: "MEF/<domain>/<stage>/<index>"
     pub seed_path: String,
-    
+
     /// Optional domain hint
     #[serde(skip_serializing_if = "Option::is_none")]
     pub domain: Option<String>,
@@ -74,13 +74,13 @@ pub struct DeriveRequest {
 pub struct DeriveResponse {
     /// Derived knowledge object
     pub knowledge: KnowledgeObject,
-    
+
     /// Associated TIC ID
     pub tic_id: String,
-    
+
     /// Gate proof bundle
     pub proof: serde_json::Value,
-    
+
     /// Ledger block number
     pub block: u64,
 }
@@ -99,7 +99,7 @@ impl KnowledgeDerivation {
     pub fn new(enabled: bool) -> Self {
         Self { enabled }
     }
-    
+
     /// Derive knowledge from input payload
     ///
     /// ## Flow
@@ -132,31 +132,31 @@ impl KnowledgeDerivation {
     pub async fn derive(&self, request: DeriveRequest) -> Result<DeriveResponse, DerivationError> {
         if !self.enabled {
             return Err(DerivationError::Disabled(
-                "Knowledge derivation is disabled (knowledge.enabled=false)".to_string()
+                "Knowledge derivation is disabled (knowledge.enabled=false)".to_string(),
             ));
         }
-        
+
         // TODO: Implement full derivation pipeline
         // For now, return a placeholder response
-        
+
         tracing::info!(
             "Knowledge derivation requested for seed_path: {}",
             request.seed_path
         );
-        
+
         // Placeholder response
         let placeholder_tic = TicReference {
             tic_id: format!("TIC-placeholder-{}", uuid::Uuid::new_v4()),
             snapshot_id: format!("SNAP-placeholder-{}", uuid::Uuid::new_v4()),
             timestamp: chrono::Utc::now(),
         };
-        
+
         let placeholder_route = RouteReference {
             route_id: format!("route-placeholder-{}", uuid::Uuid::new_v4()),
             sigma: vec![1, 2, 3, 4, 5, 6, 7],
             score: 0.0,
         };
-        
+
         let placeholder_knowledge = KnowledgeObject::new(
             format!("mef-k-placeholder-{}", uuid::Uuid::new_v4()),
             placeholder_tic.clone(),
@@ -164,7 +164,7 @@ impl KnowledgeDerivation {
             request.seed_path,
             0,
         );
-        
+
         Ok(DeriveResponse {
             knowledge: placeholder_knowledge,
             tic_id: placeholder_tic.tic_id,
@@ -192,10 +192,10 @@ mod tests {
             seed_path: "MEF/test/spiral/0001".to_string(),
             domain: Some("test".to_string()),
         };
-        
+
         let runtime = tokio::runtime::Runtime::new().unwrap();
         let result = runtime.block_on(derivation.derive(request));
-        
+
         assert!(result.is_err());
         assert!(matches!(result.unwrap_err(), DerivationError::Disabled(_)));
     }
@@ -208,10 +208,10 @@ mod tests {
             seed_path: "MEF/test/spiral/0001".to_string(),
             domain: Some("test".to_string()),
         };
-        
+
         let runtime = tokio::runtime::Runtime::new().unwrap();
         let result = runtime.block_on(derivation.derive(request));
-        
+
         // Should return placeholder (not yet fully implemented)
         assert!(result.is_ok());
     }

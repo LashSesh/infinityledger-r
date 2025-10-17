@@ -15,16 +15,16 @@ use serde::{Deserialize, Serialize};
 pub struct GateChecks {
     /// Proof of Resonance status
     pub por: String, // "valid" or "invalid"
-    
+
     /// Path invariance delta: ΔPI = ||Π(vₜ₊₁) - Π(vₜ)||₂
     pub delta_pi: f64,
-    
+
     /// Alignment metric: Φ = ⟨vₜ₊₁, T(vₜ)⟩ / (||vₜ₊₁||₂ ||T(vₜ)||₂)
     pub phi: f64,
-    
+
     /// Lyapunov functional change: ΔV = V(vₜ₊₁) - V(vₜ)
     pub delta_v: f64,
-    
+
     /// Mean curvature index (optional)
     #[serde(skip_serializing_if = "Option::is_none")]
     pub mci: Option<f64>,
@@ -35,7 +35,7 @@ pub struct GateChecks {
 pub struct GateDecision {
     /// Whether to commit the TIC to the ledger
     pub commit: bool,
-    
+
     /// Human-readable reason for the decision
     pub reason: String,
 }
@@ -70,19 +70,19 @@ pub struct GateDecision {
 pub struct MerkabaGateEvent {
     /// Unique gate event identifier
     pub gate_id: String,
-    
+
     /// Associated snapshot ID
     pub snapshot_id: String,
-    
+
     /// TIC candidate being evaluated
     pub tic_candidate_id: String,
-    
+
     /// Gate validation checks
     pub checks: GateChecks,
-    
+
     /// Gate decision (FIRE or HOLD)
     pub decision: GateDecision,
-    
+
     /// Timestamp of gate evaluation
     pub timestamp: chrono::DateTime<chrono::Utc>,
 }
@@ -99,14 +99,14 @@ impl MerkabaGateEvent {
         // TODO: These thresholds should come from config
         let epsilon_pi = 0.01;
         let phi_threshold = 0.85;
-        
+
         let por_valid = checks.por == "valid";
         let delta_pi_ok = checks.delta_pi <= epsilon_pi;
         let phi_ok = checks.phi >= phi_threshold;
         let delta_v_ok = checks.delta_v < 0.0;
-        
+
         let commit = por_valid && delta_pi_ok && phi_ok && delta_v_ok;
-        
+
         let reason = if commit {
             "All gate conditions satisfied (FIRE)".to_string()
         } else {
@@ -125,7 +125,7 @@ impl MerkabaGateEvent {
             }
             format!("HOLD: {}", reasons.join(", "))
         };
-        
+
         Self {
             gate_id,
             snapshot_id,
@@ -135,12 +135,12 @@ impl MerkabaGateEvent {
             timestamp: chrono::Utc::now(),
         }
     }
-    
+
     /// Check if gate fired (committed)
     pub fn is_fire(&self) -> bool {
         self.decision.commit
     }
-    
+
     /// Check if gate held (not committed)
     pub fn is_hold(&self) -> bool {
         !self.decision.commit
@@ -160,14 +160,14 @@ mod tests {
             delta_v: -0.02,
             mci: Some(0.5),
         };
-        
+
         let event = MerkabaGateEvent::new(
             "gate-1".to_string(),
             "snap-1".to_string(),
             "tic-1".to_string(),
             checks,
         );
-        
+
         assert!(event.is_fire());
         assert!(!event.is_hold());
         assert!(event.decision.reason.contains("FIRE"));
@@ -182,14 +182,14 @@ mod tests {
             delta_v: -0.02,
             mci: None,
         };
-        
+
         let event = MerkabaGateEvent::new(
             "gate-2".to_string(),
             "snap-2".to_string(),
             "tic-2".to_string(),
             checks,
         );
-        
+
         assert!(event.is_hold());
         assert!(event.decision.reason.contains("HOLD"));
         assert!(event.decision.reason.contains("PoR invalid"));
@@ -204,14 +204,14 @@ mod tests {
             delta_v: 0.01, // Positive, should HOLD
             mci: None,
         };
-        
+
         let event = MerkabaGateEvent::new(
             "gate-3".to_string(),
             "snap-3".to_string(),
             "tic-3".to_string(),
             checks,
         );
-        
+
         assert!(event.is_hold());
         assert!(event.decision.reason.contains("ΔV"));
     }

@@ -34,12 +34,12 @@ pub fn mesh_score(metrics: &HashMap<String, f64>) -> f64 {
     let betti = metrics.get("betti").copied().unwrap_or(0.0);
     let lambda_gap = metrics.get("lambda_gap").copied().unwrap_or(0.0);
     let persistence = metrics.get("persistence").copied().unwrap_or(0.0);
-    
+
     // Weights from SPEC-006
     const W_BETTI: f64 = 0.10;
     const W_LAMBDA: f64 = 0.70;
     const W_PERSISTENCE: f64 = 0.20;
-    
+
     W_BETTI * betti + W_LAMBDA * lambda_gap + W_PERSISTENCE * persistence
 }
 
@@ -50,7 +50,7 @@ pub fn mesh_score(metrics: &HashMap<String, f64>) -> f64 {
 /// TODO: Define standardized metric structure with mef-topology
 pub fn extract_mesh_metrics(raw: &serde_json::Value) -> HashMap<String, f64> {
     let mut metrics = HashMap::new();
-    
+
     // Try to extract from various possible structures
     if let Some(obj) = raw.as_object() {
         // Direct fields
@@ -63,7 +63,7 @@ pub fn extract_mesh_metrics(raw: &serde_json::Value) -> HashMap<String, f64> {
         if let Some(val) = obj.get("persistence").and_then(|v| v.as_f64()) {
             metrics.insert("persistence".to_string(), val);
         }
-        
+
         // Nested under "invariants"
         if let Some(inv) = obj.get("invariants").and_then(|v| v.as_object()) {
             if let Some(val) = inv.get("betti").and_then(|v| v.as_f64()) {
@@ -77,7 +77,7 @@ pub fn extract_mesh_metrics(raw: &serde_json::Value) -> HashMap<String, f64> {
             }
         }
     }
-    
+
     metrics
 }
 
@@ -92,9 +92,9 @@ mod tests {
         metrics.insert("betti".to_string(), 2.0);
         metrics.insert("lambda_gap".to_string(), 0.5);
         metrics.insert("persistence".to_string(), 0.3);
-        
+
         let score = mesh_score(&metrics);
-        
+
         // 0.10 * 2.0 + 0.70 * 0.5 + 0.20 * 0.3 = 0.2 + 0.35 + 0.06 = 0.61
         assert!((score - 0.61).abs() < 1e-9);
     }
@@ -110,9 +110,9 @@ mod tests {
     fn test_mesh_score_lambda_dominated() {
         let mut metrics = HashMap::new();
         metrics.insert("lambda_gap".to_string(), 1.0);
-        
+
         let score = mesh_score(&metrics);
-        
+
         // 0.70 * 1.0 = 0.70
         assert_eq!(score, 0.70);
     }
@@ -124,9 +124,9 @@ mod tests {
             "lambda_gap": 0.5,
             "persistence": 0.3
         });
-        
+
         let metrics = extract_mesh_metrics(&raw);
-        
+
         assert_eq!(metrics.get("betti"), Some(&2.0));
         assert_eq!(metrics.get("lambda_gap"), Some(&0.5));
         assert_eq!(metrics.get("persistence"), Some(&0.3));
@@ -140,9 +140,9 @@ mod tests {
                 "lambda_gap": 0.8
             }
         });
-        
+
         let metrics = extract_mesh_metrics(&raw);
-        
+
         assert_eq!(metrics.get("betti"), Some(&3.0));
         assert_eq!(metrics.get("lambda_gap"), Some(&0.8));
     }

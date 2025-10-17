@@ -7,7 +7,7 @@ use serde::{Deserialize, Serialize};
 pub enum GateDecision {
     /// Gate fires - knowledge propagates
     FIRE,
-    
+
     /// Gate holds - knowledge does not propagate
     HOLD,
 }
@@ -18,25 +18,25 @@ pub enum GateDecision {
 pub struct MerkabaGateEvent {
     /// Event identifier
     pub event_id: String,
-    
+
     /// Knowledge object ID
     pub mef_id: String,
-    
+
     /// Gate decision
     pub decision: GateDecision,
-    
+
     /// Path invariance metric (ΔPI)
     pub path_invariance: f64,
-    
+
     /// Alignment metric (Φ)
     pub alignment: f64,
-    
+
     /// Lyapunov metric (ΔV)
     pub lyapunov_delta: f64,
-    
+
     /// Proof of Resonance validity
     pub por_valid: bool,
-    
+
     /// Timestamp
     #[serde(skip_serializing_if = "Option::is_none")]
     pub timestamp: Option<String>,
@@ -64,7 +64,7 @@ impl MerkabaGateEvent {
         } else {
             GateDecision::HOLD
         };
-        
+
         Self {
             event_id,
             mef_id,
@@ -76,7 +76,7 @@ impl MerkabaGateEvent {
             timestamp: None,
         }
     }
-    
+
     /// Set timestamp
     pub fn with_timestamp(mut self, timestamp: String) -> Self {
         self.timestamp = Some(timestamp);
@@ -93,14 +93,14 @@ mod tests {
         let event = MerkabaGateEvent::new(
             "event_001".to_string(),
             "mef_001".to_string(),
-            0.01,  // ΔPI ≤ ε (0.05)
-            0.8,   // Φ ≥ φ (0.7)
-            -0.1,  // ΔV < 0
-            true,  // PoR valid
-            0.05,  // ε threshold
-            0.7,   // φ threshold
+            0.01, // ΔPI ≤ ε (0.05)
+            0.8,  // Φ ≥ φ (0.7)
+            -0.1, // ΔV < 0
+            true, // PoR valid
+            0.05, // ε threshold
+            0.7,  // φ threshold
         );
-        
+
         assert_eq!(event.decision, GateDecision::FIRE);
     }
 
@@ -112,11 +112,11 @@ mod tests {
             0.01,
             0.8,
             -0.1,
-            false,  // PoR invalid
+            false, // PoR invalid
             0.05,
             0.7,
         );
-        
+
         assert_eq!(event.decision, GateDecision::HOLD);
     }
 
@@ -125,14 +125,14 @@ mod tests {
         let event = MerkabaGateEvent::new(
             "event_003".to_string(),
             "mef_003".to_string(),
-            0.1,   // ΔPI > ε
+            0.1, // ΔPI > ε
             0.8,
             -0.1,
             true,
             0.05,
             0.7,
         );
-        
+
         assert_eq!(event.decision, GateDecision::HOLD);
     }
 }

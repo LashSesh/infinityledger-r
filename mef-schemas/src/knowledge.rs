@@ -17,11 +17,11 @@ pub struct KnowledgeContext {
     /// HDAG node references (parent relationships)
     #[serde(default)]
     pub hdag_refs: Vec<String>,
-    
+
     /// Parent knowledge IDs
     #[serde(default)]
     pub parents: Vec<String>,
-    
+
     /// Child knowledge IDs
     #[serde(default)]
     pub children: Vec<String>,
@@ -35,10 +35,10 @@ pub struct KnowledgeContext {
 pub struct TicReference {
     /// TIC unique identifier
     pub tic_id: String,
-    
+
     /// Associated snapshot ID
     pub snapshot_id: String,
-    
+
     /// Timestamp of TIC crystallization
     pub timestamp: chrono::DateTime<chrono::Utc>,
 }
@@ -48,10 +48,10 @@ pub struct TicReference {
 pub struct RouteReference {
     /// Route unique identifier
     pub route_id: String,
-    
+
     /// Permutation indices
     pub sigma: Vec<u8>,
-    
+
     /// Mesh metric score
     pub score: f64,
 }
@@ -90,20 +90,20 @@ pub struct KnowledgeObject {
     /// Unique MEF knowledge identifier (content-addressed)
     /// mef_id = HASH(canonical(TIC) || route_id || seed_path)
     pub mef_id: String,
-    
+
     /// TIC reference
     pub tic: TicReference,
-    
+
     /// Route specification reference
     pub route: RouteReference,
-    
+
     /// Hierarchical seed derivation path
     /// Format: "MEF/<domain>/<stage>/<index>"
     pub seed_path: String,
-    
+
     /// Knowledge context and relationships
     pub context: KnowledgeContext,
-    
+
     /// Ledger block number where this knowledge was committed
     pub ledger_block: u64,
 }
@@ -130,17 +130,17 @@ impl KnowledgeObject {
             ledger_block,
         }
     }
-    
+
     /// Add HDAG reference
     pub fn add_hdag_ref(&mut self, node_id: String) {
         self.context.hdag_refs.push(node_id);
     }
-    
+
     /// Add parent relationship
     pub fn add_parent(&mut self, parent_id: String) {
         self.context.parents.push(parent_id);
     }
-    
+
     /// Add child relationship
     pub fn add_child(&mut self, child_id: String) {
         self.context.children.push(child_id);
@@ -158,13 +158,13 @@ mod tests {
             snapshot_id: "SNAP-456".to_string(),
             timestamp: chrono::Utc::now(),
         };
-        
+
         let route = RouteReference {
             route_id: "route-789".to_string(),
             sigma: vec![1, 2, 3, 4, 5, 6, 7],
             score: 0.5,
         };
-        
+
         let knowledge = KnowledgeObject::new(
             "mef-k-abc".to_string(),
             tic,
@@ -172,7 +172,7 @@ mod tests {
             "MEF/test/spiral/0001".to_string(),
             42,
         );
-        
+
         assert_eq!(knowledge.mef_id, "mef-k-abc");
         assert_eq!(knowledge.ledger_block, 42);
         assert!(knowledge.context.hdag_refs.is_empty());
@@ -195,11 +195,11 @@ mod tests {
             "MEF/test/spiral/0001".to_string(),
             1,
         );
-        
+
         knowledge.add_hdag_ref("HDAG-node-1".to_string());
         knowledge.add_parent("parent-k-1".to_string());
         knowledge.add_child("child-k-1".to_string());
-        
+
         assert_eq!(knowledge.context.hdag_refs.len(), 1);
         assert_eq!(knowledge.context.parents.len(), 1);
         assert_eq!(knowledge.context.children.len(), 1);

@@ -11,19 +11,21 @@ const WEIGHT_PERSISTENCE: f64 = 0.20;
 /// Compute mesh score from metrics
 /// J(m) = 0.10·betti + 0.70·λ_gap + 0.20·persistence
 pub fn compute_mesh_score(metrics: &HashMap<String, f64>) -> crate::Result<f64> {
-    let betti = metrics.get("betti")
+    let betti = metrics
+        .get("betti")
         .ok_or_else(|| crate::RouterError::InvalidMetrics("Missing 'betti' metric".to_string()))?;
-    
-    let lambda_gap = metrics.get("lambda_gap")
-        .ok_or_else(|| crate::RouterError::InvalidMetrics("Missing 'lambda_gap' metric".to_string()))?;
-    
-    let persistence = metrics.get("persistence")
-        .ok_or_else(|| crate::RouterError::InvalidMetrics("Missing 'persistence' metric".to_string()))?;
-    
-    let score = WEIGHT_BETTI * betti
-        + WEIGHT_LAMBDA_GAP * lambda_gap
-        + WEIGHT_PERSISTENCE * persistence;
-    
+
+    let lambda_gap = metrics.get("lambda_gap").ok_or_else(|| {
+        crate::RouterError::InvalidMetrics("Missing 'lambda_gap' metric".to_string())
+    })?;
+
+    let persistence = metrics.get("persistence").ok_or_else(|| {
+        crate::RouterError::InvalidMetrics("Missing 'persistence' metric".to_string())
+    })?;
+
+    let score =
+        WEIGHT_BETTI * betti + WEIGHT_LAMBDA_GAP * lambda_gap + WEIGHT_PERSISTENCE * persistence;
+
     Ok(score)
 }
 
@@ -37,10 +39,10 @@ mod tests {
         metrics.insert("betti".to_string(), 2.0);
         metrics.insert("lambda_gap".to_string(), 0.5);
         metrics.insert("persistence".to_string(), 0.3);
-        
+
         let score = compute_mesh_score(&metrics);
         assert!(score.is_ok());
-        
+
         // Expected: 0.10*2.0 + 0.70*0.5 + 0.20*0.3 = 0.2 + 0.35 + 0.06 = 0.61
         let expected = 0.61;
         let actual = score.unwrap();
@@ -51,7 +53,7 @@ mod tests {
     fn test_missing_metric() {
         let mut metrics = HashMap::new();
         metrics.insert("betti".to_string(), 2.0);
-        
+
         let score = compute_mesh_score(&metrics);
         assert!(score.is_err());
     }

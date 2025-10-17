@@ -7,19 +7,19 @@ use serde::{Deserialize, Serialize};
 pub struct KnowledgeObject {
     /// Unique knowledge identifier (content-addressed via SHA256)
     pub mef_id: String,
-    
+
     /// TIC binding identifier
     pub tic_id: String,
-    
+
     /// Route specification ID
     pub route_id: String,
-    
+
     /// HD-style seed derivation path (e.g., "MEF/domain/stage/0001")
     pub seed_path: String,
-    
+
     /// Derived seed (not the root seed)
     pub derived_seed: Vec<u8>,
-    
+
     /// Optional payload
     #[serde(skip_serializing_if = "Option::is_none")]
     pub payload: Option<serde_json::Value>,
@@ -60,7 +60,7 @@ mod tests {
             vec![1, 2, 3, 4],
             None,
         );
-        
+
         assert_eq!(obj.mef_id, "mef_001");
         assert_eq!(obj.tic_id, "tic_001");
         assert_eq!(obj.seed_path, "MEF/domain/stage/0001");
@@ -76,10 +76,10 @@ mod tests {
             vec![1, 2, 3, 4],
             None,
         );
-        
+
         let json = serde_json::to_string(&obj);
         assert!(json.is_ok());
-        
+
         let deserialized: Result<KnowledgeObject, _> = serde_json::from_str(&json.unwrap());
         assert!(deserialized.is_ok());
     }

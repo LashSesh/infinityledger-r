@@ -14,7 +14,7 @@ fn generate_permutations(arr: &mut [usize], start: usize, result: &mut Vec<Vec<u
         result.push(arr.to_vec());
         return;
     }
-    
+
     for i in start..arr.len() {
         arr.swap(start, i);
         generate_permutations(arr, start + 1, result);
@@ -36,7 +36,7 @@ mod tests {
     fn test_permutation_uniqueness() {
         let perms = generate_s7_permutations();
         let mut set = std::collections::HashSet::new();
-        
+
         for perm in perms {
             let key = format!("{:?}", perm);
             assert!(!set.contains(&key), "Duplicate permutation found");
@@ -47,10 +47,10 @@ mod tests {
     #[test]
     fn test_permutation_validity() {
         let perms = generate_s7_permutations();
-        
+
         for perm in perms {
             assert_eq!(perm.len(), 7);
-            
+
             // Check all elements 0..7 are present
             let mut sorted = perm.clone();
             sorted.sort();

@@ -21,10 +21,10 @@ use thiserror::Error;
 pub enum MetricError {
     #[error("Invalid dimension: expected {expected}, got {actual}")]
     InvalidDimension { expected: usize, actual: usize },
-    
+
     #[error("Zero norm: cannot normalize zero vector")]
     ZeroNorm,
-    
+
     #[error("Invalid spectral signature: {0}")]
     InvalidSignature(String),
 }
@@ -36,13 +36,13 @@ pub enum MetricError {
 pub struct Vector8Weights {
     /// Weights for 5D spatial coordinates
     pub spatial: [f64; 5],
-    
+
     /// Weight for ψ (mid-band ratio)
     pub psi: f64,
-    
+
     /// Weight for ρ (low/mid ratio)
     pub rho: f64,
-    
+
     /// Weight for ω (high-band ratio)
     pub omega: f64,
 }
@@ -88,7 +88,7 @@ impl Vector8Builder {
     pub fn new(weights: Vector8Weights) -> Self {
         Self { weights }
     }
-    
+
     /// Build 8D weighted vector from 5D coordinates and 3D spectral signature
     ///
     /// ## Arguments
@@ -106,16 +106,20 @@ impl Vector8Builder {
                 actual: x5.len(),
             });
         }
-        
+
         let (psi, rho, omega) = sigma;
-        
+
         // Validate spectral signature ranges
-        if !(0.0..=1.0).contains(&psi) || !(0.0..=1.0).contains(&rho) || !(0.0..=1.0).contains(&omega) {
-            return Err(MetricError::InvalidSignature(
-                format!("Spectral components must be in [0, 1]: psi={}, rho={}, omega={}", psi, rho, omega)
-            ));
+        if !(0.0..=1.0).contains(&psi)
+            || !(0.0..=1.0).contains(&rho)
+            || !(0.0..=1.0).contains(&omega)
+        {
+            return Err(MetricError::InvalidSignature(format!(
+                "Spectral components must be in [0, 1]: psi={}, rho={}, omega={}",
+                psi, rho, omega
+            )));
         }
-        
+
         // Build weighted vector z'
         let mut z_prime = Vec::with_capacity(8);
         for i in 0..5 {
@@ -124,21 +128,25 @@ impl Vector8Builder {
         z_prime.push(self.weights.psi * psi);
         z_prime.push(self.weights.rho * rho);
         z_prime.push(self.weights.omega * omega);
-        
+
         // Normalize to unit length
         let norm: f64 = z_prime.iter().map(|x| x * x).sum::<f64>().sqrt();
-        
+
         if norm < 1e-10 {
             return Err(MetricError::ZeroNorm);
         }
-        
+
         let z_hat: Vec<f64> = z_prime.iter().map(|x| x / norm).collect();
-        
+
         Ok(z_hat)
     }
-    
+
     /// Build 8D vector using ndarray (for compatibility with numerical code)
-    pub fn build_array(&self, x5: &[f64], sigma: (f64, f64, f64)) -> Result<Array1<f64>, MetricError> {
+    pub fn build_array(
+        &self,
+        x5: &[f64],
+        sigma: (f64, f64, f64),
+    ) -> Result<Array1<f64>, MetricError> {
         let vec = self.build(x5, sigma)?;
         Ok(Array1::from_vec(vec))
     }
@@ -153,13 +161,13 @@ mod tests {
         let builder = Vector8Builder::default();
         let x5 = vec![0.1, 0.2, 0.3, 0.4, 0.5];
         let sigma = (0.3, 0.3, 0.4);
-        
+
         let result = builder.build(&x5, sigma);
         assert!(result.is_ok());
-        
+
         let z_hat = result.unwrap();
         assert_eq!(z_hat.len(), 8);
-        
+
         // Check normalization
         let norm: f64 = z_hat.iter().map(|x| x * x).sum::<f64>().sqrt();
         assert!((norm - 1.0).abs() < 1e-9);
@@ -173,13 +181,13 @@ mod tests {
             rho: 1.0,
             omega: 1.0,
         };
-        
+
         let builder = Vector8Builder::new(weights);
         let x5 = vec![0.1, 0.1, 0.1, 0.1, 0.1];
         let sigma = (0.3, 0.3, 0.4);
-        
+
         let z_hat = builder.build(&x5, sigma).unwrap();
-        
+
         // After normalization, the relationship depends on the relative magnitudes
         // Spatial components are weighted 2x, but there are 5 of them vs 3 spectral
         // Just verify the vector is valid
@@ -193,7 +201,7 @@ mod tests {
         let builder = Vector8Builder::default();
         let x4 = vec![0.1, 0.2, 0.3, 0.4]; // Wrong size
         let sigma = (0.3, 0.3, 0.4);
-        
+
         let result = builder.build(&x4, sigma);
         assert!(result.is_err());
     }
@@ -203,10 +211,10 @@ mod tests {
         let builder = Vector8Builder::default();
         let x5 = vec![0.1, 0.2, 0.3, 0.4, 0.5];
         let sigma = (0.3, 0.3, 0.4);
-        
+
         let z1 = builder.build(&x5, sigma).unwrap();
         let z2 = builder.build(&x5, sigma).unwrap();
-        
+
         assert_eq!(z1, z2);
     }
 
@@ -215,7 +223,7 @@ mod tests {
         let builder = Vector8Builder::default();
         let x5 = vec![0.0, 0.0, 0.0, 0.0, 0.0];
         let sigma = (0.0, 0.0, 0.0);
-        
+
         let result = builder.build(&x5, sigma);
         assert!(matches!(result, Err(MetricError::ZeroNorm)));
     }

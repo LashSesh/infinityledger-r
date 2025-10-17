@@ -7,7 +7,7 @@ fn test_config_loading() {
     // Load config from fixtures
     let config = ExtensionConfig::load("tests/fixtures/test_config.yaml")
         .expect("Failed to load test config");
-    
+
     // Verify configuration loaded correctly
     assert!(config.mef.extension.knowledge.enabled);
     assert!(config.mef.extension.memory.enabled);
@@ -21,13 +21,13 @@ fn test_full_pipeline() {
     // Load config
     let config = ExtensionConfig::load("tests/fixtures/test_config.yaml")
         .expect("Failed to load test config");
-    
+
     // Create pipeline
     let mut pipeline = ExtensionPipeline::new(config.mef.extension.clone());
-    
+
     // Verify pipeline is enabled
     assert!(pipeline.is_enabled());
-    
+
     // Test vector construction - create a valid 8D normalized vector
     let val = 1.0 / (8.0_f64).sqrt();
     let vector = vec![val; 8];
@@ -36,27 +36,24 @@ fn test_full_pipeline() {
         rho: 0.3,
         omega: 0.4,
     };
-    
-    let item = MemoryItem::new(
-        "test_001".to_string(),
-        vector,
-        spectral,
-        None,
-    ).expect("Failed to create memory item");
-    
+
+    let item = MemoryItem::new("test_001".to_string(), vector, spectral, None)
+        .expect("Failed to create memory item");
+
     // Store in memory
     pipeline.store_memory(item).expect("Failed to store memory");
-    
+
     // Test route selection
     let mut metrics = HashMap::new();
     metrics.insert("betti".to_string(), 2.0);
     metrics.insert("lambda_gap".to_string(), 0.5);
     metrics.insert("persistence".to_string(), 0.3);
-    
-    let route = pipeline.select_route("test_seed", &metrics)
+
+    let route = pipeline
+        .select_route("test_seed", &metrics)
         .expect("Failed to select route");
     assert!(route.is_some());
-    
+
     // Verify route has valid permutation
     let route_spec = route.unwrap();
     assert_eq!(route_spec.permutation.len(), 7);
@@ -65,11 +62,10 @@ fn test_full_pipeline() {
 #[test]
 fn test_disabled_pipeline() {
     use mef_knowledge::config::{
-        ExtensionSettings, KnowledgeConfig, MemoryConfig, RouterConfig,
-        InferenceSettings, DerivationSettings, BackendConfigs, InMemoryConfig,
-        ServiceConfig, CacheConfig,
+        BackendConfigs, CacheConfig, DerivationSettings, ExtensionSettings, InMemoryConfig,
+        InferenceSettings, KnowledgeConfig, MemoryConfig, RouterConfig, ServiceConfig,
     };
-    
+
     // Create config with all disabled
     let config = ExtensionSettings {
         knowledge: KnowledgeConfig {
@@ -105,9 +101,9 @@ fn test_disabled_pipeline() {
             },
         },
     };
-    
+
     let pipeline = ExtensionPipeline::new(config);
-    
+
     // Should not be enabled
     assert!(!pipeline.is_enabled());
 }
@@ -115,11 +111,10 @@ fn test_disabled_pipeline() {
 #[test]
 fn test_memory_only_pipeline() {
     use mef_knowledge::config::{
-        ExtensionSettings, KnowledgeConfig, MemoryConfig, RouterConfig,
-        InferenceSettings, DerivationSettings, BackendConfigs, InMemoryConfig,
-        ServiceConfig, CacheConfig,
+        BackendConfigs, CacheConfig, DerivationSettings, ExtensionSettings, InMemoryConfig,
+        InferenceSettings, KnowledgeConfig, MemoryConfig, RouterConfig, ServiceConfig,
     };
-    
+
     // Create config with only memory enabled
     let config = ExtensionSettings {
         knowledge: KnowledgeConfig {
@@ -155,12 +150,12 @@ fn test_memory_only_pipeline() {
             },
         },
     };
-    
+
     let mut pipeline = ExtensionPipeline::new(config);
-    
+
     // Should be enabled (memory is on)
     assert!(pipeline.is_enabled());
-    
+
     // Test memory storage
     let val = 1.0 / (8.0_f64).sqrt();
     let vector = vec![val; 8];
@@ -169,22 +164,22 @@ fn test_memory_only_pipeline() {
         rho: 0.3,
         omega: 0.4,
     };
-    
-    let item = MemoryItem::new(
-        "test_memory_only".to_string(),
-        vector,
-        spectral,
-        None,
-    ).expect("Failed to create memory item");
-    
+
+    let item = MemoryItem::new("test_memory_only".to_string(), vector, spectral, None)
+        .expect("Failed to create memory item");
+
     // Should succeed
     pipeline.store_memory(item).expect("Failed to store memory");
-    
+
     // Router should return None
     let mut metrics = HashMap::new();
     metrics.insert("betti".to_string(), 2.0);
-    
-    let route = pipeline.select_route("test_seed", &metrics)
+
+    let route = pipeline
+        .select_route("test_seed", &metrics)
         .expect("Route selection should not error");
-    assert!(route.is_none(), "Route should be None when router is disabled");
+    assert!(
+        route.is_none(),
+        "Route should be None when router is disabled"
+    );
 }

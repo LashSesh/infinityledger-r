@@ -24,9 +24,7 @@ fn canonicalize_value(value: &Value) -> Value {
             }
             Value::Object(canonical_map.into_iter().collect())
         }
-        Value::Array(arr) => {
-            Value::Array(arr.iter().map(canonicalize_value).collect())
-        }
+        Value::Array(arr) => Value::Array(arr.iter().map(canonicalize_value).collect()),
         Value::Number(n) => {
             if let Some(f) = n.as_f64() {
                 // Round to 6 decimal places for determinism
@@ -52,7 +50,7 @@ mod tests {
             "apple": 2,
             "monkey": 3
         });
-        
+
         let canonical = canonical_json(&data).unwrap();
         // Keys should be in alphabetical order
         assert!(canonical.contains(r#""apple":2"#));
@@ -68,7 +66,7 @@ mod tests {
         let data = json!({
             "value": 0.123456789
         });
-        
+
         let canonical = canonical_json(&data).unwrap();
         // Should be rounded to 6 decimals
         assert!(canonical.contains("0.123457") || canonical.contains("0.123456"));
@@ -81,7 +79,7 @@ mod tests {
             "a": 2.222222222,
             "m": 3.333333333
         });
-        
+
         let canonical1 = canonical_json(&data).unwrap();
         let canonical2 = canonical_json(&data).unwrap();
         assert_eq!(canonical1, canonical2);
