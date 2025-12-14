@@ -1,6 +1,5 @@
 # Infinity Ledger (MEF-Core)
 
-[![CI/CD](https://github.com/LashSesh/infinityledger/workflows/Rust%20CI/CD/badge.svg)](https://github.com/LashSesh/infinityledger/actions)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 
 **Infinity Ledger** is a high-performance, enterprise-grade **proof-carrying vector ledger engine** built on the MEF-Core (Mandorla Eigenstate Fractals) system. Written entirely in Rust for maximum performance, safety, and reliability.
